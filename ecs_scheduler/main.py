@@ -4,6 +4,7 @@ import logging
 import ecs_scheduler.webapi.server
 import ecs_scheduler.scheduld.app
 import ecs_scheduler.taskdemo.app
+from setuptools_scm import get_version
 from ecs_scheduler import init, jobtasks
 
 def main():
@@ -17,7 +18,7 @@ def main():
         config = init.config()
         queue = jobtasks.SqsTaskQueue(config['aws'])
 
-        logging.info('ECS Scheduler v%s', ecs_scheduler.__version__)
+        logging.info('ECS Scheduler v%s', get_version())
         if config.get('service_name') == 'webapi':
             ecs_scheduler.webapi.server.run(config, queue)
         elif config.get('service_name') == 'scheduld':
