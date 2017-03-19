@@ -3,7 +3,7 @@ from unittest.mock import patch
 from ecs_scheduler.main import main
 
 
-@patch('ecs_scheduler.testdemo.app.run')
+@patch('ecs_scheduler.taskdemo.app.run')
 @patch('ecs_scheduler.scheduld.app.run')
 @patch('ecs_scheduler.webapi.server.run')
 @patch('ecs_scheduler.main.jobtasks.SqsTaskQueue')
@@ -31,7 +31,7 @@ class MainTests(unittest.TestCase):
         self.assertFalse(fake_server_run.called)
         self.assertFalse(fake_demo_run.called)
 
-    def test_run_testdemo(self, fake_init, fake_queue_class, fake_server_run, fake_app_run, fake_demo_run):
+    def test_run_taskdemo(self, fake_init, fake_queue_class, fake_server_run, fake_app_run, fake_demo_run):
         fake_init.config.return_value = {'aws': 'foo', 'service_name': 'who knows'}
 
         main()

@@ -6,7 +6,7 @@ import os
 
 def run():
     """Run the demo and do useless work for ~20 seconds"""
-    logging.info('Starting testdemo...')
+    logging.info('Starting taskdemo...')
     logging.info('ENV: %s', os.environ)
     time.sleep(2)
 
@@ -23,4 +23,4 @@ def run():
     time.sleep(5)
 
     logging.info('[====================] - 100% complete')
-    logging.info('[✔︎] testdemo complete!')
+    logging.info('[✔︎] taskdemo complete!')

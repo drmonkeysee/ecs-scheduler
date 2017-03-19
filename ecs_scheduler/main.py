@@ -3,8 +3,8 @@ import sys
 import logging
 import ecs_scheduler.webapi.server
 import ecs_scheduler.scheduld.app
-import ecs_scheduler.testdemo.app
-from src import init, jobtasks
+import ecs_scheduler.taskdemo.app
+from ecs_scheduler import init, jobtasks
 
 def main():
     """
@@ -23,7 +23,7 @@ def main():
         elif config.get('service_name') == 'scheduld':
             ecs_scheduler.scheduld.app.run(config, queue)
         else:
-            ecs_scheduler.testdemo.app.run()
+            ecs_scheduler.taskdemo.app.run()
     except Exception:
         logging.critical('unhandled scheduler exception', exc_info=True)
         raise

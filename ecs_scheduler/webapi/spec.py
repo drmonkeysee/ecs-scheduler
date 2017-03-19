@@ -2,7 +2,7 @@
 import flask
 import flask_restful
 import flask_swagger
-import src
+import ecs_scheduler
 
 
 class Spec(flask_restful.Resource):
