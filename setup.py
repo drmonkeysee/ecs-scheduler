@@ -28,6 +28,7 @@ setup(
     author='Brandon Stansbury',
     author_email='brandonrstansbury@gmail.com',
     license='MIT',
+    platforms='any',
 
     classifiers=[
         'Development Status :: 4 - Beta',
@@ -35,11 +36,14 @@ setup(
         'Intended Audience :: Developers',
         'Topic :: Utilities',
 
-        'Framework :: Flask',
-
         'License :: OSI Approved :: MIT License',
+        'Natural Language :: English',
 
+        'Framework :: Flask',
+        'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6',
+        'Environment :: Web Environment',
+        'Operating System :: OS Independent'
     ],
     keywords='aws ecs docker scheduler scheduling rest',
     
