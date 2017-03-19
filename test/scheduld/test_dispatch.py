@@ -21,10 +21,10 @@ class RunTests(unittest.TestCase):
         with self.assertRaises(RunTestException):
             run(self._fake_queue, self._fake_sched, self._fake_store, self._config)
 
-        self.assertTrue(fake_critlog.called)
-        self.assertTrue(fake_exlog.called)
+        fake_critlog.assert_called()
+        fake_exlog.assert_called()
         self._fake_sched.stop.assert_called_with()
-        self.assertFalse(fake_sleep.called)
+        fake_sleep.assert_not_called()
 
     def test_run_does_nothing_if_no_tasks(self, fake_critlog, fake_exlog, fake_sleep):
         self._fake_queue.get.side_effect = None, RunTestException
@@ -32,9 +32,9 @@ class RunTests(unittest.TestCase):
         with self.assertRaises(RunTestException):
             run(self._fake_queue, self._fake_sched, self._fake_store, self._config)
 
-        self.assertFalse(self._fake_sched.add_job.called)
-        self.assertFalse(self._fake_sched.modify_job.called)
-        self.assertFalse(self._fake_sched.remove_job.called)
+        self._fake_sched.add_job.assert_not_called()
+        self._fake_sched.modify_job.assert_not_called()
+        self._fake_sched.remove_job.assert_not_called()
         fake_sleep.assert_called_with(10)
 
     def test_run_does_not_complete_task_if_job_op_malformed(self, fake_critlog, fake_exlog, fake_sleep):
@@ -45,7 +45,7 @@ class RunTests(unittest.TestCase):
         with self.assertRaises(RunTestException):
             run(self._fake_queue, self._fake_sched, self._fake_store, self._config)
 
-        self.assertFalse(fake_task.complete.called)
+        fake_task.complete.assert_not_called()
         fake_sleep.assert_called_with(10)
 
     def test_run_dispatches_add_job(self, fake_critlog, fake_exlog, fake_sleep):
@@ -85,7 +85,7 @@ class RunTests(unittest.TestCase):
         with self.assertRaises(RunTestException):
             run(self._fake_queue, self._fake_sched, self._fake_store, self._config)
 
-        self.assertFalse(self._fake_store.get.called)
+        self._fake_store.get.assert_not_called()
         self._fake_sched.remove_job.assert_called_with('test_job')
         fake_task.complete.assert_called_with()
         fake_sleep.assert_called_with(10)
@@ -101,8 +101,8 @@ class RunTests(unittest.TestCase):
             run(self._fake_queue, self._fake_sched, self._fake_store, self._config)
 
         self._fake_store.get.assert_called_with('test_job')
-        self.assertFalse(self._fake_sched.add_job.called)
-        self.assertFalse(fake_task.complete.called)
+        self._fake_sched.add_job.assert_not_called()
+        fake_task.complete.assert_not_called()
         fake_sleep.assert_called_with(10)
 
     def test_run_does_not_complete_task_if_unknown_job_operation(self, fake_critlog, fake_exlog, fake_sleep):
@@ -115,11 +115,11 @@ class RunTests(unittest.TestCase):
         with self.assertRaises(RunTestException):
             run(self._fake_queue, self._fake_sched, self._fake_store, self._config)
 
-        self.assertFalse(self._fake_store.get.called)
-        self.assertFalse(self._fake_sched.add_job.called)
-        self.assertFalse(self._fake_sched.modify_job.called)
-        self.assertFalse(self._fake_sched.remove_job.called)
-        self.assertFalse(fake_task.complete.called)
+        self._fake_store.get.assert_not_called()
+        self._fake_sched.add_job.assert_not_called()
+        self._fake_sched.modify_job.assert_not_called()
+        self._fake_sched.remove_job.assert_not_called()
+        fake_task.complete.assert_not_called()
         fake_sleep.assert_called_with(10)
 
 

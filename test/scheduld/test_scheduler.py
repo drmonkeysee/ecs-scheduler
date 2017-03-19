@@ -128,7 +128,7 @@ class SchedulerTests(unittest.TestCase):
         
         self._sched.remove_job(job_id)
 
-        self.assertTrue(fake_log.called)
+        fake_log.assert_called()
 
 
 class ScheduleEventHandlerTests(unittest.TestCase):
@@ -142,7 +142,7 @@ class ScheduleEventHandlerTests(unittest.TestCase):
 
         self._handler(event)
 
-        self.assertTrue(fake_log.called)
+        fake_log.assert_called()
 
     @patch('logging.error')
     def test_error_with_no_exception_gets_logged(self, fake_log):
@@ -151,7 +151,7 @@ class ScheduleEventHandlerTests(unittest.TestCase):
 
         self._handler(event)
 
-        self.assertTrue(fake_log.called)
+        fake_log.assert_called()
 
     @patch('logging.error')
     def test_missed_job_gets_logged(self, fake_log):
@@ -160,7 +160,7 @@ class ScheduleEventHandlerTests(unittest.TestCase):
 
         self._handler(event)
 
-        self.assertTrue(fake_log.called)
+        fake_log.assert_called()
 
     @patch('logging.warning')
     def test_non_exception_gets_logged(self, fake_log):
@@ -169,7 +169,7 @@ class ScheduleEventHandlerTests(unittest.TestCase):
 
         self._handler(event)
 
-        self.assertTrue(fake_log.called)
+        fake_log.assert_called()
 
     def test_checked_tasks_updates_estimated_next_run(self):
         event = apscheduler.events.JobExecutionEvent(apscheduler.events.EVENT_JOB_EXECUTED,
@@ -189,7 +189,7 @@ class ScheduleEventHandlerTests(unittest.TestCase):
 
         self._handler(event)
 
-        self.assertFalse(self._handler._store.update.called)
+        self._handler._store.update.assert_not_called()
 
     @patch('logging.exception')
     def test_checked_tasks_records_exception_if_update_fails(self, fake_log):
@@ -202,7 +202,7 @@ class ScheduleEventHandlerTests(unittest.TestCase):
         self._handler(event)
 
         self._handler._store.update.assert_called_with('test_id', {'estimatedNextRun': test_scheduled_job.next_run_time})
-        self.assertTrue(fake_log.called)
+        fake_log.assert_called()
 
     @patch('logging.warning')
     def test_checked_tasks_logs_warning_if_job_not_found(self, fake_log):
@@ -212,8 +212,8 @@ class ScheduleEventHandlerTests(unittest.TestCase):
         
         self._handler(event)
 
-        self.assertFalse(self._handler._store.update.called)
-        self.assertTrue(fake_log.called)
+        self._handler._store.update.assert_not_called()
+        fake_log.assert_called()
 
     def test_started_tasks_updates_dates(self):
         expected_last_run_time = datetime.datetime(2013, 11, 11)
@@ -249,7 +249,7 @@ class ScheduleEventHandlerTests(unittest.TestCase):
         self._handler(event)
 
         self._handler._store.update.assert_called_with('test_id', {'estimatedNextRun': test_scheduled_job.next_run_time, 'lastRun': expected_last_run_time, 'lastRunTasks': ['foo', 'bar']})
-        self.assertTrue(fake_log.called)
+        fake_log.assert_called()
 
     @patch('logging.warning')
     def test_started_tasks_logs_warning_if_job_not_found(self, fake_log):
@@ -260,8 +260,8 @@ class ScheduleEventHandlerTests(unittest.TestCase):
         
         self._handler(event)
 
-        self.assertFalse(self._handler._store.update.called)
-        self.assertTrue(fake_log.called)
+        self._handler._store.update.assert_not_called()
+        fake_log.assert_called()
 
     @patch('logging.warning')
     def test_successful_execute_logs_warning_if_unknown_retval(self, fake_log):
@@ -271,8 +271,8 @@ class ScheduleEventHandlerTests(unittest.TestCase):
         
         self._handler(event)
 
-        self.assertFalse(self._handler._store.update.called)
-        self.assertTrue(fake_log.called)
+        self._handler._store.update.assert_not_called()
+        fake_log.assert_called()
 
     def test_add_job_updates_estimated_next_run(self):
         event = apscheduler.events.JobExecutionEvent(apscheduler.events.EVENT_JOB_ADDED,
@@ -292,7 +292,7 @@ class ScheduleEventHandlerTests(unittest.TestCase):
 
         self._handler(event)
 
-        self.assertFalse(self._handler._store.update.called)
+        self._handler._store.update.assert_not_called()
 
     @patch('logging.exception')
     def test_add_job_records_exception_if_update_fails(self, fake_log):
@@ -305,7 +305,7 @@ class ScheduleEventHandlerTests(unittest.TestCase):
         self._handler(event)
 
         self._handler._store.update.assert_called_with('test_id', {'estimatedNextRun': test_scheduled_job.next_run_time})
-        self.assertTrue(fake_log.called)
+        fake_log.assert_called()
 
     @patch('logging.warning')
     def test_add_job_logs_warning_if_job_not_found(self, fake_log):
@@ -315,8 +315,8 @@ class ScheduleEventHandlerTests(unittest.TestCase):
         
         self._handler(event)
 
-        self.assertFalse(self._handler._store.update.called)
-        self.assertTrue(fake_log.called)
+        self._handler._store.update.assert_not_called()
+        fake_log.assert_called()
 
     def test_modify_job_updates_estimated_next_run(self):
         event = apscheduler.events.JobExecutionEvent(apscheduler.events.EVENT_JOB_MODIFIED,
@@ -336,7 +336,7 @@ class ScheduleEventHandlerTests(unittest.TestCase):
 
         self._handler(event)
 
-        self.assertFalse(self._handler._store.update.called)
+        self._handler._store.update.assert_not_called()
 
     @patch('logging.exception')
     def test_modify_job_records_exception_if_update_fails(self, fake_log):
@@ -349,7 +349,7 @@ class ScheduleEventHandlerTests(unittest.TestCase):
         self._handler(event)
 
         self._handler._store.update.assert_called_with('test_id', {'estimatedNextRun': test_scheduled_job.next_run_time})
-        self.assertTrue(fake_log.called)
+        fake_log.assert_called()
 
     @patch('logging.warning')
     def test_modify_job_logs_warning_if_job_not_found(self, fake_log):
@@ -359,5 +359,5 @@ class ScheduleEventHandlerTests(unittest.TestCase):
         
         self._handler(event)
 
-        self.assertFalse(self._handler._store.update.called)
-        self.assertTrue(fake_log.called)
+        self._handler._store.update.assert_not_called()
+        fake_log.assert_called()

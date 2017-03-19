@@ -18,7 +18,7 @@ class JobExecutorTests(unittest.TestCase):
         result = self._exec(id='foo')
 
         self.assertEqual(JobExecutor.RETVAL_CHECKED_TASKS, result.return_code)
-        self.assertFalse(self._exec._ecs.run_task.called)
+        self._exec._ecs.run_task.assert_not_called()
         fake_get_trigger.assert_called_with(None)
 
     def test_call_passes_trigger_type_if_available(self, fake_get_trigger):
@@ -41,7 +41,7 @@ class JobExecutorTests(unittest.TestCase):
         result = self._exec(id='foo')
 
         self.assertEqual(JobExecutor.RETVAL_CHECKED_TASKS, result.return_code)
-        self.assertFalse(self._exec._ecs.run_task.called)
+        self._exec._ecs.run_task.assert_not_called()
         fake_get_trigger.assert_called_with(None)
 
     def test_call_does_nothing_if_more_than_expected_task_count(self, fake_get_trigger):
@@ -53,7 +53,7 @@ class JobExecutorTests(unittest.TestCase):
         result = self._exec(id='foo')
 
         self.assertEqual(JobExecutor.RETVAL_CHECKED_TASKS, result.return_code)
-        self.assertFalse(self._exec._ecs.run_task.called)
+        self._exec._ecs.run_task.assert_not_called()
         fake_get_trigger.assert_called_with(None)
 
     def test_call_launches_tasks_if_none_running(self, fake_get_trigger):
@@ -85,7 +85,7 @@ class JobExecutorTests(unittest.TestCase):
         self.assertEqual([{'taskId': 'foo1', 'hostId': 'bar1'}, {'taskId': 'foo2', 'hostId': 'bar2'}], result.task_info)
         self._exec._ecs.run_task.assert_called_with(cluster='testCluster', taskDefinition='foo', count=3, startedBy='testName')
         fake_get_trigger.assert_called_with(None)
-        self.assertTrue(fake_log.called)
+        fake_log.assert_called()
 
     @patch('logging.warning')
     def test_call_logs_warning_if_all_tasks_fail(self, fake_log, fake_get_trigger):
@@ -101,7 +101,7 @@ class JobExecutorTests(unittest.TestCase):
         self.assertEqual([], result.task_info)
         self._exec._ecs.run_task.assert_called_with(cluster='testCluster', taskDefinition='foo', count=3, startedBy='testName')
         fake_get_trigger.assert_called_with(None)
-        self.assertTrue(fake_log.called)
+        fake_log.assert_called()
 
     def test_call_launches_tasks_if_some_running(self, fake_get_trigger):
         fake_trigger = Mock()
@@ -404,7 +404,7 @@ class JobExecutorTests(unittest.TestCase):
             count=3,
             startedBy='testName',
             overrides=unittest.mock.ANY)
-        self.assertFalse(self._exec._ecs.describe_tasks.called)
+        self._exec._ecs.describe_tasks.assert_not_called()
         self._assert_equal_overrides(expected_overrides, self._exec._ecs.run_task.call_args[1]['overrides'])
         fake_get_trigger.assert_called_with(None)
 
@@ -429,7 +429,7 @@ class JobExecutorTests(unittest.TestCase):
             count=3,
             startedBy='testName',
             overrides=unittest.mock.ANY)
-        self.assertFalse(self._exec._ecs.describe_tasks.called)
+        self._exec._ecs.describe_tasks.assert_not_called()
         self._assert_equal_overrides(expected_overrides, self._exec._ecs.run_task.call_args[1]['overrides'])
         fake_get_trigger.assert_called_with(None)
 

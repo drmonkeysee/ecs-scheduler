@@ -105,7 +105,7 @@ class JobsTests(unittest.TestCase):
         response = self._jobs.post.__wrapped__(self._jobs)
 
         self._fake_es.create.assert_called_with('foobar', {'taskCount': 1, 'schedule': '*', 'taskDefinition': 'foobar'})
-        self.assertTrue(self._fake_queue.put.called)
+        self._fake_queue.put.assert_called()
         job_op_args, k = self._fake_queue.put.call_args
         self.assertEqual(1, len(job_op_args))
         self.assertEqual(ecs_scheduler.models.JobOperation.ADD, job_op_args[0].operation)
@@ -197,7 +197,7 @@ class JobTests(unittest.TestCase):
         response = self._job.put.__wrapped__(self._job, 'foobar')
 
         self._fake_es.update.assert_called_with('foobar', {'taskCount': 30})
-        self.assertTrue(self._fake_queue.put.called)
+        self._fake_queue.put.assert_called()
         job_op_args, k = self._fake_queue.put.call_args
         self.assertEqual(1, len(job_op_args))
         self.assertEqual(ecs_scheduler.models.JobOperation.MODIFY, job_op_args[0].operation)
@@ -215,7 +215,7 @@ class JobTests(unittest.TestCase):
         response = self._job.put.__wrapped__(self._job, 'foobar')
 
         self._fake_es.update.assert_called_with('foobar', {'taskCount': 30, 'schedule': '*'})
-        self.assertTrue(self._fake_queue.put.called)
+        self._fake_queue.put.assert_called()
         job_op_args, k = self._fake_queue.put.call_args
         self.assertEqual(1, len(job_op_args))
         self.assertEqual(ecs_scheduler.models.JobOperation.MODIFY, job_op_args[0].operation)
@@ -264,7 +264,7 @@ class JobTests(unittest.TestCase):
         response = self._job.delete('foobar')
 
         self._fake_es.delete.assert_called_with('foobar')
-        self.assertTrue(self._fake_queue.put.called)
+        self._fake_queue.put.assert_called()
         job_op_args, k = self._fake_queue.put.call_args
         self.assertEqual(1, len(job_op_args))
         self.assertEqual(ecs_scheduler.models.JobOperation.REMOVE, job_op_args[0].operation)

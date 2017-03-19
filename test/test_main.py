@@ -17,8 +17,8 @@ class MainTests(unittest.TestCase):
         fake_init.env.assert_called_with()
         fake_queue_class.assert_called_with('foo')
         fake_server_run.assert_called_with(fake_init.config.return_value, fake_queue_class.return_value)
-        self.assertFalse(fake_app_run.called)
-        self.assertFalse(fake_demo_run.called)
+        fake_app_run.assert_not_called()
+        fake_demo_run.assert_not_called()
 
     def test_run_scheduld(self, fake_init, fake_queue_class, fake_server_run, fake_app_run, fake_demo_run):
         fake_init.config.return_value = {'aws': 'foo', 'service_name': 'scheduld'}
@@ -28,8 +28,8 @@ class MainTests(unittest.TestCase):
         fake_init.env.assert_called_with()
         fake_queue_class.assert_called_with('foo')
         fake_app_run.assert_called_with(fake_init.config.return_value, fake_queue_class.return_value)
-        self.assertFalse(fake_server_run.called)
-        self.assertFalse(fake_demo_run.called)
+        fake_server_run.assert_not_called()
+        fake_demo_run.assert_not_called()
 
     def test_run_taskdemo(self, fake_init, fake_queue_class, fake_server_run, fake_app_run, fake_demo_run):
         fake_init.config.return_value = {'aws': 'foo', 'service_name': 'who knows'}
@@ -39,8 +39,8 @@ class MainTests(unittest.TestCase):
         fake_init.env.assert_called_with()
         fake_queue_class.assert_called_with('foo')
         fake_demo_run.assert_called_with()
-        self.assertFalse(fake_server_run.called)
-        self.assertFalse(fake_app_run.called)
+        fake_server_run.assert_not_called()
+        fake_app_run.assert_not_called()
 
     @patch('logging.critical')
     def test_run_raises_exceptions(self, fake_log, fake_init, fake_queue_class, fake_server_run, fake_app_run, fake_demo_run):
@@ -49,4 +49,4 @@ class MainTests(unittest.TestCase):
         with self.assertRaises(Exception):
             main()
 
-        self.assertTrue(fake_log.called)
+        fake_log.assert_called()

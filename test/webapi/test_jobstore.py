@@ -13,7 +13,7 @@ class JobStoreTests(unittest.TestCase):
     def test_ctor_initializes_es(self):
         with patch('elasticsearch.Elasticsearch') as fake_es:
             store = JobStore(self._test_config)
-            self.assertTrue(fake_es.called)
+            fake_es.assert_called()
             expected_args = fake_es.call_args[1]
             self.assertEqual(self._test_config['index'], store._index)
 

@@ -88,7 +88,7 @@ class MsgTaskTests(unittest.TestCase):
 
         task.complete()
 
-        self.assertFalse(fake_msg.delete.called)
+        fake_msg.delete.assert_not_called()
 
     def test_complete_does_not_delete_message_if_get_failed(self):
         fake_msg = Mock(body='{"job_id": "testId", "operation": "notANum"}', message_id='foo')
@@ -102,4 +102,4 @@ class MsgTaskTests(unittest.TestCase):
         task.complete()
 
         self.assertTrue(saw_exception)
-        self.assertFalse(fake_msg.delete.called)
+        fake_msg.delete.assert_not_called()
