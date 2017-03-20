@@ -10,14 +10,12 @@ install_requires = [
     'boto3',
     'elasticsearch',
     'flask-swagger',
-    'Flask-Cors'
-]
-setup_requires = [
-    'setuptools_scm',
-    'wheel'
+    'Flask-Cors',
+    'setuptools_scm'
 ]
 with open('README.md') as f:
     long_description = f.read()
+
 
 setup(
     name='ecs-scheduler',
@@ -49,6 +47,5 @@ setup(
     
     packages=find_packages(exclude=['test']),
     install_requires=install_requires,
-    setup_requires=setup_requires,
     test_suite='test'
 )
