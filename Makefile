@@ -1,6 +1,5 @@
-VENV := venv
 CURRENT_PY := $(shell which python3)
-EXPECTED_BIN := $(PWD)/$(VENV)/bin/python3
+VENV_PY := $(PWD)/venv/bin/python3
 PY := python3
 
 define VENV_ERROR
@@ -31,6 +30,6 @@ clean:
 
 # verify virtual env is set
 venv:
-ifneq ($(CURRENT_PY), $(EXPECTED_BIN))
+ifneq ($(CURRENT_PY), $(VENV_PY))
 	$(error $(VENV_ERROR))
 endif
