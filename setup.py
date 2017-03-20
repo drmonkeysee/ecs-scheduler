@@ -1,18 +1,8 @@
 from setuptools import setup, find_packages
 
 
-install_requires = [
-    'PyYAML',
-    'Flask-RESTful',
-    'marshmallow',
-    'python-dateutil',
-    'APScheduler',
-    'boto3',
-    'elasticsearch',
-    'flask-swagger',
-    'Flask-Cors',
-    'setuptools_scm'
-]
+with open('requirements.txt') as f:
+    install_requires = f.read().splitlines()
 setup_requires = [
     'setuptools_scm',
     'wheel'
