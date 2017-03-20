@@ -13,6 +13,10 @@ install_requires = [
     'Flask-Cors',
     'setuptools_scm'
 ]
+setup_requires = [
+    'setuptools_scm',
+    'wheel'
+]
 with open('README.md') as f:
     long_description = f.read()
 
@@ -47,5 +51,6 @@ setup(
     
     packages=find_packages(exclude=['test']),
     install_requires=install_requires,
+    setup_requires=setup_requires,
     test_suite='test'
 )

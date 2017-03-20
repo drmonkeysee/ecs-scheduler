@@ -12,13 +12,22 @@ Must activate virtual environment:
 Execute the above if virtual env is not set up
 endef
 
-.PHONY: venv check
+.PHONY: venv build check test
 
-check: venv
+# build wheel package
+build:
+	$(PY) setup.py bdist_wheel
+
+# execute tests via setup
+check: build
+	$(PY) setup.py test
+
+# execute tests in development environment
+test: venv
 	$(PY) -m unittest
 
+# verify virtual env is set
 venv:
 ifneq ($(CURRENT_PY), $(EXPECTED_BIN))
 	$(error $(VENV_ERROR))
 endif
-
