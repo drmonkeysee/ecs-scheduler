@@ -2,7 +2,7 @@
 import logging
 import flask
 import flask_restful
-import flask.ext.cors
+import flask_cors
 from .home import Home
 from .spec import Spec
 from .jobs import Jobs, Job
@@ -21,7 +21,7 @@ def run(config, task_queue):
     :param task_queue: Job task queue for sending job operations to the scheduler daemon
     """
     _app = flask.Flask(__name__)
-    flask.ext.cors.CORS(_app, allow_headers='Content-Type')
+    flask_cors.CORS(_app, allow_headers='Content-Type')
     _api = flask_restful.Api(_app, catch_all_404s=True)
 
     _api.add_resource(Home, '/')

@@ -6,7 +6,7 @@ from ecs_scheduler.webapi import server
 
 
 @patch.object(server, 'JobStore')
-@patch('flask.ext.cors.CORS')
+@patch('flask_cors.CORS')
 @patch('flask_restful.Api')
 @patch('flask.Flask')
 class ServerTests(unittest.TestCase):
