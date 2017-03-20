@@ -1,0 +1,11 @@
+PyYAML
+Flask-RESTful
+marshmallow
+python-dateutil
+APScheduler
+boto3
+elasticsearch
+flask-swagger
+Flask-Cors
+setuptools_scm
+wheel
