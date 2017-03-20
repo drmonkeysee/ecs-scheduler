@@ -8,4 +8,3 @@ elasticsearch
 flask-swagger
 Flask-Cors
 setuptools_scm
-wheel
