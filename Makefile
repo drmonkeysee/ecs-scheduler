@@ -12,7 +12,7 @@ Must activate virtual environment:
 Execute the above if virtual env is not set up
 endef
 
-.PHONY: venv build check test
+.PHONY: venv build check test clean
 
 # build wheel package
 build:
@@ -25,6 +25,9 @@ check: build
 # execute tests in development environment
 test: venv
 	$(PY) -m unittest
+
+clean:
+	rm -rf .eggs build dist ecs_scheduler.egg-info venv
 
 # verify virtual env is set
 venv:
