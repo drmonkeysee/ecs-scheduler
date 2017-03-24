@@ -5,6 +5,8 @@ A scheduler for executing ECS docker tasks, controlled via a JSON REST API. Adap
 - **webapi**: a REST web application providing the scheduler UI. this is used to create, modify, and remove scheduled jobs
 - **scheduld**: the scheduler daemon that actually runs scheduled jobs and talks to ECS to start tasks
 
+DESCRIBE WHY HERE
+
 ## PROVISIONAL RELEASE
 
 This particular version of ECS Scheduler is a nearly direct rip from the internal Openmail project and as such is designed to be run as a standalone application. Later release of this project will expose it as a pip-installable package with greater flexibility in hosting and running the scheduler components.
@@ -47,16 +49,27 @@ webapi runs as a self-hosted Flask server. The usage pattern of webapi makes it 
 
 ### Swagger
 
-webapi provdes a swagger spec at `/spec`. This spec can be read by [Swagger UI](https://github.com/swagger-api/swagger-ui). You can either build [Swagger UI](https://github.com/swagger-api/swagger-ui) yourself or point official [Swagger test site](http://petstore.swagger.io/) at it. For full documentation of the webapi interface consult the swagger documention.
+webapi provides a swagger spec at `/spec`. This spec can be read by [Swagger UI](https://github.com/swagger-api/swagger-ui). You can either build [Swagger UI](https://github.com/swagger-api/swagger-ui) yourself or point official [Swagger test site](http://petstore.swagger.io/) at it. For full documentation of the webapi interface consult the swagger spec. What follows is a brief overview.
 
-Note that when creating or modifying a job the vast majority of fields are optional. A minimal JSON request to create a job is:
+The purpose of webapi is to provide a REST api to the ECS scheduler allowing the creation, reading, updating, and deletion of scheduled jobs. Jobs are exposed as a single resource with the following operations:
+
+```/jobs
+GET - list the current jobs with pagination
+POST - create a new job
+
+/jobs/{job-id}
+GET - return the current job
+PUT - update the current job
+DELETE - delete the current job
+```
+
+Note that when creating or modifying a job nearly all top-level fields are optional. When updating a nested field (e.g. a trigger) all fields are required in the nested field. A minimal JSON request to create a job is:
 
 ```
-/jobs
-{
+curl http://webapi.domain/jobs -d '{
 	"taskDefinition": "foobar",
 	"schedule": "*"
-}
+}'
 ```
 
 This will schedule an ECS task named foobar to run every second.
@@ -81,4 +94,4 @@ The elements of the schedule syntax is delimited by spaces, which APScheduler al
 
 #### Wildcard Expressions
 
-The second, minute, and hour elements of the schedule expression support a special wildcard character, `?`, which will tell webapi to choose a random integer in the expected range of that field before storing it in the database and sending it to the scheduler. For example if a job should be run once an hour but the specific minute and second don't matter then `? ? 4` will run the job every day in the 4 AM hour with the minute and second chosen by webapi.
+The second, minute, and hour elements of the schedule expression support a special wildcard character, `?`, which will tell webapi to choose a random integer in the expected range of that field before storing it in the job definition and sending it to the scheduler. For example if a job should be run once an hour but the specific minute and second don't matter then `? ? 4` will run the job every day in the 4 AM hour with the minute and second chosen by webapi.
