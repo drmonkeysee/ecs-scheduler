@@ -1,0 +1,19 @@
+---
+webapi:
+  debug: false
+elasticsearch:
+  client:
+    hosts:
+      - host: prod-1.escluster.somedomain
+      - host: prod-2.escluster.somedomain
+    sniff_on_start: true
+    sniff_on_connection_fail: true
+    sniffer_timeout: 600
+    sniff_timeout: 10
+    timeout: 60
+    retry_on_timeout: true
+    max_retries: 10
+aws:
+  ecs_cluster_name: prod-cluster
+  ecs_scheduler_name: prod-ecs-scheduler
+  task_queue_name: prod-ecs-scheduler

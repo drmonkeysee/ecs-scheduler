@@ -1,0 +1,15 @@
+---
+webapi:
+  debug: true
+scheduld:
+  sleep_in_seconds: 10
+elasticsearch:
+  index: ecs-scheduler
+  client:
+    hosts:
+      - host: localhost
+        port: 9200
+aws:
+  ecs_cluster_name: dev-cluster
+  ecs_scheduler_name: dev-ecs-scheduler
+  task_queue_name: dev-ecs-scheduler

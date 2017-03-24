@@ -42,11 +42,5 @@ setup(
     packages=find_packages(exclude=['test']),
     install_requires=install_requires,
     setup_requires=setup_requires,
-    test_suite='test',
-
-    entry_points={
-        'console_scripts': [
-            'ecs_scheduler=ecs_scheduler.main:main'
-        ]
-    }
+    test_suite='test'
 )
