@@ -52,9 +52,9 @@ def config():
     return config
 
 def _merge_env_vars(config):
-    service_name = os.getenv('SERVICE')
-    if service_name:
-        config['service_name'] = service_name
+    component_name = os.getenv('COMPONENT')
+    if component_name:
+        config['component_name'] = component_name
 
     sleep_time = os.getenv('SLEEP_IN_SECONDS')
     if sleep_time:

@@ -98,26 +98,26 @@ class InitModuleTests(unittest.TestCase):
 
     @patch('yaml.load')
     @patch('builtins.open')
-    @patch.dict('os.environ', {'SERVICE': 'foo'})
-    def test_config_sets_service_if_env_specified(self, fake_open, fake_yaml):
-        test_config = {'service_name': 'bar'}
+    @patch.dict('os.environ', {'COMPONENT': 'foo'})
+    def test_config_sets_component_if_env_specified(self, fake_open, fake_yaml):
+        test_config = {'component_name': 'bar'}
         fake_yaml.return_value = test_config
 
         result = init.config()
 
-        self.assertEqual('foo', test_config['service_name'])
+        self.assertEqual('foo', test_config['component_name'])
 
     @patch.object(logging, 'warning')
     @patch('yaml.load')
     @patch('builtins.open')
     @patch.dict('os.environ', clear=True)
-    def test_config_fallsbacktodefault_if_service_env_not_set(self, fake_open, fake_yaml, fake_log):
-        test_config = {'service_name': 'bar'}
+    def test_config_fallsbacktodefault_if_component_env_not_set(self, fake_open, fake_yaml, fake_log):
+        test_config = {'component_name': 'bar'}
         fake_yaml.return_value = test_config
 
         result = init.config()
 
-        self.assertEqual('bar', test_config['service_name'])
+        self.assertEqual('bar', test_config['component_name'])
 
     @patch('yaml.load')
     @patch('builtins.open')

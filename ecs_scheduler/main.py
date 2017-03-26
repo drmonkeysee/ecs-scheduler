@@ -19,9 +19,9 @@ def main():
         queue = jobtasks.SqsTaskQueue(config['aws'])
 
         logging.info('ECS Scheduler v%s', get_version())
-        if config.get('service_name') == 'webapi':
+        if config.get('component_name') == 'webapi':
             ecs_scheduler.webapi.server.run(config, queue)
-        elif config.get('service_name') == 'scheduld':
+        elif config.get('component_name') == 'scheduld':
             ecs_scheduler.scheduld.app.run(config, queue)
         else:
             ecs_scheduler.taskdemo.app.run()

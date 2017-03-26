@@ -10,7 +10,7 @@ from ecs_scheduler.main import main
 @patch('ecs_scheduler.main.init')
 class MainTests(unittest.TestCase):
     def test_run_webapi(self, fake_init, fake_queue_class, fake_server_run, fake_app_run, fake_demo_run):
-        fake_init.config.return_value = {'aws': 'foo', 'service_name': 'webapi'}
+        fake_init.config.return_value = {'aws': 'foo', 'component_name': 'webapi'}
 
         main()
 
@@ -21,7 +21,7 @@ class MainTests(unittest.TestCase):
         fake_demo_run.assert_not_called()
 
     def test_run_scheduld(self, fake_init, fake_queue_class, fake_server_run, fake_app_run, fake_demo_run):
-        fake_init.config.return_value = {'aws': 'foo', 'service_name': 'scheduld'}
+        fake_init.config.return_value = {'aws': 'foo', 'component_name': 'scheduld'}
 
         main()
 
@@ -32,7 +32,7 @@ class MainTests(unittest.TestCase):
         fake_demo_run.assert_not_called()
 
     def test_run_taskdemo(self, fake_init, fake_queue_class, fake_server_run, fake_app_run, fake_demo_run):
-        fake_init.config.return_value = {'aws': 'foo', 'service_name': 'who knows'}
+        fake_init.config.return_value = {'aws': 'foo', 'component_name': 'who knows'}
 
         main()
 
