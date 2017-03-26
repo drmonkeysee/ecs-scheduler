@@ -13,22 +13,24 @@ endef
 
 .PHONY: venv build check test clean
 
-# build wheel package
 build:
 	$(PY) setup.py bdist_wheel
 
-# execute tests via setup
 check: build
 	$(PY) setup.py test
 
 clean:
 	rm -rf .eggs build dist ecs_scheduler.egg-info
 
-# execute tests in development environment
+docker: build
+	echo 'Build docker container'
+
+docker-clean:
+	echo 'Remove docker artifacts'
+
 test: venv
 	$(PY) -m unittest
 
-# verify virtual env is set
 venv:
 ifneq ($(CURRENT_PY), $(VENV_PY))
 	$(error $(VENV_ERROR))
