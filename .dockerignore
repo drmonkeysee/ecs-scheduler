@@ -1,0 +1,9 @@
+Dockerfile
+.eggs/
+build/
+dist/
+test/
+venv/
+.git*
+*.egg-info
+**/__pycache__/

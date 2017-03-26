@@ -21,12 +21,12 @@ build:
 check: build
 	$(PY) setup.py test
 
+clean:
+	rm -rf .eggs build dist ecs_scheduler.egg-info
+
 # execute tests in development environment
 test: venv
 	$(PY) -m unittest
-
-clean:
-	rm -rf .eggs build dist ecs_scheduler.egg-info venv
 
 # verify virtual env is set
 venv:
