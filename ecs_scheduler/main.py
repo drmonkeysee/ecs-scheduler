@@ -3,7 +3,6 @@ import sys
 import logging
 import ecs_scheduler.webapi.server
 import ecs_scheduler.scheduld.app
-import ecs_scheduler.taskdemo.app
 from setuptools_scm import get_version
 from ecs_scheduler import init, jobtasks
 
@@ -18,13 +17,14 @@ def main():
         config = init.config()
         queue = jobtasks.SqsTaskQueue(config['aws'])
 
+        component_name = config.get('component_name')
         logging.info('ECS Scheduler v%s', get_version())
-        if config.get('component_name') == 'webapi':
+        if component_name == 'webapi':
             ecs_scheduler.webapi.server.run(config, queue)
-        elif config.get('component_name') == 'scheduld':
+        elif component_name == 'scheduld':
             ecs_scheduler.scheduld.app.run(config, queue)
         else:
-            ecs_scheduler.taskdemo.app.run()
+            raise RuntimeError('Unknown component name: ' + component_name)
     except Exception:
         logging.critical('unhandled scheduler exception', exc_info=True)
         raise
