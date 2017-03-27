@@ -44,41 +44,29 @@ ECS Scheduler uses an SQS queue to communicate between the web api and the sched
 3. Add the dead letter queue to the scheduler queue
 4. Make sure the queue name is correct in the corresponding config file
 
-### Webapi Configuration
+### Application Configuration
 
-The application configuration file controls the following aspects of the webapi component:
+ECS Scheduler looks for configuration files automatically in the **config/** directory. This repository comes with sample configuration files (both default and environment-specific) that contain sample values. Configuration controls the following aspects of the application:
 
-- whether Flask is run in debug more or not
-- the elasticsearch cluster connectivity
-- the elasticsearch index name in which to store jobs
-- the SNS queue name to which to send messages to update scheduld when a job is modified
+- Flask debug mode
+- elasticsearch cluster connectivity
+- elasticsearch index name in which to store jobs
+- SNS queue name used to communicate job updates between webapi and scheduld
+- ECS cluster name in which to start tasks
+- name used to tag tasks in ECS so they can be identified as being started by scheduld
+- SQS polling frequency in seconds for scheduld
 
-### Scheduld Configuration
+## Webapi
 
-The application configuration file controls the following aspects of the scheduld component:
-
-- the ECS cluster name to which to send task start commands
-- the name to tag ECS tasks with so they can be identified in ECS as being started by scheduld
-- the elasticsearch cluster connectivity
-- the elasticsearch index name in which to read and update jobs
-- the SNS queue name from which to read messages when webapi modifies jobs
-- how long to sleep in seconds between polling the SNS queue
-
-## Scheduler Job Details
-
-
-
-## Webapi Details
-
-The webapi application is used to interact with ECS scheduler. It provides a REST interface to provide getting, creating, updating, and removing jobs from the scheduler.
+The webapi component is used to interact with ECS scheduler. It provides a REST interface to provide getting, creating, updating, and removing jobs from the scheduler.
 
 The home url `/` returns the list of available endpoints.
 
 webapi runs as a self-hosted Flask server. The usage pattern of webapi makes it unlikely you will need a more sophisticated application server container but if necessary [uWSGI](https://uwsgi-docs.readthedocs.org/en/latest/) can provide multi-process/multi-threading request dispatching and more robust web server hosting.
 
-### Swagger
+webapi provides a swagger spec at `/spec`. This spec can be read by [Swagger UI](https://github.com/swagger-api/swagger-ui). You can either build [Swagger UI](https://github.com/swagger-api/swagger-ui) yourself or point official [Swagger test site](http://petstore.swagger.io/) at it. For full documentation of the webapi interface consult the swagger spec.
 
-webapi provides a swagger spec at `/spec`. This spec can be read by [Swagger UI](https://github.com/swagger-api/swagger-ui). You can either build [Swagger UI](https://github.com/swagger-api/swagger-ui) yourself or point official [Swagger test site](http://petstore.swagger.io/) at it. For full documentation of the webapi interface consult the swagger spec. What follows is a brief overview.
+If you find yourself needing to modify the swagger spec and it appears to be erroring out in [Swagger UI](https://github.com/swagger-api/swagger-ui) I recommend using the node package [swagger-tools](https://www.npmjs.com/package/swagger-tools) to find issues with the spec format.
 
 The purpose of webapi is to provide a REST api to the ECS scheduler allowing the creation, reading, updating, and deletion of scheduled jobs. Jobs are exposed as a single resource with the following operations:
 
@@ -91,19 +79,6 @@ GET - return the current job
 PUT - update the current job
 DELETE - delete the current job
 ```
-
-Note that when creating or modifying a job nearly all top-level fields are optional. When updating a nested field (e.g. a trigger) all fields are required in the nested field. A minimal JSON request to create a job is:
-
-```
-curl http://webapi.domain/jobs -d '{
-	"taskDefinition": "foobar",
-	"schedule": "*"
-}'
-```
-
-This will schedule an ECS task named foobar to run every second.
-
-If you find yourself needing to modify the swagger spec and it appears to be erroring out in [Swagger UI](https://github.com/swagger-api/swagger-ui) I recommend using the node package [swagger-tools](https://www.npmjs.com/package/swagger-tools) to find issues with the spec format.
 
 ### Schedule Format
 
@@ -125,11 +100,13 @@ The elements of the schedule syntax is delimited by spaces, which APScheduler al
 
 The second, minute, and hour elements of the schedule expression support a special wildcard character, `?`, which will tell webapi to choose a random integer in the expected range of that field before storing it in the job definition and sending it to the scheduler. For example if a job should be run once an hour but the specific minute and second don't matter then `? ? 4` will run the job every day in the 4 AM hour with the minute and second chosen by webapi.
 
-## Scheduld Details
+## Scheduld
 
 As mentioned previously Scheduld uses the APScheduler package to do all the real work of managing job schedules. Since webapi is the primary interface to ECS Scheduler there is not much to say about scheduld; APScheduler docs and the ECS API documentation covers most of what it does.
 
-The only thing to note here is when scheduld launches a new task when a scheduled job fires it will automatically update the job with the last run time and the list of ECS tasks that were started by when the job last fired.
+The only thing to note here is when scheduld launches a new task when a scheduled job fires it will automatically update the job with the last run time and the list of ECS tasks that were started when the job last fired.
+
+## Usage
 
 EXAMPLES
 - basic example
