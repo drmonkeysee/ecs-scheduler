@@ -1,6 +1,6 @@
 # ECS Scheduler
 
-A scheduler for executing ECS docker tasks, controlled via a JSON REST API; adapted from an internal [Openmail](https://github.com/Openmail) project.
+A scheduler for executing ECS docker tasks, controlled via a JSON REST API.
 
 [AWS ECS](http://docs.aws.amazon.com/AmazonECS/latest/developerguide/Welcome.html) makes it possible to manage and run docker containers on EC2 instances. Refer to the full AWS documentation to get more details on how ECS works but in short it provides two methods of container execution via tasks (a task is one or more docker containers): services and manually-run tasks. A service is a persistent task; it is intended for containers that run in perpetuity and if a task terminates the ECS service will spin up a new one. Manually-run tasks are tasks started via the ECS dashboard or AWS API; it will run until the docker container exists, at which point the task is terminated.
 
@@ -429,3 +429,12 @@ If you want to build the package yourself but do not need a development environm
 ### Development Environment
 
 Run `make test` and follow the displayed instructions. Once your development environment is set up `make test` will run the unit tests.
+
+## Credits
+
+This application is adapted from an internal [Openmail](https://github.com/Openmail) project. Special thanks to the following people for their contributions during its development:
+
+- [Michael Green](https://github.com/mgreen)
+- [Michael Schaffer](https://github.com/mtschaffer)
+
+And very special thanks to Michael Schaffer for the original idea back in 2015.
