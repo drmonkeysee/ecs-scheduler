@@ -112,7 +112,7 @@ The only thing to note here is when scheduld launches a new task when a schedule
 
 Here is a simple example of creating and manipulating a job. Imagine an ECS task named `test-task` that executes a docker container that prints how long it will sleep, sleeps, and then prints that it is finished sleeping and exits.
 
-You can add a scheduled job to scheduler like so:
+We can add a scheduled job to scheduler like so:
 
 ```sh
 > curl -i http://localhost:5000/jobs -d '{"taskDefinition": "test-task", "schedule": "* */5"}' -H 'Content-Type: application/json'
@@ -133,7 +133,7 @@ Date: Mon, 03 Apr 2017 01:19:27 GMT
 }
 ```
 
-This is a minimal job creation request; `taskDefinition` and `schedule` are the only required fields. Notice the 201 response gives you an href pointing at the newly created job. Following this url gives you the following:
+This is a minimal job creation request; `taskDefinition` and `schedule` are the only required fields. Notice the 201 response contains an href pointing at the newly created job. Following this url gives us the following:
 
 ```sh
 > curl -i http://localhost:5000/jobs/test-task
@@ -204,9 +204,9 @@ Date: Mon, 03 Apr 2017 01:30:31 GMT
 
 Now the schedule makes a bit more sense. In this particular case the server decided to run the job on the 9th second of every 5th minute.
 
-### id vs taskDefinition
+### Tasks with Multiple Jobs
 
-Why does a job have both an `id` and a `taskDefinition`? We only specified the second one when creating the job and the `id` got set automatically to the same value. The reason both fields exist is the to differentiate between ECS Scheduler jobs and AWS ECS tasks.
+Why does a job have both an `id` and a `taskDefinition`? We only specified the second one when creating the job and the `id` got set automatically to the same value. The reason both fields exist is to differentiate between ECS Scheduler jobs and AWS ECS tasks.
 
 Every scheduled job must know which ECS task to start when it fires. `taskDefinition` is the name of that ECS task (defined in ECS itself). In many cases there is a one-to-one relationship between scheduled jobs and tasks so the job's `id` can be set to the same value. But sometimes you may want more than one job per task; for example a task may have multiple execution modes or require different schedules for different inputs.
 
@@ -249,7 +249,7 @@ Date: Mon, 03 Apr 2017 01:43:34 GMT
 }
 ```
 
-Here we specify the `id` explicitly and we set container-specific environment overrides to control how long our test task will sleep before reporting it's done. The `overrides` syntax can be a bit confusing at first due to the fact that an ECS task can contain multiple containers, so overrides must be specified per container. Getting this job looks like:
+Here we specify the `id` explicitly and we set container-specific environment overrides to control how long our test task will sleep before exiting. The `overrides` syntax can be a bit confusing at first due to the fact that an ECS task can contain multiple containers, so overrides must be specified per container. Getting this job looks like:
 
 ```sh
 > curl -i http://localhost:5000/jobs/long-sleep-test
@@ -281,7 +281,7 @@ Date: Mon, 03 Apr 2017 01:46:20 GMT
 }
 ```
 
-To get a sense of what our scheduler state is overall you can get the list of jobs:
+To get a sense of what our scheduler state is overall we can get the list of jobs:
 
 ```sh
 > curl -i http://localhost:5000/jobs
@@ -328,13 +328,13 @@ Date: Mon, 03 Apr 2017 01:47:31 GMT
 }
 ```
 
-At this point if you were to fire up the scheduld daemon it would read the jobs store and begin running `test-task` every 5 minutes and `long-sleep-test` every 7 minutes.
+At this point if we were to fire up the scheduld daemon it would read the jobs store and begin running `test-task` every 5 minutes and `long-sleep-test` every 7 minutes.
 
 ### Triggers
 
-There is one final feature of scheduled jobs we should go into detail on. Often times an ephemeral docker container may not be performing work in isolation of other systems; perhaps a container needs to update several document records or transform and insert data events into a shared log. It may not be all that useful to execute the container on a fixed schedule but instead in response to a signal from another system. ECS Scheduler can handle jobs like this via triggers.
+There is one final feature of scheduled jobs that merits an example. Often times an ephemeral docker container may not be performing work in isolation of other systems; perhaps a container needs to update several document records or transform and insert data events into a shared log. It may not be all that useful to execute the container on a fixed schedule but instead in response to a signal from another system. ECS Scheduler can handle jobs like this via triggers.
 
-A trigger is an environmental check of some sort that the scheduld daemon can perform on behalf of the task and it will only launch the task if the check passes (i.e. if the trigger fires). The schedule, in the case of a triggered job, is the frequency with which the trigger is checked instead of how often the task itself is executed. Triggers can theoretically be anything that can be checked by a program though ECS Scheduler currently only comes with one built-in trigger: the SQS trigger. Custom triggers can be added fairly easily.
+A trigger is an environmental check of some sort that the scheduld daemon can perform on behalf of the task and it will only launch the task if the check passes (i.e. if the trigger fires). The schedule, in the case of a triggered job, is the frequency with which the trigger is checked instead of how often the task itself is executed. Triggers can theoretically be anything though ECS Scheduler currently comes with one built-in trigger: the [SQS](http://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/Welcome.html) trigger. See **execution.py** for how triggers are defined.
 
 Take our test task again. Normally it starts, sleeps, then exits. But let's say it can also run in a mode where it processes SQS messages (in our simple case if the env var `INPUT_QUEUE` is defined it will pull the message from the queue named by that var, print its contents, then remove it from the queue). Running the task every 5 minutes or every 20 minutes or once a day isn't very useful. There would be many times when our task would launch only to be faced with an empty queue. At other times the queue might be very active but the task isn't scheduled to start for another 6 hours, delaying our processing time. To avoid these issues we'll use an SQS trigger in the scheduled job.
 
@@ -357,7 +357,7 @@ Date: Mon, 03 Apr 2017 02:01:06 GMT
 }
 ```
 
-The environment override allows us to tell our test-task to perform queue processing instead of sleeping (in practice you would likely just have a different task definition and docker image as opposed to using env modes like this). The important point here is the `trigger` field. A trigger _must_ specify a `type`, other fields are specific to the type and will be consumed by the trigger implementaton in scheduld.
+The environment override allows us to tell our test-task to perform queue processing instead of sleeping (in practice you would likely have a different task definition and docker image as opposed to using env modes like this but this is just an example). The important point here is the `trigger` field. A trigger _must_ specify a `type`, other fields are specific to the type and will be consumed by the trigger implementaton in scheduld.
 
 ```sh
 > curl -i http://localhost:5000/jobs/queue-test
@@ -394,13 +394,13 @@ Date: Mon, 03 Apr 2017 02:04:26 GMT
 }
 ```
 
-The full job gives a clearer picture of the trigger. An SQS trigger requires the `queueName` so scheduld knows what queue to check and it also includes a scaling factor `messagesPerTask`. The `taskCount` tells the job to start _at least_ that many tasks; in most cases 1 is sufficient and is the default value. But for SQS message processing you may need several tasks to clear the queue in a reasonable time. You can set `taskCount` to a higher value but you run into the same issue as when we tried to guess a good schedule for processing the queue: a minimum of, say, 7 tasks may be sufficient when the queue is particularly busy but there may be many situations where that is overkill or insufficient.
+The full job gives a clearer picture of the trigger. An SQS trigger requires the `queueName` so scheduld knows what queue to check and it also includes a scaling factor `messagesPerTask`. The `taskCount` tells the job to start _at least_ that many tasks; in most cases 1 is sufficient and is the default value. But for SQS message processing you may need several tasks to clear the queue in a reasonable time. We can set `taskCount` to a higher value but we run into the same issue as when we tried to guess a good schedule for processing the queue: a minimum of, say, 7 tasks may be sufficient when the queue is particularly busy but there may be many situations where that is overkill or insufficient.
 
 `messagesPerTask` instead scales the task count to the queue size. There's still some measure of guesswork involved, in our case we decided that a single task can process 100 messages in a reasonable amount of time, but it allows us to achieve a better ratio of tasks to queue size and the scale factor can always be tweaked if it turns out we got it wrong. In this case at 100 messages per task, scheduld will spin up 1 task if the queue size is 1 - 100 messages, 2 tasks if the queue size is 101 - 200 messages, 3 tasks for 201 - 300 messages, etc.
 
 Note that if the queue size is 0 it will not spin up _any_ tasks. That's the power of the trigger, it only launches tasks if it needs to. The `schedule` field in our case is not how often the tasks will be launched but how often the queue will be checked. This is a cheap operation so checking once every 3 minutes seems fair. This gives us a maximum slack time of 3 minutes between when messages arrive in the queue and our `queue-test` tasks start launching and processing the queue.
 
-Finally, it's possible the queue becomes extremely full. While you want to process all the messages in a reasonable time you also don't want to spin up hundreds or thousands of tasks and run up a massive AWS bill. The `maxCount` field will limit how many tasks a scheduled job will launch. This field can be used for any scheduled job, not just triggered jobs, but it's most common use case is limiting the scaling factor for SQS-triggered jobs. You can set it the same way as any other field:
+Finally, it's possible the queue becomes extremely full. While you want to process all the messages in a reasonable time you also don't want to spin up hundreds or thousands of tasks and run up a massive AWS bill. The `maxCount` field will limit how many tasks a scheduled job will launch. This field can be used for any scheduled job, not just triggered jobs, but its most common use case is limiting the scaling factor for SQS-triggered jobs. We set it the same way as any other field:
 
 ```sh
 > curl -i http://localhost:5000/jobs/queue-test -XPUT -d '{"maxCount": 10}' -H 'Content-Type: application/json'
@@ -413,7 +413,7 @@ For all the other scheduled jobs fields that can be set or read from webapi cons
 
 ## Local Setup
 
-If you want to build or develop against ECS then use the following instructions.
+If you want to build or develop against ECS Scheduler then use the following instructions.
 
 ### System Requirements
 
