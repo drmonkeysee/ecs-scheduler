@@ -55,7 +55,7 @@ class JobSchema(marshmallow.Schema):
     """
     Schema of a job.
 
-    A job is a ecs scheduler document that defines a run schedule for an ECS task
+    A job is an ecs scheduler document that defines a run schedule for an ECS task
     """
     _WILD_CARD = '?'
 

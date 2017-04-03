@@ -24,7 +24,7 @@ def main():
         elif component_name == 'scheduld':
             ecs_scheduler.scheduld.app.run(config, queue)
         else:
-            raise RuntimeError('Unknown component name: ' + component_name)
+            raise RuntimeError('Unknown component name: ' + str(component_name))
     except Exception:
         logging.critical('unhandled scheduler exception', exc_info=True)
         raise
