@@ -234,7 +234,7 @@ Why does a job have both an `id` and a `taskDefinition`? We only specified `task
 
 Every scheduled job must know which ECS task to start when it fires. `taskDefinition` is the name of that ECS task (defined in ECS itself) and is therefore a required field. In many cases there is only one scheduled job for a task so the `taskDefinition` is sufficient to uniquely identify a job. But sometimes you may want more than one job per task; for example a task may have multiple execution modes or require different schedules for different inputs.
 
-Returning to our original example of `sleeper-task`, let's say it was designed to read the sleep duration from an environment variable and uses the 3 second default only if the variable is not set. Therefore we can control how long our docker container sleeps without rebuilding the image or modifying the ECS task definition. Now what do we do if we need to schedule several tasks with different sleep duration inputs? That's where alternate jobs come into play.
+Returning to our original example of `sleeper-task`, let's say it was designed to read the sleep duration from an environment variable and defaults to 3 seconds only if the variable is not set. Now what do we do if we want to schedule several tasks with different sleep duration inputs? Our original job will only launch sleeper tasks that use the default. That's where alternate jobs come into play.
 
 We already have one job called `sleeper-task` and if we tried creating a new one we'll get an error:
 
