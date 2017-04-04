@@ -32,7 +32,7 @@ Finally the log level can be controlled via the `LOG_LEVEL` env variable, set to
 So for example to start the webapi component of ECS Scheduler for testing and logging at the info level would be:
 
 ```sh
-> LOG_LEVEL=INFO RUN_ENV=test COMPONENT_NAME=webapi ./ecsscheduler
+> LOG_LEVEL=INFO RUN_ENV=test COMPONENT=webapi ./ecsscheduler
 ```
 
 ### SQS Setup
@@ -228,7 +228,7 @@ Date: Mon, 03 Apr 2017 01:30:31 GMT
 
 Now the schedule makes a bit more sense. In this particular case the server decided to run the job on the 9th second of every 5th minute.
 
-### Tasks with Multiple Jobs
+### Multiple Jobs per Task
 
 Why does a job have both an `id` and a `taskDefinition`? We only specified the second one when creating the job and the `id` got set automatically to the same value. The reason both fields exist is to differentiate between ECS Scheduler jobs and AWS ECS tasks.
 
