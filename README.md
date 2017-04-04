@@ -230,13 +230,13 @@ Now the schedule makes a bit more sense. In this particular case the server deci
 
 ### Multiple Jobs per Task
 
-Why does a job have both an `id` and a `taskDefinition`? We only specified the second one when creating the job and the `id` got set automatically to the same value. The reason both fields exist is to differentiate between ECS Scheduler jobs and AWS ECS tasks.
+Why does a job have both an `id` and a `taskDefinition`? We only specified `taskDefinition` when creating the job and the `id` got set automatically to the same value. The reason both fields exist is to differentiate between ECS Scheduler jobs and AWS ECS tasks.
 
-Every scheduled job must know which ECS task to start when it fires. `taskDefinition` is the name of that ECS task (defined in ECS itself). In many cases there is a one-to-one relationship between scheduled jobs and tasks so the job's `id` can be set to the same value. But sometimes you may want more than one job per task; for example a task may have multiple execution modes or require different schedules for different inputs.
+Every scheduled job must know which ECS task to start when it fires. `taskDefinition` is the name of that ECS task (defined in ECS itself). In many cases there is only one scheduled job for a task so the fields can be identical. But sometimes you may want more than one job per task; for example a task may have multiple execution modes or require different schedules for different inputs.
 
-Returning to our original example of `sleeper-task`, let's say it was designed to read the sleep duration from an environment variable and uses the 3 second default only if the variable is not set. We can then control how long our docker container sleeps without rebuilding the image. Now what do we do if we need several of these tasks in ECS to run on different sleep durations? That's where alternate jobs can come into play.
+Returning to our original example of `sleeper-task`, let's say it was designed to read the sleep duration from an environment variable and uses the 3 second default only if the variable is not set. We can control how long our docker container sleeps without rebuilding the image. Now what do we do if we need several of these tasks in ECS to run on different sleep durations? That's where alternate jobs come into play.
 
-We already have one job called `sleeper-task` and if we tried creating a new one the same way we did before we'll get an error:
+We already have one job called `sleeper-task` and if we tried creating a new one we'll get an error:
 
 ```sh
 > curl -i http://localhost:5000/jobs -d '{"taskDefinition": "sleeper-task", ... details omitted}' -H 'Content-Type: application/json'
@@ -273,7 +273,7 @@ Date: Mon, 03 Apr 2017 01:43:34 GMT
 }
 ```
 
-Here we specify the `id` explicitly and we set container-specific environment overrides to control how long our test task will sleep before exiting. The `overrides` syntax can be a bit confusing; because ECS tasks can contain multiple docker containers the overrides must be specified per container, hence the JSON array and the explicitly named container. Getting this job looks like:
+Here we specify the `id` explicitly and we set container-specific environment overrides to control how long our test task will sleep before exiting. The `overrides` syntax can be a bit confusing; ECS tasks can contain multiple docker containers so the overrides must be specified per container, hence the JSON array and the explicit container name.
 
 ```sh
 > curl -i http://localhost:5000/jobs/long-sleep-task
