@@ -1,6 +1,6 @@
 ---
 webapi:
-  debug: true
+  debug: false
 elasticsearch:
   client:
     hosts:

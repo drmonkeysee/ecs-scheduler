@@ -451,8 +451,8 @@ Run `make test` and follow the displayed instructions. Once your development env
 If you want to run ECS Scheduler in docker use `make docker` to build the image. Assuming you have an elasticsearch docker container running as `scheduler-es` and an environment file with your AWS credentials named **docker-env** then you can start the webapi and scheduld containers as:
 
 ```sh
-> docker run --name ecs-webapi -e LOG_LEVEL=INFO --env-file ~/.aws/docker-env -d --link=scheduler-es:es ecs-scheduler
-> docker run --name ecs-scheduld -e COMPONENT=scheduld -e LOG_LEVEL=INFO --env-file ~/.aws/docker-env -d --link=scheduler-es:es ecs-scheduler
+> docker run --name ecs-webapi -p 5000:5000 -e LOG_LEVEL=INFO --env-file ~/.aws/docker-env --link=scheduler-es:es -d ecs-scheduler
+> docker run --name ecs-scheduld -e COMPONENT=scheduld -e LOG_LEVEL=INFO --env-file ~/.aws/docker-env --link=scheduler-es:es -d ecs-scheduler
 ```
 
 `make docker-clean` will delete all stopped ecs-scheduler containers and remove the image.
