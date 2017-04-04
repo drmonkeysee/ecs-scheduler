@@ -2,24 +2,24 @@
 
 A scheduler for executing ECS docker tasks, controlled via a JSON REST API.
 
-[AWS ECS](http://docs.aws.amazon.com/AmazonECS/latest/developerguide/Welcome.html) makes it possible to manage and run docker containers on EC2 instances. Refer to the full AWS documentation to get more details on how ECS works but in short it provides two methods of container execution via tasks (a task is one or more docker containers): services and manually-run tasks. A service is a persistent task; it is intended for containers that run in perpetuity and if a task terminates the ECS service will spin up a new one. Manually-run tasks are tasks started via the ECS dashboard or AWS API; it will run until the docker container exits, at which point the task is terminated.
+[Amazon ECS](http://docs.aws.amazon.com/AmazonECS/latest/developerguide/Welcome.html) makes it possible to manage and run docker containers on EC2 instances. An ECS task, consisting of one or more docker containers, can be run indefinitely as a service or can be launched manually as a standalone task.
 
-There is a third execution model in between one-off and persistent tasks: tasks that execute on a scheduled interval or when a certain environmental condition is met. These container tasks may need to perform a few seconds or a few days of work, but they do not need to run indefinitely. This is where ECS scheduler fits in. Docker containers allow you to build a series of loosely-coupled components that can a process as needed and then exit without taking up any idle resources. ECS Scheduler allows you to manage the execution schedules of such ephemeral containers. Think of using ECS and docker in this way as a high-octane version of AWS Lambda!
+However there is a third execution model in between one-off and persistent tasks: tasks that execute on a scheduled interval or when a certain environmental condition is met. These container tasks may need to perform a few seconds or a few days of work, but they do not need to run indefinitely. Amazon ECS does not support this natively so ECS Scheduler was created to fill that gap. ECS Scheduler allows you to manage the execution schedules of such ephemeral containers. Think of using ECS and docker in this way as a high-octane version of AWS Lambda!
 
 ECS Scheduler is organized as two components:
 
-- **webapi**: a REST web application providing the scheduler UI. this is used to create, modify, and remove scheduled jobs
+- **webapi**: a REST web application providing the scheduler UI; used to create, modify, and remove scheduled jobs
 - **scheduld**: the scheduler daemon that runs scheduled jobs and talks to ECS to start tasks
 
 ## Getting Started (PROVISIONAL)
 
-This particular version of ECS Scheduler is a nearly direct rip from the internal Openmail project and as such is designed to be run as a standalone application directly from the git repository (or rather, from the repository copied into a docker image). Later releases of this project will expose it as a pip-installable package with greater flexibility in hosting and running the scheduler components. In the meantime this can be run as an application script directly from the repo contents. A Dockerfile is also provided that sets the repository up to host in docker.
+This particular version of ECS Scheduler is a nearly direct rip from the internal Openmail project and is designed to be run as a standalone application directly from the git repository (or rather, from the repository copied into a docker image). Later releases of this project will expose it as a pip-installable package with greater flexibility in hosting and running the scheduler components. In the meantime this can be run as an application script directly from the repo contents. A Dockerfile is also provided that sets the repository up to host in docker.
 
 ECS Scheduler startup is controlled through a combination of configuration files and environment variables and depends on some minimal AWS infrastructure to operate.
 
 Primary configuration is controlled via the contents of YAML files in the **config/** directory. It begins by loading the contents of **config_default.yaml** and then overlaying the contents of one of the environment-specific config files based on the `RUN_ENV` environment variable. For example if `RUN_ENV=test` then **config_test.yaml** and **config_default.yaml** will be combined.
 
-ECS Scheduler is composed of two independent components: webapi and scheduld. They are run as seperate processes, which one is started is controlled via the `COMPONENT_NAME` environment variable (set to either `webapi` or `scheduld`). In the future these will be hostable in a single process and not required to run seperately. In the meantime they communicate to each other via an SQS queue, named under the appropriate key in one of the configuration files (see the files in **config/** for details).
+ECS Scheduler is composed of two independent components: webapi and scheduld. They are run as seperate processes and the environment variable `COMPONENT` controls which process runs (set to either `webapi` or `scheduld`). In the future these will be hostable in a single process and not required to run separately. In the meantime they communicate to each other via an SQS queue, named under the appropriate key in one of the configuration files (see the files in **config/** for details).
 
 See [this link](http://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/SQSDeadLetterQueue.html) for more info on creating dead letter queues.
 
@@ -58,7 +58,7 @@ ECS Scheduler looks for configuration files automatically in the **config/** dir
 
 ## Webapi
 
-The webapi component is used to interact with ECS scheduler. It provides a REST interface to provide getting, creating, updating, and removing jobs from the scheduler.
+The webapi component is used to interact with ECS scheduler. It provides a REST interface for getting, creating, updating, and removing jobs from the scheduler.
 
 The home url `/` returns the list of available endpoints.
 
@@ -70,7 +70,8 @@ If you find yourself needing to modify the swagger spec and it appears to be err
 
 The purpose of webapi is to provide a REST api to the ECS scheduler allowing the creation, reading, updating, and deletion of scheduled jobs. Jobs are exposed as a single resource with the following operations:
 
-```/jobs
+```
+/jobs
 GET - list the current jobs with pagination
 POST - create a new job
 
@@ -78,6 +79,31 @@ POST - create a new job
 GET - return the current job
 PUT - update the current job
 DELETE - delete the current job
+```
+
+### Scheduled Jobs
+
+The unit of ECS scheduler that controls tasks is the scheduled job, ECS scheduler is ultimately a collection of jobs associated with a scheduler. See the Swagger spec for full documentation on scheduled jobs but a quick summary of the most commonly used fields is listed below:
+
+```
+taskDefinition - required field; name of the ECS task to control via this job
+schedule - required field; CRON-style schedule describing when this job fires
+id - id of the job; set to taskDefinition if not specified explicitly
+scheduleStart - start date for when the job should begin its schedule; if not set schedule begins immediately
+scheduleEnd - end date for when the job should end its schedule; if not set schedule never ends
+taskCount - the minimum number of tasks to start when the job fires
+maxCount - the maximum number of tasks to start when the job fires; ECS Scheduler also has a hard-coded limit of maximum 50 tasks per job
+trigger - an additional trigger for determining whether the job should start any tasks when its schedule fires
+suspended - whether the job is currently suspended or not
+overrides - docker container overrides for the ECS task (currently only supports environment variable overrides)
+```
+
+There are also a few fields managed by scheduld automatically but are not set by the end-user when creating or updating a job:
+
+```
+lastRun - the last date/time the job fired
+lastRunTasks - the list of ECS tasks launched the last time the job fired
+estimatedNextRun - an estimate of the next time the job will fire
 ```
 
 ### Schedule Format
@@ -110,12 +136,10 @@ The only thing to note here is when scheduld launches a new task when a schedule
 
 ### Basic Job Creation
 
-Here is a simple example of creating and manipulating a job. Imagine an ECS task named `test-task` that executes a docker container that prints how long it will sleep, sleeps, and then prints that it is finished sleeping and exits.
-
-We can add a scheduled job to scheduler like so:
+Assume we have an existing ECS task named `sleeper-task` that sleeps for 3 seconds then prints that it is done and exits. We want it to run every 5 minutes and will use ECS Scheduler to make that happen. We add a scheduled job to scheduler like so:
 
 ```sh
-> curl -i http://localhost:5000/jobs -d '{"taskDefinition": "test-task", "schedule": "* */5"}' -H 'Content-Type: application/json'
+> curl -i http://localhost:5000/jobs -d '{"taskDefinition": "sleeper-task", "schedule": "* */5"}' -H 'Content-Type: application/json'
 HTTP/1.0 201 CREATED
 Content-Type: application/json
 Content-Length: 142
@@ -124,11 +148,11 @@ Server: Werkzeug/0.12.1 Python/3.6.0
 Date: Mon, 03 Apr 2017 01:19:27 GMT
 
 {
-    "id": "test-task",
+    "id": "sleeper-task",
     "link": {
-        "href": "/jobs/test-task",
+        "href": "/jobs/sleeper-task",
         "rel": "item",
-        "title": "Job for test-task"
+        "title": "Job for sleeper-task"
     }
 }
 ```
@@ -136,7 +160,7 @@ Date: Mon, 03 Apr 2017 01:19:27 GMT
 This is a minimal job creation request; `taskDefinition` and `schedule` are the only required fields. Notice the 201 response contains an href pointing at the newly created job. Following this url gives us the following:
 
 ```sh
-> curl -i http://localhost:5000/jobs/test-task
+> curl -i http://localhost:5000/jobs/sleeper-task
 HTTP/1.0 200 OK
 Content-Type: application/json
 Content-Length: 222
@@ -145,22 +169,22 @@ Server: Werkzeug/0.12.1 Python/3.6.0
 Date: Mon, 03 Apr 2017 01:22:33 GMT
 
 {
-    "id": "test-task",
+    "id": "sleeper-task",
     "link": {
-        "href": "/jobs/test-task",
+        "href": "/jobs/sleeper-task",
         "rel": "item",
-        "title": "Job for test-task"
+        "title": "Job for sleeper-task"
     },
     "schedule": "* */5",
     "taskCount": 1,
-    "taskDefinition": "test-task"
+    "taskDefinition": "sleeper-task"
 }
 ```
 
 These are the entire details of the scheduled job. It has an id that matches the task definition name, a link describing how to access this resource, the number of tasks that will be launched when this job fires (currently set to 1), and a schedule that will fire every second of every 5 minutes. Uh... what? Whoops the wildcard `*` doesn't mean _any_ value, it means _every_ value. Clearly we only want to fire once every 5 minutes, not 60 times every 5th minute. Let's fix that:
 
 ```sh
-> curl -i http://localhost:5000/jobs/test-task -XPUT -d '{"schedule": "? */5"}' -H 'Content-Type: application/json'
+> curl -i http://localhost:5000/jobs/sleeper-task -XPUT -d '{"schedule": "? */5"}' -H 'Content-Type: application/json'
 HTTP/1.0 200 OK
 Content-Type: application/json
 Content-Length: 142
@@ -169,11 +193,11 @@ Server: Werkzeug/0.12.1 Python/3.6.0
 Date: Mon, 03 Apr 2017 01:28:40 GMT
 
 {
-    "id": "test-task",
+    "id": "sleeper-task",
     "link": {
-        "href": "/jobs/test-task",
+        "href": "/jobs/sleeper-task",
         "rel": "item",
-        "title": "Job for test-task"
+        "title": "Job for sleeper-task"
     }
 }
 ```
@@ -181,7 +205,7 @@ Date: Mon, 03 Apr 2017 01:28:40 GMT
 Notice we use the `PUT` verb instead of `POST` and we only specify the "schedule" field since we're updating an existing job. In addition we're using the "random choice" wildcard character `?` because in this case we don't care which second of every 5th minute this job fires on, just that it fires on some second. Getting the job again we see:
 
 ```sh
-> curl -i http://localhost:5000/jobs/test-task
+> curl -i http://localhost:5000/jobs/sleeper-task
 HTTP/1.0 200 OK
 Content-Type: application/json
 Content-Length: 222
@@ -190,15 +214,15 @@ Server: Werkzeug/0.12.1 Python/3.6.0
 Date: Mon, 03 Apr 2017 01:30:31 GMT
 
 {
-    "id": "test-task",
+    "id": "sleeper-task",
     "link": {
-        "href": "/jobs/test-task",
+        "href": "/jobs/sleeper-task",
         "rel": "item",
-        "title": "Job for test-task"
+        "title": "Job for sleeper-task"
     },
     "schedule": "9 */5",
     "taskCount": 1,
-    "taskDefinition": "test-task"
+    "taskDefinition": "sleeper-task"
 }
 ```
 
@@ -210,12 +234,12 @@ Why does a job have both an `id` and a `taskDefinition`? We only specified the s
 
 Every scheduled job must know which ECS task to start when it fires. `taskDefinition` is the name of that ECS task (defined in ECS itself). In many cases there is a one-to-one relationship between scheduled jobs and tasks so the job's `id` can be set to the same value. But sometimes you may want more than one job per task; for example a task may have multiple execution modes or require different schedules for different inputs.
 
-Going back to our original example of `test-task` which sleeps for some amount of time, notice that we didn't tell the task how long to sleep. It must have a default value, but what if we could specify that value via environment variables? And we needed several of these tasks to run on different sleep durations? That's where alternate jobs can come into play.
+Going back to our original example of `sleeper-task` which sleeps for some amount of time, notice that we didn't tell the task how long to sleep. It must have a default value, but what if we could specify that value via environment variables? And we needed several of these tasks to run on different sleep durations? That's where alternate jobs can come into play.
 
-We already have one job called `test-task` and if we tried creating a new one with the same `id` we'll get an error:
+We already have one job called `sleeper-task` and if we tried creating a new one with the same `id` we'll get an error:
 
 ```sh
-> curl -i http://localhost:5000/jobs -d '{"taskDefinition": "test-task", ... details omitted}' -H 'Content-Type: application/json'
+> curl -i http://localhost:5000/jobs -d '{"taskDefinition": "sleeper-task", ... details omitted}' -H 'Content-Type: application/json'
 HTTP/1.0 409 CONFLICT
 Content-Type: application/json
 Content-Length: 50
@@ -224,14 +248,14 @@ Server: Werkzeug/0.12.1 Python/3.6.0
 Date: Mon, 03 Apr 2017 01:37:16 GMT
 
 {
-    "message": "Job test-task already exists"
+    "message": "Job sleeper-task already exists"
 }
 ```
 
 This would be a problem if job ids and task definition names were one-to-one but they're not. In our case we just need to explicitly specify `id` when creating the job. Since we want this to sleep for a different duration we'll also specify that as an environment override.
 
 ```sh
-> curl -i http://localhost:5000/jobs -d '{"taskDefinition": "test-task", "id": "long-sleep-test", "schedule": "? */7", "overrides": [{"containerName": "drmonkeysee-task", "environment": {"SLEEP_SECONDS": "10"}}]}' -H 'Content-Type: application/json'
+> curl -i http://localhost:5000/jobs -d '{"taskDefinition": "sleeper-task", "id": "long-sleep-task", "schedule": "? */7", "overrides": [{"containerName": "drmonkeysee-task", "environment": {"SLEEP_SECONDS": "10"}}]}' -H 'Content-Type: application/json'
 HTTP/1.0 201 CREATED
 Content-Type: application/json
 Content-Length: 160
@@ -240,11 +264,11 @@ Server: Werkzeug/0.12.1 Python/3.6.0
 Date: Mon, 03 Apr 2017 01:43:34 GMT
 
 {
-    "id": "long-sleep-test",
+    "id": "long-sleep-task",
     "link": {
-        "href": "/jobs/long-sleep-test",
+        "href": "/jobs/long-sleep-task",
         "rel": "item",
-        "title": "Job for long-sleep-test"
+        "title": "Job for long-sleep-task"
     }
 }
 ```
@@ -252,7 +276,7 @@ Date: Mon, 03 Apr 2017 01:43:34 GMT
 Here we specify the `id` explicitly and we set container-specific environment overrides to control how long our test task will sleep before exiting. The `overrides` syntax can be a bit confusing at first due to the fact that an ECS task can contain multiple containers, so overrides must be specified per container. Getting this job looks like:
 
 ```sh
-> curl -i http://localhost:5000/jobs/long-sleep-test
+> curl -i http://localhost:5000/jobs/long-sleep-task
 HTTP/1.0 200 OK
 Content-Type: application/json
 Content-Length: 417
@@ -261,15 +285,15 @@ Server: Werkzeug/0.12.1 Python/3.6.0
 Date: Mon, 03 Apr 2017 01:46:20 GMT
 
 {
-    "id": "long-sleep-test",
+    "id": "long-sleep-task",
     "link": {
-        "href": "/jobs/long-sleep-test",
+        "href": "/jobs/long-sleep-task",
         "rel": "item",
-        "title": "Job for long-sleep-test"
+        "title": "Job for long-sleep-task"
     },
     "overrides": [
         {
-            "containerName": "drmonkeysee-task",
+            "containerName": "sleeper-container",
             "environment": {
                 "SLEEP_SECONDS": "10"
             }
@@ -277,7 +301,7 @@ Date: Mon, 03 Apr 2017 01:46:20 GMT
     ],
     "schedule": "22 */7",
     "taskCount": 1,
-    "taskDefinition": "test-task"
+    "taskDefinition": "sleeper-task"
 }
 ```
 
@@ -295,15 +319,15 @@ Date: Mon, 03 Apr 2017 01:47:31 GMT
 {
     "jobs": [
         {
-            "id": "long-sleep-test",
+            "id": "long-sleep-task",
             "link": {
-                "href": "/jobs/long-sleep-test",
+                "href": "/jobs/long-sleep-task",
                 "rel": "item",
-                "title": "Job for long-sleep-test"
+                "title": "Job for long-sleep-task"
             },
             "overrides": [
                 {
-                    "containerName": "drmonkeysee-task",
+                    "containerName": "sleeper-container",
                     "environment": {
                         "SLEEP_SECONDS": "10"
                     }
@@ -311,35 +335,35 @@ Date: Mon, 03 Apr 2017 01:47:31 GMT
             ],
             "schedule": "22 */7",
             "taskCount": 1,
-            "taskDefinition": "test-task"
+            "taskDefinition": "sleeper-task"
         },
         {
-            "id": "test-task",
+            "id": "sleeper-task",
             "link": {
-                "href": "/jobs/test-task",
+                "href": "/jobs/sleeper-task",
                 "rel": "item",
-                "title": "Job for test-task"
+                "title": "Job for sleeper-task"
             },
             "schedule": "9 */5",
             "taskCount": 1,
-            "taskDefinition": "test-task"
+            "taskDefinition": "sleeper-task"
         }
     ]
 }
 ```
 
-At this point if we were to fire up the scheduld daemon it would read the jobs store and begin running `test-task` every 5 minutes and `long-sleep-test` every 7 minutes.
+At this point if we were to fire up the scheduld daemon it would read the jobs store and begin running `sleeper-task` every 5 minutes and `long-sleep-task` every 7 minutes.
 
 ### Triggers
 
-There is one final feature of scheduled jobs that merits an example. Often times an ephemeral docker container may not be performing work in isolation of other systems; perhaps a container needs to update several document records or transform and insert data events into a shared log. It may not be all that useful to execute the container on a fixed schedule but instead in response to a signal from another system. ECS Scheduler can handle jobs like this via triggers.
+There is one final feature of scheduled jobs that merits an extended example. Often times an ephemeral docker container may not be performing work in isolation of other systems; perhaps a container needs to update several document records or transform and insert data events into a shared log. It may not be all that useful to execute the container on a fixed schedule but instead in response to a signal from another system. ECS Scheduler can handle jobs like this via triggers.
 
 A trigger is an environmental check of some sort that the scheduld daemon can perform on behalf of the task and it will only launch the task if the check passes (i.e. if the trigger fires). The schedule, in the case of a triggered job, is the frequency with which the trigger is checked instead of how often the task itself is executed. Triggers can theoretically be anything though ECS Scheduler currently comes with one built-in trigger: the [SQS](http://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/Welcome.html) trigger. See **execution.py** for how triggers are defined.
 
-Take our test task again. Normally it starts, sleeps, then exits. But let's say it can also run in a mode where it processes SQS messages (in our simple case if the env var `INPUT_QUEUE` is defined it will pull the message from the queue named by that var, print its contents, then remove it from the queue). Running the task every 5 minutes or every 20 minutes or once a day isn't very useful. There would be many times when our task would launch only to be faced with an empty queue. At other times the queue might be very active but the task isn't scheduled to start for another 6 hours, delaying our processing time. To avoid these issues we'll use an SQS trigger in the scheduled job.
+Let's say we have another task that consumes messages from an SQS queue: `consumer-task`. Take our test task again. Normally it starts, sleeps, then exits. But let's say it can also run in a mode where it processes SQS messages (in our simple case if the env var `INPUT_QUEUE` is defined it will pull the message from the queue named by that var, print its contents, then remove it from the queue). Running the task every 5 minutes or every 20 minutes or once a day isn't very useful. There would be many times when our task would launch only to be faced with an empty queue. At other times the queue might be very active but the task isn't scheduled to start for another 6 hours, delaying our processing time. To avoid these issues we'll use an SQS trigger in the scheduled job.
 
 ```sh
-> curl -i http://localhost:5000/jobs -d '{"taskDefinition": "test-task", "id": "queue-test", "schedule": "? */3", "overrides": [{"containerName": "drmonkeysee-task", "environment": {"INPUT_QUEUE": "test-task-queue"}}], "trigger": {"type": "sqs", "queueName": "test-task-queue", "messagesPerTask": 100}}' -H 'Content-Type: application/json'
+> curl -i http://localhost:5000/jobs -d '{"taskDefinition": "consumer-task", "schedule": "? */3", "trigger": {"type": "sqs", "queueName": "consumer-task-queue", "messagesPerTask": 100}}' -H 'Content-Type: application/json'
 HTTP/1.0 201 CREATED
 Content-Type: application/json
 Content-Length: 145
@@ -348,19 +372,19 @@ Server: Werkzeug/0.12.1 Python/3.6.0
 Date: Mon, 03 Apr 2017 02:01:06 GMT
 
 {
-    "id": "queue-test",
+    "id": "consumer-task",
     "link": {
-        "href": "/jobs/queue-test",
+        "href": "/jobs/consumer-task",
         "rel": "item",
-        "title": "Job for queue-test"
+        "title": "Job for consumer-task"
     }
 }
 ```
 
-The environment override allows us to tell our test-task to perform queue processing instead of sleeping (in practice you would likely have a different task definition and docker image as opposed to using env modes like this but this is just an example). The important point here is the `trigger` field. A trigger _must_ specify a `type`, other fields are specific to the type and will be consumed by the trigger implementaton in scheduld.
+The environment override allows us to tell our consumer-task to perform queue processing instead of sleeping (in practice you would likely have a different task definition and docker image as opposed to using env modes like this but this is just an example). The important point here is the `trigger` field. A trigger _must_ specify a `type`, other fields are specific to the type and will be consumed by the trigger implementaton in scheduld.
 
 ```sh
-> curl -i http://localhost:5000/jobs/queue-test
+> curl -i http://localhost:5000/jobs/consumer-task
 HTTP/1.0 200 OK
 Content-Type: application/json
 Content-Length: 530
@@ -369,26 +393,18 @@ Server: Werkzeug/0.12.1 Python/3.6.0
 Date: Mon, 03 Apr 2017 02:04:26 GMT
 
 {
-    "id": "queue-test",
+    "id": "consumer-task",
     "link": {
-        "href": "/jobs/queue-test",
+        "href": "/jobs/consumer-task",
         "rel": "item",
-        "title": "Job for queue-test"
+        "title": "Job for consumer-task"
     },
-    "overrides": [
-        {
-            "containerName": "drmonkeysee-task",
-            "environment": {
-                "INPUT_QUEUE": "test-task-queue"
-            }
-        }
-    ],
     "schedule": "43 */3",
     "taskCount": 1,
-    "taskDefinition": "test-task",
+    "taskDefinition": "consumer-task",
     "trigger": {
         "messagesPerTask": 100,
-        "queueName": "test-task-queue",
+        "queueName": "consumer-task-queue",
         "type": "sqs"
     }
 }
@@ -398,12 +414,12 @@ The full job gives a clearer picture of the trigger. An SQS trigger requires the
 
 `messagesPerTask` instead scales the task count to the queue size. There's still some measure of guesswork involved, in our case we decided that a single task can process 100 messages in a reasonable amount of time, but it allows us to achieve a better ratio of tasks to queue size and the scale factor can always be tweaked if it turns out we got it wrong. In this case at 100 messages per task, scheduld will spin up 1 task if the queue size is 1 - 100 messages, 2 tasks if the queue size is 101 - 200 messages, 3 tasks for 201 - 300 messages, etc.
 
-Note that if the queue size is 0 it will not spin up _any_ tasks. That's the power of the trigger, it only launches tasks if it needs to. The `schedule` field in our case is not how often the tasks will be launched but how often the queue will be checked. This is a cheap operation so checking once every 3 minutes seems fair. This gives us a maximum slack time of 3 minutes between when messages arrive in the queue and our `queue-test` tasks start launching and processing the queue.
+Note that if the queue size is 0 it will not spin up _any_ tasks. That's the power of the trigger, it only launches tasks if it needs to. The `schedule` field in our case is not how often the tasks will be launched but how often the queue will be checked. This is a cheap operation so checking once every 3 minutes seems fair. This gives us a maximum slack time of 3 minutes between when messages arrive in the queue and our `consumer-task` tasks start launching and processing the queue.
 
 Finally, it's possible the queue becomes extremely full. While you want to process all the messages in a reasonable time you also don't want to spin up hundreds or thousands of tasks and run up a massive AWS bill. The `maxCount` field will limit how many tasks a scheduled job will launch. This field can be used for any scheduled job, not just triggered jobs, but its most common use case is limiting the scaling factor for SQS-triggered jobs. We set it the same way as any other field:
 
 ```sh
-> curl -i http://localhost:5000/jobs/queue-test -XPUT -d '{"maxCount": 10}' -H 'Content-Type: application/json'
+> curl -i http://localhost:5000/jobs/consumer-task -XPUT -d '{"maxCount": 10}' -H 'Content-Type: application/json'
 HTTP/1.0 200 OK
 ```
 
@@ -429,6 +445,17 @@ If you want to build the package yourself but do not need a development environm
 ### Development Environment
 
 Run `make test` and follow the displayed instructions. Once your development environment is set up `make test` will run the unit tests.
+
+### Docker
+
+If you want to run ECS Scheduler in docker use `make docker` to build the image. Assuming you have an elasticsearch docker container running as `scheduler-es` and an environment file with your AWS credentials named **docker-env** then you can start the webapi and scheduld containers as:
+
+```sh
+> docker run --name ecs-webapi -e LOG_LEVEL=INFO --env-file ~/.aws/docker-env -d --link=scheduler-es:es ecs-scheduler
+> docker run --name ecs-scheduld -e COMPONENT=scheduld -e LOG_LEVEL=INFO --env-file ~/.aws/docker-env -d --link=scheduler-es:es ecs-scheduler
+```
+
+`make docker-clean` will delete all stopped ecs-scheduler containers and remove the image.
 
 ## Credits
 
