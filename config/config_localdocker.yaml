@@ -1,0 +1,7 @@
+---
+webapi:
+  debug: true
+elasticsearch:
+  client:
+    hosts:
+      - http://elastic:changeme@es:9200/

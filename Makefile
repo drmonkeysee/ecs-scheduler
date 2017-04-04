@@ -1,6 +1,7 @@
 CURRENT_PY := $(shell which python3)
 VENV_PY := $(PWD)/venv/bin/python3
 PY := python3
+CONTAINER_NAME := ecs-scheduler
 
 define VENV_ERROR
 Must activate virtual environment:
@@ -22,11 +23,12 @@ check: build
 clean:
 	rm -rf .eggs build dist ecs_scheduler.egg-info
 
-docker: build
-	echo 'Build docker container'
+docker: #build
+	docker build -t $(CONTAINER_NAME) .
 
 docker-clean:
-	echo 'Remove docker artifacts'
+	docker ps -a | awk '/$(CONTAINER_NAME)/ { print $$1 }' | xargs docker rm
+	docker rmi $(CONTAINER_NAME)
 
 test: venv
 	$(PY) -m unittest
