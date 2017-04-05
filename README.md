@@ -1,10 +1,10 @@
 # ECS Scheduler
 
-A scheduler for executing ECS docker tasks, controlled via a JSON REST API.
+A scheduler for executing Amazon ECS docker tasks, controlled via a JSON REST API.
 
 [Amazon ECS](http://docs.aws.amazon.com/AmazonECS/latest/developerguide/Welcome.html) makes it possible to manage and run docker containers on EC2 instances. An ECS task, consisting of one or more docker containers, can be run indefinitely as a service or can be launched manually as a standalone task.
 
-However there is a third execution model in between one-off and persistent tasks: tasks that execute on a scheduled interval or when a certain environmental condition is met. These container tasks may need to perform a few seconds or a few days of work, but they do not need to run indefinitely. Amazon ECS does not support this natively so ECS Scheduler was created to fill that gap. ECS Scheduler allows you to manage the execution schedules of such ephemeral containers. Think of using ECS and docker in this way as a high-octane version of AWS Lambda!
+However there is a third execution model in between one-off and persistent tasks: tasks that execute on a scheduled interval or when a certain environmental condition is met. These container tasks may need to perform a few seconds or a few days of work, but they do not need to run indefinitely. Amazon ECS does not support this natively so ECS Scheduler was created to fill that gap. ECS Scheduler allows you to manage the execution schedules of such ephemeral containers turning ECS and docker into a high-octane version of AWS Lambda!
 
 ECS Scheduler is organized as two components:
 
@@ -13,7 +13,7 @@ ECS Scheduler is organized as two components:
 
 ## Getting Started (PROVISIONAL)
 
-This particular version of ECS Scheduler is a nearly direct rip from the internal Openmail project and is designed to be run as a standalone application directly from the git repository (or rather, from the repository copied into a docker image). Later releases of this project will expose it as a pip-installable package with greater flexibility in hosting and running the scheduler components. In the meantime this can be run as an application script directly from the repo contents. A Dockerfile is also provided that sets the repository up to host in docker.
+This particular version of ECS Scheduler is a nearly direct rip from the internal Openmail project and is designed to be run as a standalone application. Later releases of this project will expose it as a pip-installable package with greater flexibility in hosting and running the scheduler components. In the meantime this can be run as an application script directly from the repo contents. A Dockerfile is also provided that sets the repository up to host in docker.
 
 ECS Scheduler startup is controlled through a combination of configuration files and environment variables and depends on some minimal AWS infrastructure to operate.
 
@@ -21,15 +21,13 @@ Primary configuration is controlled via the contents of YAML files in the **conf
 
 ECS Scheduler is composed of two independent components: webapi and scheduld. They are run as seperate processes and the environment variable `COMPONENT` controls which process runs (set to either `webapi` or `scheduld`). In the future these will be hostable in a single process and not required to run separately. In the meantime they communicate to each other via an SQS queue, named under the appropriate key in one of the configuration files (see the files in **config/** for details).
 
-See [this link](http://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/SQSDeadLetterQueue.html) for more info on creating dead letter queues.
-
 [boto3](https://github.com/boto/boto3) is the package used to communicate to AWS. To set up credentials and default AWS configuration see the details in the [boto3 docs](https://boto3.readthedocs.io/en/latest/guide/configuration.html).
 
-[elasticsearch](https://www.elastic.co/products/elasticsearch) is used as the backing store for persisting job information so an elasticsearch cluster is also required to run ECS scheduler. An index will be created automatically the first time a job is added; however you may want to use a more specific mapping, in which case consult the `JobSchema` and related classes in **serialization.py**. In a later release there will be a static file and a simple S3 storage option as well as hooks to implement your own persistence layer.
+For historical reasons [elasticsearch](https://www.elastic.co/products/elasticsearch) is used as the backing store for persisting job information so an elasticsearch cluster is also required to run ECS scheduler. An index will be created automatically the first time a job is added; however you may want to use a more specific mapping, in which case consult the `JobSchema` and related classes in **serialization.py**. In a later release there will be a static file and a simple S3 storage option as well as hooks to implement your own persistence layer. When testing locally I would recommend using the [elasticsearch docker image](https://www.elastic.co/guide/en/elasticsearch/reference/current/docker.html).
 
 Finally the log level can be controlled via the `LOG_LEVEL` env variable, set to one of the values defined in the [`logging` Python module](https://docs.python.org/3/library/logging.html#logging-levels).
 
-So for example to start the webapi component of ECS Scheduler for testing and logging at the info level would be:
+As an example, to launch the webapi component of ECS Scheduler using the test configuration and logging at the info level execute this command:
 
 ```sh
 > LOG_LEVEL=INFO RUN_ENV=test COMPONENT=webapi ./ecsscheduler
@@ -43,6 +41,8 @@ ECS Scheduler uses an SQS queue to communicate between the web api and the sched
 2. Create the primary scheduler queue
 3. Add the dead letter queue to the scheduler queue
 4. Make sure the queue name is correct in the corresponding config file
+
+See [this link](http://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/SQSDeadLetterQueue.html) for more info on creating dead letter queues.
 
 ### Application Configuration
 
@@ -64,11 +64,11 @@ The home url `/` returns the list of available endpoints.
 
 webapi runs as a self-hosted Flask server. The usage pattern of webapi makes it unlikely you will need a more sophisticated application server container but if necessary [uWSGI](https://uwsgi-docs.readthedocs.org/en/latest/) can provide multi-process/multi-threading request dispatching and more robust web server hosting.
 
-webapi provides a swagger spec at `/spec`. This spec can be read by [Swagger UI](https://github.com/swagger-api/swagger-ui). You can either build [Swagger UI](https://github.com/swagger-api/swagger-ui) yourself or point official [Swagger test site](http://petstore.swagger.io/) at it. For full documentation of the webapi interface consult the swagger spec.
+webapi provides a swagger spec at `/spec`. This spec can be read by [Swagger UI](https://github.com/swagger-api/swagger-ui). You can either build [Swagger UI](https://github.com/swagger-api/swagger-ui) yourself or point the official [Swagger test site](http://petstore.swagger.io/) at it. For full documentation of the webapi interface consult the swagger spec.
 
 If you find yourself needing to modify the swagger spec and it appears to be erroring out in [Swagger UI](https://github.com/swagger-api/swagger-ui) I recommend using the node package [swagger-tools](https://www.npmjs.com/package/swagger-tools) to find issues with the spec format.
 
-The purpose of webapi is to provide a REST api to the ECS scheduler allowing the creation, reading, updating, and deletion of scheduled jobs. Jobs are exposed as a single resource with the following operations:
+The purpose of webapi is to provide a REST api to the ECS scheduler for creating, reading, updating, and deleting scheduled jobs. Jobs are exposed as a single resource with the following operations:
 
 ```
 /jobs
@@ -83,7 +83,7 @@ DELETE - delete the current job
 
 ### Scheduled Jobs
 
-The unit of ECS scheduler that controls tasks is the scheduled job, ECS scheduler is ultimately a collection of jobs associated with a scheduler. See the Swagger spec for full documentation on scheduled jobs but a quick summary of the most commonly used fields is listed below:
+The unit of ECS scheduler that controls tasks is the scheduled job. See the Swagger spec for full documentation on scheduled jobs but a quick summary of the most commonly used fields is listed below:
 
 ```
 taskDefinition - required field; name of the ECS task to control via this job
@@ -92,8 +92,8 @@ id - id of the job; set to taskDefinition if not specified explicitly
 scheduleStart - start date for when the job should begin its schedule; if not set schedule begins immediately
 scheduleEnd - end date for when the job should end its schedule; if not set schedule never ends
 taskCount - the minimum number of tasks to start when the job fires
-maxCount - the maximum number of tasks to start when the job fires; ECS Scheduler also has a hard-coded limit of maximum 50 tasks per job
-trigger - an additional trigger for determining whether the job should start any tasks when its schedule fires
+maxCount - the maximum number of tasks to start when the job fires; ECS Scheduler also has a hard-coded limit of 50 tasks per job
+trigger - additional conditions for whether the job should start any tasks when its schedule fires
 suspended - whether the job is currently suspended or not
 overrides - docker container overrides for the ECS task (currently only supports environment variable overrides)
 ```
@@ -120,7 +120,7 @@ The syntax follows the expected argument formats defined by the [Python APSchedu
 
 #### APScheduler Expressions with Spaces
 
-The elements of the schedule syntax is delimited by spaces, which APScheduler also uses for certain day expressions. Thus an expression like `xth y` must be given to webapi using underscores like `xth_y`.
+The elements of the schedule syntax are delimited by spaces, which APScheduler also uses for certain day expressions. Therefore an expression like `xth y` is expressed in webapi requests using underscores like `xth_y`.
 
 #### Wildcard Expressions
 
@@ -128,11 +128,11 @@ The second, minute, and hour elements of the schedule expression support a speci
 
 ## Scheduld
 
-As mentioned previously Scheduld uses the APScheduler package to do all the real work of managing job schedules. Since webapi is the primary interface to ECS Scheduler there is not much to say about scheduld; APScheduler docs and the ECS API documentation covers most of what it does.
-
-The only thing to note here is when scheduld launches a new task when a scheduled job fires it will automatically update the job with the last run time and the list of ECS tasks that were started when the job last fired.
+As mentioned previously Scheduld uses the APScheduler package to do all the real work of managing job schedules. Since webapi is the primary interface to ECS Scheduler there is not much to say about scheduld; APScheduler docs and the ECS API documentation cover most of what it does.
 
 ## Usage
+
+Before creating jobs for ECS Scheduler you will need an existing Amazon ECS cluster and ECS task definitions for the docker containers you wish to run. Consult the Amazon ECS documentation for details.
 
 ### Basic Job Creation
 
@@ -305,7 +305,7 @@ Date: Mon, 03 Apr 2017 01:46:20 GMT
 }
 ```
 
-To get a sense of what our scheduler state is overall we can get the list of jobs:
+Now we have a second job that also launches the `sleeper-task` task but with the environment variable `SLEEP_SECONDS` set to 10. To get a sense of what our scheduler state is overall we can get the list of jobs:
 
 ```sh
 > curl -i http://localhost:5000/jobs
@@ -358,7 +358,7 @@ At this point if we were to fire up the scheduld daemon it would read the jobs s
 
 There is one final feature of scheduled jobs that merits an extended example. Often times an ephemeral docker container may not be performing work in isolation of other systems; perhaps a container needs to update several document records or transform and insert data events into a shared log. It may not be all that useful to execute the container on a fixed schedule but instead in response to a signal from another system. ECS Scheduler can handle jobs like this via triggers.
 
-A trigger is an environmental check of some sort that the scheduld daemon can perform on behalf of the task and it will only launch the task if the check passes (i.e. if the trigger fires). For a triggered job the schedule is the frequency with which the trigger is checked instead of how often the task is executed. ECS Scheduler currently comes with one built-in trigger: the [SQS](http://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/Welcome.html) trigger. In a future release it will be easier to add custom triggers but for now see **execution.py** for how triggers are defined and used.
+A trigger is an environmental check of some sort that the scheduld daemon can perform on behalf of the task and it will only launch the task if the check passes (i.e. if the trigger fires). A triggered job's schedule is the frequency with which the trigger is checked instead of how often the task is executed. ECS Scheduler currently comes with one built-in trigger: the [SQS](http://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/Welcome.html) trigger. In a future release it will be easier to add custom triggers but for now see **execution.py** for how triggers are defined and used.
 
 Let's say we have another task that consumes messages from an SQS queue: `consumer-task`. Running the task every 5 minutes or every 20 minutes or once a day isn't very useful. Frequently it may be the case that our task would launch only to be faced with an empty queue. At other times the queue might be very active but the task isn't scheduled to start for another 6 hours, delaying our processing time. To avoid these issues we'll use an SQS trigger in the scheduled job.
 
@@ -410,11 +410,11 @@ Date: Mon, 03 Apr 2017 02:04:26 GMT
 }
 ```
 
-The full job gives a clearer picture of the trigger. An SQS trigger requires the `queueName` so scheduld knows what queue to check and it also includes a scaling factor `messagesPerTask`. Normally the `taskCount` tells a job to start _at least_ that number of tasks. For SQS message processing you may need several tasks to clear the queue in a reasonable time so we can set `taskCount` to a higher value. But we run into the same issue as when we tried to guess a good schedule for processing the queue: a minimum of, say, 7 tasks may be sufficient when the queue is particularly busy but there may be many situations where that is overkill or insufficient.
+The full job gives a clearer picture of the trigger. An SQS trigger requires the `queueName` so scheduld knows what queue to check and it also includes a scaling factor `messagesPerTask`. Normally the `taskCount` tells a job to start _at least_ that number of tasks. For SQS message processing you may need several tasks to clear the queue in a reasonable time so we can set `taskCount` to a higher value. But we run into the same issue as when we tried to guess a good schedule for processing the queue: a minimum of, say, 7 tasks may be sufficient when the queue is particularly busy but there may be many situations where that is over- or under-provisioned.
 
 `messagesPerTask` instead scales the task count to the queue size. There's still some measure of guesswork involved, in our case we decided that a single task can process 100 messages in a reasonable amount of time, but it allows us to achieve a better ratio of tasks to queue size and the scale factor can always be tweaked if it turns out we got it wrong. In this case at 100 messages per task, scheduld will spin up 1 task if the queue size is 1 - 100 messages, 2 tasks if the queue size is 101 - 200 messages, 3 tasks for 201 - 300 messages, etc.
 
-Note that if the queue size is 0 it will not spin up _any_ tasks. That's the power of the trigger, it only launches tasks if it needs to. The `schedule` field in our case is not how often the tasks will be launched but how often the queue will be checked. This is a cheap operation so checking once every 3 minutes seems fair. This gives us a maximum slack time of 3 minutes between when messages arrive in the queue and our tasks start launching and processing the queue.
+Note that if the queue size is 0 it will not spin up _any_ tasks. That's the power of the trigger, it only launches tasks if it needs to. The `schedule` field in our case is not how often the tasks will be launched but how often the queue will be checked. This is a cheap operation so checking once every 3 minutes seems fair. This gives us a maximum slack time of 3 minutes between when messages arrive in the queue and when tasks start launching and processing the queue.
 
 Finally, it's possible the queue becomes extremely full. While you want to process all the messages in a reasonable time you also don't want to spin up hundreds or thousands of tasks and run up a massive AWS bill. The `maxCount` field will limit how many tasks a scheduled job will launch. This field can be used for any scheduled job, not just triggered jobs, but its most common use case is limiting the scaling factor for SQS-triggered jobs. We set it the same way as any other field:
 
@@ -424,8 +424,6 @@ HTTP/1.0 200 OK
 ```
 
 Here we limit the number of tasks processing our queue to 10.
-
-For all the other scheduled jobs fields that can be set or read from webapi consult the Swagger documentation or **serialization.py**. 
 
 ## Local Setup
 
@@ -459,7 +457,7 @@ If you want to run ECS Scheduler in docker use `make docker` to build the image.
 
 ## Credits
 
-This application is adapted from an internal [Openmail](https://github.com/Openmail) project. Special thanks to the following people for their contributions during its development:
+This application is adapted from an internal [Openmail](https://github.com/Openmail) project. Thanks to the following people for their contributions during its development:
 
 - [Michael Green](https://github.com/mgreen)
 - [Michael Schaffer](https://github.com/mtschaffer)
