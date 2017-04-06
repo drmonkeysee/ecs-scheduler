@@ -6,6 +6,7 @@ import ecs_scheduler.scheduld.app
 # TODO: get this working once the package is deployable
 #from setuptools_scm import get_version
 from ecs_scheduler import init, jobtasks
+from . import __version__
 
 def main():
     """
@@ -19,7 +20,7 @@ def main():
         queue = jobtasks.SqsTaskQueue(config['aws'])
 
         component_name = config.get('component_name')
-        logging.info('ECS Scheduler v%s', 'test_version')
+        logging.info('ECS Scheduler v%s', __version__)
         if component_name == 'webapi':
             ecs_scheduler.webapi.server.run(config, queue)
         elif component_name == 'scheduld':

@@ -5,6 +5,7 @@ import flask_swagger
 import ecs_scheduler
 # TODO: get this working once the package is deployable
 #from setuptools_scm import get_version
+from .. import __version__
 
 
 class Spec(flask_restful.Resource):
@@ -23,7 +24,7 @@ class Spec(flask_restful.Resource):
                 description: API spec documentation
         """
         swag = flask_swagger.swagger(flask.current_app)
-        swag['info']['version'] = 'test_version'
+        swag['info']['version'] = __version__
         swag['info']['title'] = 'ECS Scheduler Web Api (webapi)'
         swag['basePath'] = '/'
         return swag
