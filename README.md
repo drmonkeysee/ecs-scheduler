@@ -13,7 +13,7 @@ ECS Scheduler is organized as two components:
 
 ## Getting Started (PROVISIONAL)
 
-This particular version of ECS Scheduler is a nearly direct rip from the internal Openmail project and is designed to be run as a standalone application. Later releases of this project will expose it as a pip-installable package with greater flexibility in hosting and running the scheduler components. In the meantime this can be run as an application script directly from the repo contents. A Dockerfile is also provided that sets the repository up to host in docker.
+This particular version of ECS Scheduler is a nearly direct adaptation from an internal Openmail project and is designed to be run as a standalone application. Later releases of this project will expose it as a pip-installable package with greater flexibility in hosting and running the scheduler components. In the meantime this can be run as an application script directly from the repo contents. A Dockerfile is also provided that sets the repository up to host in docker.
 
 ECS Scheduler startup is controlled through a combination of configuration files and environment variables and depends on some minimal AWS infrastructure to operate.
 
