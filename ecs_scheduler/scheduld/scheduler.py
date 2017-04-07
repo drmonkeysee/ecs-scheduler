@@ -6,6 +6,9 @@ from apscheduler.jobstores.base import JobLookupError
 from .execution import JobExecutor
 
 
+_logger = logging.getLogger(__name__)
+
+
 class Scheduler:
     """The job scheduler"""
     def __init__(self, store, job_func):
@@ -38,7 +41,7 @@ class Scheduler:
             self.add_job(job)
             job_count += 1
         self._sched.start()
-        logging.info('Scheduler started with %s initial jobs', job_count)
+        _logger.info('Scheduler started with %s initial jobs', job_count)
 
     def stop(self):
         """
@@ -73,7 +76,7 @@ class Scheduler:
         try:
             self._sched.remove_job(job_id)
         except JobLookupError:
-            logging.exception('Unable to find job %s for removal', job_id)
+            _logger.exception('Unable to find job %s for removal', job_id)
 
     def _insert_job(self, job):
         job_kwargs = {
@@ -143,27 +146,27 @@ class ScheduleEventHandler:
         elif event.retval.return_code == JobExecutor.RETVAL_STARTED_TASKS:
             self._update_job_doc(event.job_id, {'lastRun': event.scheduled_run_time, 'lastRunTasks': event.retval.task_info})
         else:
-            logging.warning('Unexpected job event return value for job %s: %s', event.job_id, event.retval.return_code)
+            _logger.warning('Unexpected job event return value for job %s: %s', event.job_id, event.retval.return_code)
 
     def _handle_error_event(self, event):
         if event.exception:
             try:
                 raise event.exception
             except Exception:
-                logging.exception('Job %s failed with exception', event.job_id)
+                _logger.exception('Job %s failed with exception', event.job_id)
         else:
-            logging.error('Job %s failed but no exception was recorded', event.job_id)
+            _logger.error('Job %s failed but no exception was recorded', event.job_id)
 
     def _handle_missed_event(self, event):
-        logging.error('Job %s was supposed to run at %s but was missed', event.job_id, event.scheduled_run_time)
+        _logger.error('Job %s was supposed to run at %s but was missed', event.job_id, event.scheduled_run_time)
 
     def _handle_unknown_event(self, event):
-        logging.warning('Unexpected job event raised for job %s: %s', event.job_id, event.code)
+        _logger.warning('Unexpected job event raised for job %s: %s', event.job_id, event.code)
 
     def _update_job_doc(self, job_id, job_data=None):
         scheduled_job = self._sched.get_job(job_id)
         if not scheduled_job:
-            logging.warning('Job %s not found in scheduler to update stats', job_id)
+            _logger.warning('Job %s not found in scheduler to update stats', job_id)
             return
 
         job_data = job_data if job_data else {}
@@ -174,6 +177,6 @@ class ScheduleEventHandler:
             try:
                 self._store.update(job_id, job_data)
             except Exception:
-                logging.exception('Unable to update job stats for %s', job_id)
+                _logger.exception('Unable to update job stats for %s', job_id)
         else:
-            logging.info('No job updates needed')
+            _logger.info('No job updates needed')

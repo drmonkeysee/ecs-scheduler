@@ -1,4 +1,5 @@
 import unittest
+import logging
 import ecs_scheduler.jobtasks
 from unittest.mock import patch, Mock
 from ecs_scheduler.scheduld.dispatch import run
@@ -6,8 +7,8 @@ from ecs_scheduler.models import JobOperation
 
 
 @patch('time.sleep')
-@patch('logging.exception')
-@patch('logging.critical')
+@patch.object(logging.getLogger('ecs_scheduler.scheduld.dispatch'), 'exception')
+@patch.object(logging.getLogger('ecs_scheduler.scheduld.dispatch'), 'critical')
 class RunTests(unittest.TestCase):
     def setUp(self):
         self._fake_queue = Mock()

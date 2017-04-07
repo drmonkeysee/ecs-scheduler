@@ -5,6 +5,9 @@ from ..jobtasks import InvalidMessageException
 from ..models import JobOperation
 
 
+_logger = logging.getLogger(__name__)
+
+
 def run(task_queue, scheduler, store, config):
     """
     Run the scheduler dispatch loop
@@ -15,18 +18,18 @@ def run(task_queue, scheduler, store, config):
     :param config: The scheduld config section of app config
     :raises Exception: Unhandled exceptions
     """
-    logging.info('scheduld job dispatch is online')
+    _logger.info('scheduld job dispatch is online')
     try:
         sleep_period = config['sleep_in_seconds']
         while True:
             task = task_queue.get()
             if task:
                 _process_task(task, scheduler, store)
-            logging.info('Sleeping dispatch for %s seconds...', sleep_period)
+            _logger.info('Sleeping dispatch for %s seconds...', sleep_period)
             time.sleep(sleep_period)
     except Exception:
-        logging.critical('scheduld job dispatcher has died! scheduler will be stopped')
-        logging.exception('unhandled scheduld exception')
+        _logger.critical('scheduld job dispatcher has died! scheduler will be stopped')
+        _logger.exception('unhandled scheduld exception')
         scheduler.stop()
         raise
 
@@ -35,13 +38,13 @@ def _process_task(task, scheduler, store):
     try:
         job_op = task.get_job_operation()
     except InvalidMessageException:
-        logging.exception('Invalid task message for task %s', task.task_id)
+        _logger.exception('Invalid task message for task %s', task.task_id)
     else:
         try:
             _dispatch_job(job_op, scheduler, store)
-            logging.info('Dispatched job operation %s {%s}', job_op.job_id, job_op.operation)
+            _logger.info('Dispatched job operation %s {%s}', job_op.job_id, job_op.operation)
         except Exception:
-            logging.exception('Error dispatching job %s {%s} from task %s',
+            _logger.exception('Error dispatching job %s {%s} from task %s',
                 job_op.job_id, job_op.operation, task.task_id)
         else:
             task.complete()

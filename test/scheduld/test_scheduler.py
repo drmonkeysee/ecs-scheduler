@@ -1,4 +1,5 @@
 import unittest
+import logging
 import datetime
 import apscheduler.jobstores.base
 import apscheduler.events
@@ -6,6 +7,7 @@ from unittest.mock import patch, Mock
 from ecs_scheduler.scheduld.scheduler import Scheduler, ScheduleEventHandler
 from ecs_scheduler.models import Job
 from ecs_scheduler.scheduld.execution import JobExecutor, JobResult
+
 
 class SchedulerTests(unittest.TestCase):
     def setUp(self):
@@ -121,7 +123,7 @@ class SchedulerTests(unittest.TestCase):
 
         self._sched._sched.remove_job.assert_called_with(job_id)
 
-    @patch('logging.exception')
+    @patch.object(logging.getLogger('ecs_scheduler.scheduld.scheduler'), 'exception')
     def test_remove_job_catches_job_not_found(self, fake_log):
         job_id = 'job3'
         self._sched._sched.remove_job.side_effect = apscheduler.jobstores.base.JobLookupError(job_id)
@@ -135,7 +137,7 @@ class ScheduleEventHandlerTests(unittest.TestCase):
     def setUp(self):
         self._handler = ScheduleEventHandler(Mock(), Mock())
 
-    @patch('logging.exception')
+    @patch.object(logging.getLogger('ecs_scheduler.scheduld.scheduler'), 'exception')
     def test_exception_gets_logged(self, fake_log):
         event = apscheduler.events.JobExecutionEvent(apscheduler.events.EVENT_JOB_ERROR,
             'test_id', 'default', datetime.datetime.now(), exception=Exception('oh no'))
@@ -144,7 +146,7 @@ class ScheduleEventHandlerTests(unittest.TestCase):
 
         fake_log.assert_called()
 
-    @patch('logging.error')
+    @patch.object(logging.getLogger('ecs_scheduler.scheduld.scheduler'), 'error')
     def test_error_with_no_exception_gets_logged(self, fake_log):
         event = apscheduler.events.JobExecutionEvent(apscheduler.events.EVENT_JOB_ERROR,
             'test_id', 'default', datetime.datetime.now())
@@ -153,7 +155,7 @@ class ScheduleEventHandlerTests(unittest.TestCase):
 
         fake_log.assert_called()
 
-    @patch('logging.error')
+    @patch.object(logging.getLogger('ecs_scheduler.scheduld.scheduler'), 'error')
     def test_missed_job_gets_logged(self, fake_log):
         event = apscheduler.events.JobExecutionEvent(apscheduler.events.EVENT_JOB_MISSED,
             'test_id', 'default', datetime.datetime.now(), retval=0)
@@ -162,7 +164,7 @@ class ScheduleEventHandlerTests(unittest.TestCase):
 
         fake_log.assert_called()
 
-    @patch('logging.warning')
+    @patch.object(logging.getLogger('ecs_scheduler.scheduld.scheduler'), 'warning')
     def test_non_exception_gets_logged(self, fake_log):
         event = apscheduler.events.JobExecutionEvent(apscheduler.events.EVENT_JOB_REMOVED,
             'test_id', 'default', datetime.datetime.now(), retval=0)
@@ -191,7 +193,7 @@ class ScheduleEventHandlerTests(unittest.TestCase):
 
         self._handler._store.update.assert_not_called()
 
-    @patch('logging.exception')
+    @patch.object(logging.getLogger('ecs_scheduler.scheduld.scheduler'), 'exception')
     def test_checked_tasks_records_exception_if_update_fails(self, fake_log):
         event = apscheduler.events.JobExecutionEvent(apscheduler.events.EVENT_JOB_EXECUTED,
             'test_id', 'default', datetime.datetime.now(), retval=JobResult(JobExecutor.RETVAL_CHECKED_TASKS))
@@ -204,7 +206,7 @@ class ScheduleEventHandlerTests(unittest.TestCase):
         self._handler._store.update.assert_called_with('test_id', {'estimatedNextRun': test_scheduled_job.next_run_time})
         fake_log.assert_called()
 
-    @patch('logging.warning')
+    @patch.object(logging.getLogger('ecs_scheduler.scheduld.scheduler'), 'warning')
     def test_checked_tasks_logs_warning_if_job_not_found(self, fake_log):
         event = apscheduler.events.JobExecutionEvent(apscheduler.events.EVENT_JOB_EXECUTED,
             'test_id', 'default', datetime.datetime.now(), retval=JobResult(JobExecutor.RETVAL_CHECKED_TASKS))
@@ -237,7 +239,7 @@ class ScheduleEventHandlerTests(unittest.TestCase):
 
         self._handler._store.update.assert_called_with('test_id', {'lastRun': expected_last_run_time, 'lastRunTasks': ['foo', 'bar']})
 
-    @patch('logging.exception')
+    @patch.object(logging.getLogger('ecs_scheduler.scheduld.scheduler'), 'exception')
     def test_started_tasks_records_exception_if_update_fails(self, fake_log):
         expected_last_run_time = datetime.datetime(2013, 11, 11)
         event = apscheduler.events.JobExecutionEvent(apscheduler.events.EVENT_JOB_EXECUTED,
@@ -251,7 +253,7 @@ class ScheduleEventHandlerTests(unittest.TestCase):
         self._handler._store.update.assert_called_with('test_id', {'estimatedNextRun': test_scheduled_job.next_run_time, 'lastRun': expected_last_run_time, 'lastRunTasks': ['foo', 'bar']})
         fake_log.assert_called()
 
-    @patch('logging.warning')
+    @patch.object(logging.getLogger('ecs_scheduler.scheduld.scheduler'), 'warning')
     def test_started_tasks_logs_warning_if_job_not_found(self, fake_log):
         expected_last_run_time = datetime.datetime(2013, 11, 11)
         event = apscheduler.events.JobExecutionEvent(apscheduler.events.EVENT_JOB_EXECUTED,
@@ -263,7 +265,7 @@ class ScheduleEventHandlerTests(unittest.TestCase):
         self._handler._store.update.assert_not_called()
         fake_log.assert_called()
 
-    @patch('logging.warning')
+    @patch.object(logging.getLogger('ecs_scheduler.scheduld.scheduler'), 'warning')
     def test_successful_execute_logs_warning_if_unknown_retval(self, fake_log):
         expected_last_run_time = datetime.datetime(2013, 11, 11)
         event = apscheduler.events.JobExecutionEvent(apscheduler.events.EVENT_JOB_EXECUTED,
@@ -294,7 +296,7 @@ class ScheduleEventHandlerTests(unittest.TestCase):
 
         self._handler._store.update.assert_not_called()
 
-    @patch('logging.exception')
+    @patch.object(logging.getLogger('ecs_scheduler.scheduld.scheduler'), 'exception')
     def test_add_job_records_exception_if_update_fails(self, fake_log):
         event = apscheduler.events.JobExecutionEvent(apscheduler.events.EVENT_JOB_ADDED,
             'test_id', 'default', datetime.datetime.now())
@@ -307,7 +309,7 @@ class ScheduleEventHandlerTests(unittest.TestCase):
         self._handler._store.update.assert_called_with('test_id', {'estimatedNextRun': test_scheduled_job.next_run_time})
         fake_log.assert_called()
 
-    @patch('logging.warning')
+    @patch.object(logging.getLogger('ecs_scheduler.scheduld.scheduler'), 'warning')
     def test_add_job_logs_warning_if_job_not_found(self, fake_log):
         event = apscheduler.events.JobExecutionEvent(apscheduler.events.EVENT_JOB_ADDED,
             'test_id', 'default', datetime.datetime.now())
@@ -338,7 +340,7 @@ class ScheduleEventHandlerTests(unittest.TestCase):
 
         self._handler._store.update.assert_not_called()
 
-    @patch('logging.exception')
+    @patch.object(logging.getLogger('ecs_scheduler.scheduld.scheduler'), 'exception')
     def test_modify_job_records_exception_if_update_fails(self, fake_log):
         event = apscheduler.events.JobExecutionEvent(apscheduler.events.EVENT_JOB_MODIFIED,
             'test_id', 'default', datetime.datetime.now())
@@ -351,7 +353,7 @@ class ScheduleEventHandlerTests(unittest.TestCase):
         self._handler._store.update.assert_called_with('test_id', {'estimatedNextRun': test_scheduled_job.next_run_time})
         fake_log.assert_called()
 
-    @patch('logging.warning')
+    @patch.object(logging.getLogger('ecs_scheduler.scheduld.scheduler'), 'warning')
     def test_modify_job_logs_warning_if_job_not_found(self, fake_log):
         event = apscheduler.events.JobExecutionEvent(apscheduler.events.EVENT_JOB_MODIFIED,
             'test_id', 'default', datetime.datetime.now())

@@ -8,6 +8,9 @@ from ..models import Pagination, JobOperation
 from .jobstore import JobExistsException, JobNotFoundException
 
 
+_logger = logging.getLogger(__name__)
+
+
 def require_json_content_type(verb):
     """A decorator for enforcing json content-type constraints on http requests."""
     @functools.wraps(verb)
@@ -37,7 +40,7 @@ def _post_task(job_op, task_queue, job_response):
     try:
         task_queue.put(job_op)
     except Exception:
-        logging.exception('Exception when posting job operation to task queue')
+        _logger.exception('Exception when posting job operation to task queue')
         flask_restful.abort(500,
             item=job_response,
             message='Job update was saved correctly but failed to post update message to scheduler')

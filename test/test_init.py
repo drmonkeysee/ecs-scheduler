@@ -52,7 +52,7 @@ class InitModuleTests(unittest.TestCase):
         self.assertEqual(2, len(expected_handlers))
         self.assertIsInstance(expected_handlers[1], logging.handlers.RotatingFileHandler)
 
-    @patch('yaml.load')
+    @patch('yaml.safe_load')
     @patch('builtins.open')
     @patch.dict('os.environ', clear=True)
     def test_config_loads_default(self, fake_open, fake_yaml):
@@ -64,7 +64,7 @@ class InitModuleTests(unittest.TestCase):
         self.assertIs(test_config, result)
         fake_open.assert_called_with('config/config_default.yaml')
 
-    @patch('yaml.load')
+    @patch('yaml.safe_load')
     @patch('builtins.open')
     @patch.dict('os.environ', {'RUN_ENV': 'dev'})
     def test_config_loads_env(self, fake_open, fake_yaml):
@@ -82,8 +82,8 @@ class InitModuleTests(unittest.TestCase):
         fake_open.assert_any_call('config/config_default.yaml')
         fake_open.assert_called_with('config/config_dev.yaml')
 
-    @patch.object(logging, 'warning')
-    @patch('yaml.load')
+    @patch.object(logging.getLogger('ecs_scheduler.init'), 'warning')
+    @patch('yaml.safe_load')
     @patch('builtins.open', side_effect=[unittest.mock.DEFAULT, FileNotFoundError])
     @patch.dict('os.environ', {'RUN_ENV': 'dev'})
     def test_config_skips_envload_if_filenotfound(self, fake_open, fake_yaml, fake_log):
@@ -96,7 +96,7 @@ class InitModuleTests(unittest.TestCase):
         fake_open.assert_any_call('config/config_default.yaml')
         fake_open.assert_called_with('config/config_dev.yaml')
 
-    @patch('yaml.load')
+    @patch('yaml.safe_load')
     @patch('builtins.open')
     @patch.dict('os.environ', {'COMPONENT': 'foo'})
     def test_config_sets_component_if_env_specified(self, fake_open, fake_yaml):
@@ -107,8 +107,8 @@ class InitModuleTests(unittest.TestCase):
 
         self.assertEqual('foo', test_config['component_name'])
 
-    @patch.object(logging, 'warning')
-    @patch('yaml.load')
+    @patch.object(logging.getLogger('ecs_scheduler.init'), 'warning')
+    @patch('yaml.safe_load')
     @patch('builtins.open')
     @patch.dict('os.environ', clear=True)
     def test_config_fallsbacktodefault_if_component_env_not_set(self, fake_open, fake_yaml, fake_log):
@@ -119,7 +119,7 @@ class InitModuleTests(unittest.TestCase):
 
         self.assertEqual('bar', test_config['component_name'])
 
-    @patch('yaml.load')
+    @patch('yaml.safe_load')
     @patch('builtins.open')
     @patch.dict('os.environ', clear=True)
     def test_config_does_not_set_sleeptime_if_not_in_env(self, fake_open, fake_yaml):
@@ -130,7 +130,7 @@ class InitModuleTests(unittest.TestCase):
 
         self.assertEqual(10, test_config['scheduld']['sleep_in_seconds'])
 
-    @patch('yaml.load')
+    @patch('yaml.safe_load')
     @patch('builtins.open')
     @patch.dict('os.environ', {'SLEEP_IN_SECONDS': '20'})
     def test_config_sets_sleeptime_if_env_specified(self, fake_open, fake_yaml):
@@ -141,8 +141,8 @@ class InitModuleTests(unittest.TestCase):
 
         self.assertEqual(20, test_config['scheduld']['sleep_in_seconds'])
 
-    @patch.object(logging, 'warning')
-    @patch('yaml.load')
+    @patch.object(logging.getLogger('ecs_scheduler.init'), 'warning')
+    @patch('yaml.safe_load')
     @patch('builtins.open')
     @patch.dict('os.environ', {'SLEEP_IN_SECONDS': 'nope'})
     def test_config_fallsbacktodefault_if_sleeptime_env_not_integer(self, fake_open, fake_yaml, fake_log):

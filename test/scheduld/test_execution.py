@@ -1,4 +1,5 @@
 import unittest
+import logging
 from unittest.mock import patch, Mock
 from ecs_scheduler.scheduld.execution import JobExecutor, NoOpTrigger, SqsTrigger, get_trigger, JobResult
 
@@ -70,7 +71,7 @@ class JobExecutorTests(unittest.TestCase):
         self._exec._ecs.run_task.assert_called_with(cluster='testCluster', taskDefinition='foo', count=3, startedBy='testName')
         fake_get_trigger.assert_called_with(None)
 
-    @patch('logging.warning')
+    @patch.object(logging.getLogger('ecs_scheduler.scheduld.execution'), 'warning')
     def test_call_logs_warning_if_some_tasks_fail(self, fake_log, fake_get_trigger):
         fake_trigger = Mock()
         fake_trigger.determine_task_count.return_value = 3
@@ -87,7 +88,7 @@ class JobExecutorTests(unittest.TestCase):
         fake_get_trigger.assert_called_with(None)
         fake_log.assert_called()
 
-    @patch('logging.warning')
+    @patch.object(logging.getLogger('ecs_scheduler.scheduld.execution'), 'warning')
     def test_call_logs_warning_if_all_tasks_fail(self, fake_log, fake_get_trigger):
         fake_trigger = Mock()
         fake_trigger.determine_task_count.return_value = 3

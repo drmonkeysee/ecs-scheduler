@@ -1,4 +1,5 @@
 import unittest
+import logging
 import werkzeug.exceptions
 import ecs_scheduler.models
 from unittest.mock import patch, Mock
@@ -115,7 +116,7 @@ class JobsTests(unittest.TestCase):
             'link': {'href': 'foo/job/foobar', 'rel': 'item', 'title': 'Job for foobar'}
         }, 201), response)
 
-    @patch('logging.exception')
+    @patch.object(logging.getLogger('ecs_scheduler.webapi.jobs'), 'exception')
     @patch('flask_restful.abort')
     @patch('flask.request')
     def test_post_returns_committed_response_error_if_queue_throws(self, fake_request, fake_abort, fake_url, fake_log):
@@ -225,7 +226,7 @@ class JobTests(unittest.TestCase):
             'link': {'href': 'foo/job/foobar', 'rel': 'item', 'title': 'Job for foobar'}
         }, response)
 
-    @patch('logging.exception')
+    @patch.object(logging.getLogger('ecs_scheduler.webapi.jobs'), 'exception')
     @patch('flask_restful.abort')
     @patch('flask.request')
     def test_put_returns_committed_response_error_if_queue_throws(self, fake_request, fake_abort, fake_url, fake_log):
@@ -271,7 +272,7 @@ class JobTests(unittest.TestCase):
         self.assertEqual('foobar', job_op_args[0].job_id)
         self.assertEqual({'id': 'foobar'}, response)
 
-    @patch('logging.exception')
+    @patch.object(logging.getLogger('ecs_scheduler.webapi.jobs'), 'exception')
     @patch('flask_restful.abort')
     @patch('flask.request')
     def test_delete_returns_committed_response_error_if_queue_throws(self, fake_request, fake_abort, fake_url, fake_log):

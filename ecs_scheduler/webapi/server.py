@@ -9,6 +9,7 @@ from .jobs import Jobs, Job
 from .jobstore import JobStore
 
 
+_logger = logging.getLogger(__name__)
 _app = None
 _api = None
 
@@ -32,6 +33,6 @@ def run(config, task_queue):
     _api.add_resource(Jobs, '/jobs', resource_class_args=(job_store, task_queue))
     _api.add_resource(Job, '/jobs/<job_id>', resource_class_args=(job_store, task_queue))
     
-    logging.info('Starting webapi...')
+    _logger.info('Starting webapi...')
     is_debug = config['webapi']['debug']
     _app.run(debug=is_debug, host=None if is_debug else '0.0.0.0', use_evalex=False)

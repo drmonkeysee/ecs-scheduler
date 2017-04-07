@@ -4,6 +4,7 @@ import elasticsearch.helpers
 from .. import models
 from ..serialization import JobSchema, JobResponseSchema
 
+
 class JobStore:
     """Persistent job store"""
     _DOC_TYPE = 'job'

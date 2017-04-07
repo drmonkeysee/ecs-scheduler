@@ -4,6 +4,9 @@ import boto3
 from .serialization import JobOperationSchema
 
 
+_logger = logging.getLogger(__name__)
+
+
 class SqsTaskQueue:
     """
     A task queue backed by SQS
@@ -78,7 +81,7 @@ class MsgTask:
         """Mark the task as completed"""
         if self._got_valid_job:
             self._context.delete()
-            logging.info('Processed task message "%s"', self.task_id)
+            _logger.info('Processed task message "%s"', self.task_id)
 
 
 class InvalidMessageException(Exception):

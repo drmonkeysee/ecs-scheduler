@@ -7,6 +7,7 @@ import boto3
 
 # see http://docs.aws.amazon.com/AmazonECS/latest/APIReference/API_RunTask.html
 _MAX_TASK_COUNT = 10
+_logger = logging.getLogger(__name__)
 
 
 class JobExecutor:
@@ -46,10 +47,10 @@ class JobExecutor:
 
         if needed_task_count:
             task_info = self._launch_tasks(task_name, needed_task_count, job_data)
-            logging.info('Launched %s "%s" tasks for job %s', needed_task_count, task_name, job_data['id'])
+            _logger.info('Launched %s "%s" tasks for job %s', needed_task_count, task_name, job_data['id'])
             return JobResult(self.RETVAL_STARTED_TASKS, task_info)
         
-        logging.info('Checked status for "%s" and no additional tasks were needed', job_data['id'])
+        _logger.info('Checked status for "%s" and no additional tasks were needed', job_data['id'])
         return JobResult(self.RETVAL_CHECKED_TASKS)
 
     def _calculate_running_count(self, job_data, task_arns):
@@ -85,7 +86,7 @@ class JobExecutor:
             response = self._ecs.run_task(**run_kwargs)
             failures = response['failures']
             if failures:
-                logging.warning('Task "%s" start failures: %s', task_def_id, failures)
+                _logger.warning('Task "%s" start failures: %s', task_def_id, failures)
             task_info.extend({'taskId': t['taskArn'], 'hostId': t['containerInstanceArn']} for t in response['tasks'])
             task_count -= _MAX_TASK_COUNT
         return task_info
@@ -163,7 +164,6 @@ def get_trigger(trigger_name):
     """
     if not _triggers:
         _init_triggers()
-
     return _triggers.get(trigger_name, _triggers['noop'])
 
 

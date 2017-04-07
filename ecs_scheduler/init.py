@@ -5,14 +5,7 @@ import logging.handlers
 import yaml
 
 
-def _merge_config(base, ext):
-    if isinstance(base, dict) and isinstance(ext, dict):
-        for k, v in base.items():
-            if k not in ext:
-                ext[k] = v
-            else:
-                ext[k] = _merge_config(v, ext[k])
-    return ext
+_logger = logging.getLogger(__name__)
 
 
 def env():
@@ -34,22 +27,23 @@ def config():
     :returns: a union of default and environment-specific configuration as a dictionary
     """
     with open('config/config_default.yaml') as config_file:
-        config = yaml.load(config_file)
+        config = yaml.safe_load(config_file)
 
     run_env = os.getenv('RUN_ENV')
     if run_env:
         try:
             with open('config/config_{}.yaml'.format(run_env)) as env_config_file:
-                env_config = yaml.load(env_config_file)
+                env_config = yaml.safe_load(env_config_file)
         except FileNotFoundError:
-            logging.warning('No config file found for environment "%s"', run_env)
+            _logger.warning('No config file found for environment "%s"', run_env)
         else:
             config = _merge_config(config, env_config)
 
     _merge_env_vars(config)
 
-    logging.debug('ecs scheduler config: %s', config)
+    _logger.debug('ecs scheduler config: %s', config)
     return config
+
 
 def _merge_env_vars(config):
     component_name = os.getenv('COMPONENT')
@@ -61,5 +55,15 @@ def _merge_env_vars(config):
         try:
             config['scheduld']['sleep_in_seconds'] = int(sleep_time)
         except ValueError:
-            logging.warning('SLEEP_IN_SECONDS env variable could not be converted to an integer: "%s"; using configured value of %s seconds instead',
+            _logger.warning('SLEEP_IN_SECONDS env variable could not be converted to an integer: "%s"; using configured value of %s seconds instead',
                 sleep_time, config['scheduld']['sleep_in_seconds'])
+
+
+def _merge_config(base, ext):
+    if isinstance(base, dict) and isinstance(ext, dict):
+        for k, v in base.items():
+            if k not in ext:
+                ext[k] = v
+            else:
+                ext[k] = _merge_config(v, ext[k])
+    return ext
