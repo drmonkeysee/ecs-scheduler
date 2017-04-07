@@ -1,6 +1,7 @@
 """Job dispatch operations"""
 import logging
 import time
+
 from ..jobtasks import InvalidMessageException
 from ..models import JobOperation
 

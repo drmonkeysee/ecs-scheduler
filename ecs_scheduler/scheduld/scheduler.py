@@ -1,8 +1,10 @@
 """Job scheduler classes"""
 import logging
+
 import apscheduler.events
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.jobstores.base import JobLookupError
+
 from .execution import JobExecutor
 
 

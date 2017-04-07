@@ -1,6 +1,7 @@
 """Root url REST resources"""
 import flask
 import flask_restful
+
 from .jobs import Jobs
 from .spec import Spec
 

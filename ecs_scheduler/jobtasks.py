@@ -1,6 +1,8 @@
 """Classes for operating on job tasks"""
 import logging
+
 import boto3
+
 from .serialization import JobOperationSchema
 
 

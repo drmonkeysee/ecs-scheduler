@@ -1,8 +1,10 @@
 """Job REST resources"""
 import logging
 import functools
+
 import flask
 import flask_restful
+
 from ..serialization import PaginationSchema, JobSchema, JobCreateSchema, JobResponseSchema
 from ..models import Pagination, JobOperation
 from .jobstore import JobExistsException, JobNotFoundException

@@ -1,5 +1,6 @@
 """Scheduler daemon main entry"""
 import logging
+
 from . import dispatch
 from .execution import JobExecutor
 from .scheduler import Scheduler

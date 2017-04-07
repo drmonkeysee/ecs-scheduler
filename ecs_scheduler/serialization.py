@@ -1,8 +1,10 @@
 """Serialization schemas for scheduler classes"""
 import re
 import random
+
 import marshmallow
 import apscheduler.triggers.cron
+
 from .models import Job, Pagination, JobOperation
 
 

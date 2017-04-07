@@ -2,9 +2,9 @@
 import flask
 import flask_restful
 import flask_swagger
-import ecs_scheduler
 # TODO: get this working once the package is deployable
 #from setuptools_scm import get_version
+
 from .. import __version__
 
 

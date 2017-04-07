@@ -1,6 +1,7 @@
 """Persistent job store operations"""
 import elasticsearch
 import elasticsearch.helpers
+
 from .. import models
 from ..serialization import JobSchema, JobResponseSchema
 

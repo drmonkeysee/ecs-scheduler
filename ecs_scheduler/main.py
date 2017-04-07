@@ -1,12 +1,13 @@
 """Main entry for all ecs scheduler services"""
 import sys
 import logging
-import ecs_scheduler.webapi.server
-import ecs_scheduler.scheduld.app
+
 # TODO: get this working once the package is deployable
 #from setuptools_scm import get_version
-from ecs_scheduler import init, jobtasks
-from . import __version__
+
+import ecs_scheduler.webapi.server
+import ecs_scheduler.scheduld.app
+from . import init, jobtasks, __version__
 
 
 _logger = logging.getLogger(__name__)
