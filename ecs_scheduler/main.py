@@ -1,12 +1,12 @@
-"""Main entry for all ecs scheduler services"""
-import sys
+"""Main entry for the ECS Scheduler application."""
+import os
 import logging
 
 # TODO: get this working once the package is deployable
 #from setuptools_scm import get_version
 
-import ecs_scheduler.webapi.server
-import ecs_scheduler.scheduld.app
+import ecs_scheduler.webapi
+import ecs_scheduler.scheduld
 from . import init, jobtasks, __version__
 
 
@@ -15,7 +15,7 @@ _logger = logging.getLogger(__name__)
 
 def main():
     """
-    Start ecs scheduler service
+    Start ECS Scheduler application.
 
     :raises Exception: Unhandled exceptions
     """
@@ -26,12 +26,20 @@ def main():
 
         component_name = config.get('component_name')
         _logger.info('ECS Scheduler v%s', __version__)
-        if component_name == 'webapi':
-            ecs_scheduler.webapi.server.run(config, queue)
-        elif component_name == 'scheduld':
-            ecs_scheduler.scheduld.app.run(config, queue)
-        else:
-            raise RuntimeError('Unknown component name: ' + str(component_name))
+
+        scheduler = ecs_scheduler.scheduld.create(config)
+        server = ecs_scheduler.webapi.create(config, queue)
+
+        # NOTE: Flask in debug mode will restart the process
+        # so only launch scheduler in the initial startup to avoid duplicate daemons
+        # see: https://github.com/pallets/werkzeug/blob/master/werkzeug/_reloader.py
+        if not os.getenv('WERKZEUG_RUN_MAIN'):
+            _logger.info('Starting scheduld...')
+            scheduler.start()
+
+        _logger.info('Starting webapi...')
+        is_debug = config['webapi']['debug']
+        server.run(debug=is_debug, host=None if is_debug else '0.0.0.0', use_evalex=False)
     except Exception:
         _logger.critical('unhandled scheduler exception', exc_info=True)
         raise

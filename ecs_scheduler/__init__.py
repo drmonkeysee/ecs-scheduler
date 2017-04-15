@@ -1,2 +1,2 @@
-"""Main source package for ecs scheduler"""
-__version__ = '0.7.0'
+"""Main source package for ECS Scheduler."""
+__version__ = '0.8.0'
