@@ -1,5 +1,6 @@
 import unittest
 from unittest.mock import patch
+
 from ecs_scheduler.webapi.spec import Spec
 
 

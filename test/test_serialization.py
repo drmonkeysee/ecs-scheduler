@@ -1,7 +1,9 @@
 import unittest
-import dateutil
 from datetime import datetime, timezone
 from unittest.mock import patch
+
+import dateutil
+
 from ecs_scheduler.serialization import (TriggerSchema, JobSchema,
                                             JobCreateSchema, JobResponseSchema,
                                             PaginationSchema, JobOperationSchema,

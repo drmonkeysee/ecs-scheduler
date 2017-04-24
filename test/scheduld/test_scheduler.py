@@ -1,9 +1,11 @@
 import unittest
 import logging
 import datetime
+from unittest.mock import patch, Mock
+
 import apscheduler.jobstores.base
 import apscheduler.events
-from unittest.mock import patch, Mock
+
 from ecs_scheduler.scheduld.scheduler import Scheduler, ScheduleEventHandler
 from ecs_scheduler.models import Job
 from ecs_scheduler.scheduld.execution import JobExecutor, JobResult

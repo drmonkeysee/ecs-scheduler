@@ -1,8 +1,10 @@
 import unittest
 import logging
-import werkzeug.exceptions
-import ecs_scheduler.models
 from unittest.mock import patch, Mock
+
+import werkzeug.exceptions
+
+import ecs_scheduler.models
 from ecs_scheduler.webapi.jobs import Jobs, Job, require_json_content_type
 from ecs_scheduler.webapi.jobstore import JobExistsException, JobNotFoundException
 

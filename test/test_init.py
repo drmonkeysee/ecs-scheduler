@@ -2,6 +2,7 @@ import unittest
 import logging
 import logging.handlers
 from unittest.mock import patch
+
 from ecs_scheduler import init
 
 

@@ -1,6 +1,8 @@
 import unittest
-import elasticsearch.exceptions
 from unittest.mock import patch
+
+import elasticsearch.exceptions
+
 from ecs_scheduler.webapi.jobstore import JobStore, JobExistsException, JobNotFoundException
 
 

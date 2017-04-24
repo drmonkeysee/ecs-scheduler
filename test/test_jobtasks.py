@@ -1,6 +1,8 @@
 import unittest
-import marshmallow.exceptions
 from unittest.mock import patch, Mock
+
+import marshmallow.exceptions
+
 from ecs_scheduler.jobtasks import SqsTaskQueue, MsgTask, InvalidMessageException
 from ecs_scheduler.models import JobOperation
 from ecs_scheduler.serialization import JobOperationSchema

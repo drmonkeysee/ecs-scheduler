@@ -1,6 +1,7 @@
 import unittest
 import logging
 from unittest.mock import patch, Mock
+
 from ecs_scheduler.scheduld.execution import JobExecutor, NoOpTrigger, SqsTrigger, get_trigger, JobResult
 
 

@@ -1,7 +1,9 @@
 import unittest
-import marshmallow.exceptions
-import ecs_scheduler.models
 from unittest.mock import patch
+
+import marshmallow.exceptions
+
+import ecs_scheduler.models
 from ecs_scheduler.scheduld.jobstore import JobStore
 
 

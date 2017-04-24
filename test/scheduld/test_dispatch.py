@@ -1,7 +1,8 @@
 import unittest
 import logging
-import ecs_scheduler.jobtasks
 from unittest.mock import patch, Mock
+
+import ecs_scheduler.jobtasks
 from ecs_scheduler.scheduld.dispatch import run
 from ecs_scheduler.models import JobOperation
 
