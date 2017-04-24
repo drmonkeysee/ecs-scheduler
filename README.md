@@ -87,7 +87,7 @@ The unit of ECS scheduler that controls tasks is the scheduled job. See the Swag
 
 ```
 taskDefinition - required field; name of the ECS task to control via this job
-schedule - required field; CRON-style schedule describing when this job fires
+schedule - required field; CRON-style schedule describing when this job fires (all times in UTC)
 id - id of the job; set to taskDefinition if not specified explicitly
 scheduleStart - start date for when the job should begin its schedule; if not set schedule begins immediately
 scheduleEnd - end date for when the job should end its schedule; if not set schedule never ends
@@ -116,7 +116,7 @@ The structure of a schedule is an 8-tuple delimited by spaces:
 
 Any fields to the right can be omitted, any fields to the left are required. For example setting a job to run every 15 minutes on the minute would be `0 */15` but running every September would require specifying a point in time for all the fields to the left such as `0 0 0 * * 1 9` which specifies midnight on the first of September.
 
-The syntax follows the expected argument formats defined by the [Python APScheduler package](https://apscheduler.readthedocs.org/en/latest/modules/triggers/cron.html#module-apscheduler.triggers.cron).
+The syntax follows the expected argument formats defined by the [Python APScheduler package](https://apscheduler.readthedocs.org/en/latest/modules/triggers/cron.html#module-apscheduler.triggers.cron). All times are in UTC.
 
 #### APScheduler Expressions with Spaces
 
