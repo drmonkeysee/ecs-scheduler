@@ -1,7 +1,0 @@
-#!/usr/bin/env python3
-
-import ecs_scheduler.main
-
-
-if __name__ == '__main__':
-    ecs_scheduler.main.main()
