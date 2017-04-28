@@ -10,8 +10,8 @@ from ecs_scheduler.app import create
 @patch('werkzeug.serving.is_running_from_reloader')
 @patch('ecs_scheduler.scheduld.create')
 @patch('ecs_scheduler.webapi.create')
-@patch('ecs_scheduler.main.jobtasks.SqsTaskQueue')
-@patch('ecs_scheduler.main.init')
+@patch('ecs_scheduler.app.jobtasks.SqsTaskQueue')
+@patch('ecs_scheduler.app.init')
 class CreateTests(unittest.TestCase):
     def test_starts_daemon_in_prod_mode(self, fake_init, fake_queue_class, create_webapi, create_scheduld, reloader, exit_register):
         fake_init.config.return_value = {'aws': 'foo'}
@@ -58,7 +58,7 @@ class CreateTests(unittest.TestCase):
         exit_register.assert_not_called()
         self.assertIs(create_webapi.return_value, result)
 
-    @patch.object(logging.getLogger('ecs_scheduler.main'), 'critical')
+    @patch.object(logging.getLogger('ecs_scheduler.app'), 'critical')
     def test_startup_logs_exceptions(self, fake_log, fake_init, fake_queue_class, create_webapi, create_scheduld, reloader, exit_register):
         fake_init.config.side_effect = RuntimeError
 
