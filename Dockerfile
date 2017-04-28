@@ -16,4 +16,4 @@ COPY . $APP_DIR
 
 EXPOSE 5000
 
-CMD ["./ecsscheduler"]
+CMD ["python", "ecsscheduler.py"]

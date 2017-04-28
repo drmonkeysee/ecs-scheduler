@@ -12,7 +12,7 @@ Must activate virtual environment:
 Execute the above if virtual env is not set up
 endef
 
-.PHONY: venv build check test clean
+.PHONY: build check clean docker docker-clean venv test debug
 
 build:
 	$(PY) setup.py bdist_wheel
@@ -30,10 +30,14 @@ docker-clean:
 	docker ps -a | awk '/$(CONTAINER_NAME)/ { print $$1 }' | xargs docker rm
 	docker rmi $(CONTAINER_NAME)
 
-test: venv
-	$(PY) -m unittest
-
 venv:
 ifneq ($(CURRENT_PY), $(VENV_PY))
 	$(error $(VENV_ERROR))
 endif
+
+test: venv
+	$(PY) -m unittest
+
+# TODO: default log level
+debug: venv
+	FLASK_DEBUG=1 FLASK_APP=ecsscheduler.py flask run
