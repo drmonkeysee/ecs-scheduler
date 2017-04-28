@@ -1,51 +1,68 @@
 import unittest
 import logging
 import os
-from unittest.mock import patch
+from unittest.mock import patch, ANY
 
-from ecs_scheduler.main import main
+from ecs_scheduler.main import create_app
 
 
+@patch('atexit.register')
+@patch('werkzeug.serving.is_running_from_reloader')
 @patch('ecs_scheduler.scheduld.create')
 @patch('ecs_scheduler.webapi.create')
 @patch('ecs_scheduler.main.jobtasks.SqsTaskQueue')
 @patch('ecs_scheduler.main.init')
-class MainTests(unittest.TestCase):
-    def test_starts_app(self, fake_init, fake_queue_class, create_webapi, create_scheduld):
-        fake_init.config.return_value = {'aws': 'foo', 'webapi': {'debug': False}}
+class CreateAppTests(unittest.TestCase):
+    def test_starts_daemon_in_prod_mode(self, fake_init, fake_queue_class, create_webapi, create_scheduld, reloader, exit_register):
+        fake_init.config.return_value = {'aws': 'foo'}
+        reloader.return_value = False
+        create_webapi.return_value.debug = False
 
-        main()
+        result = create_app()
 
         fake_init.env.assert_called_with()
         fake_queue_class.assert_called_with('foo')
         create_scheduld.assert_called_with(fake_init.config.return_value)
         create_webapi.assert_called_with(fake_init.config.return_value, fake_queue_class.return_value)
         create_scheduld.return_value.start.assert_called_with()
-        create_webapi.return_value.run.assert_called_with(debug=False, host='0.0.0.0', use_evalex=False)
+        exit_register.assert_called_with(ANY, create_scheduld.return_value)
+        self.assertIs(create_webapi.return_value, result)
 
-    def test_starts_app_with_debug(self, fake_init, fake_queue_class, create_webapi, create_scheduld):
-        fake_init.config.return_value = {'aws': 'foo', 'webapi': {'debug': True}}
+    def test_starts_daemon_in_reloader(self, fake_init, fake_queue_class, create_webapi, create_scheduld, reloader, exit_register):
+        fake_init.config.return_value = {'aws': 'foo'}
+        reloader.return_value = True
+        create_webapi.return_value.debug = True
 
-        main()
+        result = create_app()
 
-        create_webapi.return_value.run.assert_called_with(debug=True, host=None, use_evalex=False)
+        fake_init.env.assert_called_with()
+        fake_queue_class.assert_called_with('foo')
+        create_scheduld.assert_called_with(fake_init.config.return_value)
+        create_webapi.assert_called_with(fake_init.config.return_value, fake_queue_class.return_value)
+        create_scheduld.return_value.start.assert_called_with()
+        exit_register.assert_called_with(ANY, create_scheduld.return_value)
+        self.assertIs(create_webapi.return_value, result)
 
-    @patch.dict(os.environ, {'WERKZEUG_RUN_MAIN': 'true'})
-    def test_does_not_start_scheduld_if_child_flask_process(self, fake_init, fake_queue_class, create_webapi, create_scheduld):
-        fake_init.config.return_value = {'aws': 'foo', 'webapi': {'debug': False}}
+    def test_skips_daemon_if_debug_and_not_reloader(self, fake_init, fake_queue_class, create_webapi, create_scheduld, reloader, exit_register):
+        fake_init.config.return_value = {'aws': 'foo'}
+        reloader.return_value = False
+        create_webapi.return_value.debug = True
 
-        main()
+        result = create_app()
 
+        fake_init.env.assert_called_with()
+        fake_queue_class.assert_called_with('foo')
         create_scheduld.assert_not_called()
         create_webapi.assert_called_with(fake_init.config.return_value, fake_queue_class.return_value)
         create_scheduld.return_value.start.assert_not_called()
-        create_webapi.return_value.run.assert_called_with(debug=False, host='0.0.0.0', use_evalex=False)
+        exit_register.assert_not_called()
+        self.assertIs(create_webapi.return_value, result)
 
     @patch.object(logging.getLogger('ecs_scheduler.main'), 'critical')
-    def test_run_raises_exceptions(self, fake_log, fake_init, fake_queue_class, create_webapi, create_scheduld):
-        fake_init.config.side_effect = Exception
+    def test_startup_logs_exceptions(self, fake_log, fake_init, fake_queue_class, create_webapi, create_scheduld, reloader, exit_register):
+        fake_init.config.side_effect = RuntimeError
 
-        with self.assertRaises(Exception):
-            main()
+        with self.assertRaises(RuntimeError):
+            create_app()
 
         fake_log.assert_called()
