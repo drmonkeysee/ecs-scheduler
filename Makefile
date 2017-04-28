@@ -38,6 +38,8 @@ endif
 test: venv
 	$(PY) -m unittest
 
-# TODO: default log level
+ifndef LOG_LEVEL
+LOG_LEVEL := INFO
+endif
 debug: venv
-	FLASK_DEBUG=1 FLASK_APP=ecsscheduler.py flask run
+	FLASK_DEBUG=1 FLASK_APP=ecsscheduler.py LOG_LEVEL=$(LOG_LEVEL) flask run
