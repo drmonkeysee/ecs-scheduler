@@ -15,7 +15,7 @@ from . import init, jobtasks, __version__
 _logger = logging.getLogger(__name__)
 
 
-def create_app():
+def create():
     """
     Start the ECS scheduler daemon and create the flask server.
 

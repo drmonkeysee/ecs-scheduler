@@ -3,7 +3,7 @@ import logging
 import os
 from unittest.mock import patch, ANY
 
-from ecs_scheduler.main import create_app
+from ecs_scheduler.app import create
 
 
 @patch('atexit.register')
@@ -12,13 +12,13 @@ from ecs_scheduler.main import create_app
 @patch('ecs_scheduler.webapi.create')
 @patch('ecs_scheduler.main.jobtasks.SqsTaskQueue')
 @patch('ecs_scheduler.main.init')
-class CreateAppTests(unittest.TestCase):
+class CreateTests(unittest.TestCase):
     def test_starts_daemon_in_prod_mode(self, fake_init, fake_queue_class, create_webapi, create_scheduld, reloader, exit_register):
         fake_init.config.return_value = {'aws': 'foo'}
         reloader.return_value = False
         create_webapi.return_value.debug = False
 
-        result = create_app()
+        result = create()
 
         fake_init.env.assert_called_with()
         fake_queue_class.assert_called_with('foo')
@@ -33,7 +33,7 @@ class CreateAppTests(unittest.TestCase):
         reloader.return_value = True
         create_webapi.return_value.debug = True
 
-        result = create_app()
+        result = create()
 
         fake_init.env.assert_called_with()
         fake_queue_class.assert_called_with('foo')
@@ -48,7 +48,7 @@ class CreateAppTests(unittest.TestCase):
         reloader.return_value = False
         create_webapi.return_value.debug = True
 
-        result = create_app()
+        result = create()
 
         fake_init.env.assert_called_with()
         fake_queue_class.assert_called_with('foo')
@@ -63,6 +63,6 @@ class CreateAppTests(unittest.TestCase):
         fake_init.config.side_effect = RuntimeError
 
         with self.assertRaises(RuntimeError):
-            create_app()
+            create()
 
         fake_log.assert_called()

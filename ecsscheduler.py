@@ -1,7 +1,7 @@
-import ecs_scheduler.main
+import ecs_scheduler.app
 
 
-application = ecs_scheduler.main.create_app()
+application = ecs_scheduler.app.create()
 
 
 def main():
