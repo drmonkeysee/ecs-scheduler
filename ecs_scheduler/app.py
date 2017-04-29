@@ -39,7 +39,7 @@ def create():
 
         return app
     except Exception:
-        _logger.critical('unhandled scheduler exception', exc_info=True)
+        _logger.critical('unhandled startup exception', exc_info=True)
         raise
 
 
