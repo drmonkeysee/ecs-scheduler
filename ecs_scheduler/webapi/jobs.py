@@ -38,11 +38,11 @@ def _job_notfound_response(job_id):
     return {'message': 'Job {} does not exist'.format(job_id)}, 404
 
 
-def _post_task(job_op, task_queue, job_response):
+def _post_operation(job_op, ops_queue, job_response):
     try:
-        task_queue.put(job_op)
+        ops_queue.put(job_op)
     except Exception:
-        _logger.exception('Exception when posting job operation to task queue')
+        _logger.exception('Exception when posting job operation to ops queue')
         flask_restful.abort(500,
             item=job_response,
             message='Job update was saved correctly but failed to post update message to scheduler')
@@ -64,15 +64,15 @@ class Jobs(flask_restful.Resource):
     Jobs REST Resource
     REST operations for a collection of jobs
     """
-    def __init__(self, store, task_queue):
+    def __init__(self, store, ops_queue):
         """
         Create jobs resource.
 
         :param store: Document store for updating persistent data
-        :param task_queue: Task queue to post job operations to after updating document store
+        :param ops_queue: Ops queue to post job operations to after updating document store
         """
         self._store = store
-        self._task_queue = task_queue
+        self._ops_queue = ops_queue
         self._pagination_schema = PaginationSchema()
         self._request_schema = JobCreateSchema()
 
@@ -227,7 +227,7 @@ class Jobs(flask_restful.Resource):
         except JobExistsException:
             return {'message': 'Job {} already exists'.format(job_item.id)}, 409
         web_response = _job_committed_response(job_item.id)
-        _post_task(JobOperation.add(job_item.id), self._task_queue, web_response)
+        _post_operation(JobOperation.add(job_item.id), self._ops_queue, web_response)
         return web_response, 201
 
     def _set_pagination(self, result, pagination, total):
@@ -248,15 +248,15 @@ class Job(flask_restful.Resource):
     Job REST Resource
     REST operations for a single job
     """
-    def __init__(self, store, task_queue):
+    def __init__(self, store, ops_queue):
         """
         Create job resource.
 
         :param store: Document store for updating persistent data
-        :param task_queue: Task queue to post job operations to after updating document store
+        :param ops_queue: Ops queue to post job operations to after updating document store
         """
         self._store = store
-        self._task_queue = task_queue
+        self._ops_queue = ops_queue
         self._request_schema = JobSchema()
 
     def get(self, job_id):
@@ -364,7 +364,7 @@ class Job(flask_restful.Resource):
         except JobNotFoundException:
             return _job_notfound_response(job_id)
         web_response = _job_committed_response(job_id)
-        _post_task(JobOperation.modify(job_id), self._task_queue, web_response)
+        _post_operation(JobOperation.modify(job_id), self._ops_queue, web_response)
         return web_response
 
     def delete(self, job_id):
@@ -395,5 +395,5 @@ class Job(flask_restful.Resource):
         except JobNotFoundException:
             return _job_notfound_response(job_id)
         web_response = {'id': job_id}
-        _post_task(JobOperation.remove(job_id), self._task_queue, web_response)
+        _post_operation(JobOperation.remove(job_id), self._ops_queue, web_response)
         return web_response
