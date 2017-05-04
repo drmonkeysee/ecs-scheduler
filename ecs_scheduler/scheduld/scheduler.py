@@ -6,6 +6,7 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.jobstores.base import JobLookupError
 
 from .execution import JobExecutor
+from ..models import JobOperation
 
 
 _logger = logging.getLogger(__name__)
@@ -40,7 +41,7 @@ class Scheduler:
         """Start the scheduler"""
         job_count = 0
         for job in self._store.get_all():
-            self.add_job(job)
+            self._insert_job(job)
             job_count += 1
         self._sched.start()
         _logger.info('Scheduler started with %s initial jobs', job_count)
@@ -53,32 +54,23 @@ class Scheduler:
         """
         self._sched.shutdown()
 
-    def add_job(self, job):
+    def notify(self, job_op):
         """
-        Add a job to the scheduler
+        Implementation of ops queue consumer interface.
 
-        :param job: The job to add
+        :param job_op: The operation sent to this queue consumer
+        :raises: RuntimeError if received an unknown job operation
         """
+        if job_op.operation == JobOperation.ADD or job_op.operation == JobOperation.MODIFY:
+            self._insert_job_from_id(job_op.job_id)
+        elif job_op.operation == JobOperation.REMOVE:
+            self._remove_job(job_op.job_id)
+        else:
+            raise RuntimeError('Received unknown job operation {} {{{}}}'.format(job_op.job_id, job_op.operation))
+
+    def _insert_job_from_id(self, job_id):
+        job = self._store.get(job_id)
         self._insert_job(job)
-
-    def modify_job(self, job):
-        """
-        Modify a job in the scheduler
-
-        :param job: The job to modify
-        """
-        self._insert_job(job)
-
-    def remove_job(self, job_id):
-        """
-        Remove a job from the scheduler
-
-        :param job_id: The id of the job to remove
-        """
-        try:
-            self._sched.remove_job(job_id)
-        except JobLookupError:
-            _logger.exception('Unable to find job %s for removal', job_id)
 
     def _insert_job(self, job):
         job_kwargs = {
@@ -86,7 +78,7 @@ class Scheduler:
             'id': job.id,
             'replace_existing': True
         }
-        # None means pause the job after add
+        # NOTE: None means pause the job after add
         # see: https://apscheduler.readthedocs.org/en/latest/modules/schedulers/base.html#apscheduler.schedulers.base.BaseScheduler.add_job
         if job.suspended:
             job_kwargs['next_run_time'] = None
@@ -101,6 +93,12 @@ class Scheduler:
         if end_date:
             kwargs['end_date'] = end_date
         return kwargs
+
+    def _remove_job(self, job_id):
+        try:
+            self._sched.remove_job(job_id)
+        except JobLookupError:
+            _logger.exception('Unable to find job %s for removal', job_id)
 
 
 class ScheduleEventHandler:

@@ -12,9 +12,10 @@ class RunTests(unittest.TestCase):
         test_config = {'elasticsearch': {'bort': 'baz'}, 'aws': {'foo': 'bar'}, 'scheduld': {'blah': 'blah'}}
         test_queue = Mock()
         
-        result = create(test_config)
+        result = create(test_config, test_queue)
 
         fake_store.assert_called_with(test_config['elasticsearch'])
         fake_exec.assert_called_with(test_config['aws'])
         fake_sched.assert_called_with(fake_store.return_value, fake_exec.return_value)
+        test_queue.register.assert_called_with(fake_sched.return_value)
         self.assertIsNotNone(result)
