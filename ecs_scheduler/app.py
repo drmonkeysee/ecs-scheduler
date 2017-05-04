@@ -27,15 +27,18 @@ def create():
 
         component_name = config.get('component_name')
         _logger.info('ECS Scheduler v%s', __version__)
+        ops_queue = jobtasks.DirectQueue()
 
         _logger.info('Creating webapi...')
-        app = ecs_scheduler.webapi.create(config, jobtasks.SqsTaskQueue(config['aws']))
+        # TODO: need to refresh es updates immediately until we have a proper jobs store layer
+        # also need to add universal config
+        app = ecs_scheduler.webapi.create(config, ops_queue)
 
         # NOTE: Flask in debug mode will restart after initial startup
         # so only launch scheduler in the main Flask process to avoid duplicate daemons
         # see: https://github.com/pallets/werkzeug/blob/master/werkzeug/_reloader.py
         if werkzeug.serving.is_running_from_reloader() or not app.debug:
-            _launch_scheduld(config)
+            _launch_scheduld(config, ops_queue)
 
         return app
     except Exception:
@@ -43,9 +46,9 @@ def create():
         raise
 
 
-def _launch_scheduld(config):
+def _launch_scheduld(config, ops_queue):
     _logger.info('Starting scheduld...')
-    scheduler = ecs_scheduler.scheduld.create(config)
+    scheduler = ecs_scheduler.scheduld.create(config, ops_queue)
     scheduler.start()
     atexit.register(_on_exit, scheduler)
 
