@@ -1,13 +1,13 @@
 """
-Model classes
+Model classes.
 
-Most of these classes are intended for indirect use via the serialization module
+Most of these classes are intended for indirect use via the serialization module.
 """
 class Job:
-    """A scheduled job for an ECS task"""
+    """A scheduled job for an ECS task."""
     def __init__(self, **kwargs):
         """
-        Create a job
+        Create a job.
 
         :param **kwargs: The job data from the persistent store.
             The expected fields are determined by the ecs_scheduler.serialization.JobSchema class
@@ -20,7 +20,7 @@ class Job:
     @property
     def id(self):
         """
-        Get or set the job id
+        Get or set the job id.
 
         :returns: The job id string
         """
@@ -33,7 +33,7 @@ class Job:
     @property
     def suspended(self):
         """
-        Get the job suspended flag
+        Get the job suspended flag.
 
         :returns: The job suspended flag or False if not set
         """
@@ -42,7 +42,7 @@ class Job:
     @property
     def parsed_schedule(self):
         """
-        Get the parsed schedule
+        Get the parsed schedule.
 
         :returns: A dictionary representation of the schedule
             mapped to the expected arguments of the scheduler trigger.
@@ -52,8 +52,8 @@ class Job:
 
 class JobOperation:
     """
-    A job operation used to communicate changes to the scheduler via the task queue
-    between the web api and the scheduler daemon
+    A job operation used to communicate changes to the scheduler via the ops queue
+    between the web api and the scheduler daemon.
 
     :attribute ADD: Add operation label
     :attribute MODIFY: Modify operation label
@@ -66,7 +66,7 @@ class JobOperation:
     @classmethod
     def add(cls, job_id):
         """
-        Create an add job operation
+        Create an add job operation.
 
         :param job_id: The string id of the job to add to the scheduler
         """
@@ -84,7 +84,7 @@ class JobOperation:
     @classmethod
     def remove(cls, job_id):
         """
-        Create a remove job operation
+        Create a remove job operation.
 
         :param job_id: The string id of the job to remove from the scheduler
         """
@@ -92,7 +92,7 @@ class JobOperation:
 
     def __init__(self, operation, job_id):
         """
-        Create a job operation
+        Create a job operation.
 
         Use the factory class methods instead of __init___ directly to create an instance.
 
@@ -104,10 +104,10 @@ class JobOperation:
 
 
 class Pagination:
-    """Job pagination parameters"""
+    """Job pagination parameters."""
     def __init__(self, skip, count, total=0):
         """
-        Create a pagination object
+        Create a pagination object.
 
         :param skip: The number of jobs to skip
         :param count: The number of jobs to return
