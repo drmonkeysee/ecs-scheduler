@@ -3,9 +3,7 @@ from unittest.mock import patch, Mock
 
 import marshmallow.exceptions
 
-from ecs_scheduler.jobtasks import DirectQueue
-from ecs_scheduler.models import JobOperation
-from ecs_scheduler.serialization import JobOperationSchema
+from ecs_scheduler.joboperations import DirectQueue
 
 
 class DirectQueueTests(unittest.TestCase):

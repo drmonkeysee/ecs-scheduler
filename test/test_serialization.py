@@ -6,8 +6,7 @@ import dateutil
 
 from ecs_scheduler.serialization import (TriggerSchema, JobSchema,
                                             JobCreateSchema, JobResponseSchema,
-                                            PaginationSchema, JobOperationSchema,
-                                            OverrideSchema, TaskInfoSchema)
+                                            PaginationSchema, OverrideSchema, TaskInfoSchema)
 from ecs_scheduler.models import Job, Pagination, JobOperation
 
 
@@ -724,37 +723,6 @@ class PaginationSchemaTests(unittest.TestCase):
 
         self.assertEqual(0, len(errors))
         self.assertEqual({'count': 8}, data)
-
-
-class JobOperationSchemaTests(unittest.TestCase):
-    def test_deserialize(self):
-        schema = JobOperationSchema()
-        data = {'job_id': 'testId', 'operation': JobOperation.MODIFY}
-
-        job_op, errors = schema.load(data)
-
-        self.assertEqual(0, len(errors))
-        self.assertIsInstance(job_op, JobOperation)
-        self.assertEqual('testId', job_op.job_id)
-        self.assertEqual(JobOperation.MODIFY, job_op.operation)
-
-    def test_deserialize_fails_on_missing_args(self):
-        schema = JobOperationSchema()
-        data = {}
-
-        job_op, errors = schema.load(data)
-
-        self.assertEqual(2, len(errors))
-        self.assertEqual({'job_id', 'operation'}, set(errors.keys()))
-
-    def test_serialize(self):
-        job_op = JobOperation(4, 'bar')
-        schema = JobOperationSchema()
-
-        data, errors = schema.dump(job_op)
-
-        self.assertEqual(0, len(errors))
-        self.assertEqual({'job_id': 'bar', 'operation': 4}, data)
 
 
 def _parse_datetime_fields(data, *fields):

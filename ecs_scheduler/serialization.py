@@ -5,7 +5,7 @@ import random
 import marshmallow
 import apscheduler.triggers.cron
 
-from .models import Job, Pagination, JobOperation
+from .models import Job, Pagination
 
 
 _MIN_TASKS = 1
@@ -183,18 +183,3 @@ class PaginationSchema(marshmallow.Schema):
     def _get_field_missing_value(self, name):
         field = self.fields.get(name)
         return field.missing if field else None
-
-
-class JobOperationSchema(marshmallow.Schema):
-    """
-    Schema for a job operation
-
-    This is used to serialize and deserialize Job objects to and from the task queue
-    between the web api and the scheduler daemon
-    """
-    job_id = marshmallow.fields.String(required=True)
-    operation = marshmallow.fields.Integer(required=True)
-
-    @marshmallow.post_load
-    def create_job_op(self, data):
-        return JobOperation(**data)

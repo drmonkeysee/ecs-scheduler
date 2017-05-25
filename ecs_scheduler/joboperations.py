@@ -1,10 +1,6 @@
 """Classes for operating on job operations."""
 import logging
 
-import boto3
-
-from .serialization import JobOperationSchema
-
 
 _logger = logging.getLogger(__name__)
 
