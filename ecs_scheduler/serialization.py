@@ -82,7 +82,7 @@ class JobSchema(marshmallow.Schema):
         try:
             apscheduler.triggers.cron.CronTrigger(timezone='UTC', **value)
         except ValueError as ex:
-            raise marshmallow.ValidationError(['Invalid schedule syntax: {}'.format(error) for error in ex.args]) from ex
+            raise marshmallow.ValidationError([f'Invalid schedule syntax: {error}' for error in ex.args]) from ex
 
     @marshmallow.pre_load
     def parse_schedule(self, data):

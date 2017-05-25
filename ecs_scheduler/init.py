@@ -33,7 +33,7 @@ def config():
     run_env = os.getenv('RUN_ENV')
     if run_env:
         try:
-            with open('config/config_{}.yaml'.format(run_env)) as env_config_file:
+            with open(f'config/config_{run_env}.yaml') as env_config_file:
                 env_config = yaml.safe_load(env_config_file)
         except FileNotFoundError:
             _logger.warning('No config file found for environment "%s"', run_env)

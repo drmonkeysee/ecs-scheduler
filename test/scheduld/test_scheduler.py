@@ -145,6 +145,14 @@ class SchedulerTests(unittest.TestCase):
 
         fake_log.assert_called()
 
+    def test_notify_raises_error_if_unknown_job_operation(self):
+        with self.assertRaises(RuntimeError):
+            self._target.notify(JobOperation(-1, 'job4'))
+
+        self._store.get.assert_not_called()
+        self._bg_sched.add_job.assert_not_called()
+        self._bg_sched.remove_job.assert_not_called()
+
 
 class ScheduleEventHandlerTests(unittest.TestCase):
     def setUp(self):

@@ -24,7 +24,7 @@ def require_json_content_type(verb):
 
 
 def _job_link(job_id):
-    return {'rel': 'item', 'title': 'Job for {}'.format(job_id), 'href': flask.url_for(Job.__name__.lower(), job_id=job_id)}
+    return {'rel': 'item', 'title': f'Job for {job_id}', 'href': flask.url_for(Job.__name__.lower(), job_id=job_id)}
 
 
 def _job_committed_response(job_id):
@@ -35,7 +35,7 @@ def _job_committed_response(job_id):
 
 
 def _job_notfound_response(job_id):
-    return {'message': 'Job {} does not exist'.format(job_id)}, 404
+    return {'message': f'Job {job_id} does not exist'}, 404
 
 
 def _post_operation(job_op, ops_queue, job_response):
@@ -225,7 +225,7 @@ class Jobs(flask_restful.Resource):
         try:
             response = self._store.create(job_item.id, job_doc_body)
         except JobExistsException:
-            return {'message': 'Job {} already exists'.format(job_item.id)}, 409
+            return {'message': f'Job {job_item.id} already exists'}, 409
         web_response = _job_committed_response(job_item.id)
         _post_operation(JobOperation.add(job_item.id), self._ops_queue, web_response)
         return web_response, 201

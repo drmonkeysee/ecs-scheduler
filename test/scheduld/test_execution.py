@@ -462,13 +462,13 @@ class JobExecutorTests(unittest.TestCase):
         for i in range(len(expected)):
             expected_override = expected[i]
             actual_override = unwrapped_actual[i]
-            self.assertEqual(len(expected_override), len(actual_override), msg='Unexpected override length for index {}'.format(i))
+            self.assertEqual(len(expected_override), len(actual_override), msg=f'Unexpected override length for index {i}')
 
-            self.assertEqual(expected_override['name'], actual_override['name'], msg='Unexpected container name for index {}'.format(i))
+            self.assertEqual(expected_override['name'], actual_override['name'], msg=f'Unexpected container name for index {i}')
 
             expected_env = expected_override['environment']
             actual_env = actual_override['environment']
-            self.assertCountEqual(expected_env, actual_env, msg='Unexpected environment values for index {}'.format(i))
+            self.assertCountEqual(expected_env, actual_env, msg=f'Unexpected environment values for index {i}')
 
 
 class JobResultTests(unittest.TestCase):

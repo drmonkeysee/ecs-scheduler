@@ -66,7 +66,7 @@ class Scheduler:
         elif job_op.operation == JobOperation.REMOVE:
             self._remove_job(job_op.job_id)
         else:
-            raise RuntimeError('Received unknown job operation {} {{{}}}'.format(job_op.job_id, job_op.operation))
+            raise RuntimeError(f'Received unknown job operation {job_op.job_id} {{{job_op.operation}}}')
 
     def _insert_job_from_id(self, job_id):
         job = self._store.get(job_id)
