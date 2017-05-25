@@ -1,4 +1,4 @@
-"""Documentation REST resources"""
+"""Documentation REST resources."""
 import flask
 import flask_restful
 import flask_swagger
@@ -9,11 +9,11 @@ from .. import __version__
 
 
 class Spec(flask_restful.Resource):
-    """Swagger spec REST resource"""
+    """Swagger spec REST resource."""
     def get(self):
         """
         API spec
-        Return the swagger api specification
+        Return the swagger api specification.
         ---
         tags:
             - docs

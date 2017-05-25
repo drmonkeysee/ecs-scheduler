@@ -1,14 +1,14 @@
-"""Persistent job store operations"""
+"""Persistent job store operations."""
 import elasticsearch
 
 
 class JobStore:
-    """Persistent job store"""
+    """Persistent job store."""
     _DOC_TYPE = 'job'
 
     def __init__(self, config):
         """
-        Create job store
+        Create job store.
 
         :param config: elasticsearch configuration from app config
         """
@@ -17,7 +17,7 @@ class JobStore:
 
     def get_jobs(self, skip, count):
         """
-        Get page of jobs from store
+        Get page of jobs from store.
 
         :param skip: Number of jobs to skip
         :param count: Number of jobs to return
@@ -27,7 +27,7 @@ class JobStore:
 
     def create(self, job_id, body):
         """
-        Create a new job
+        Create a new job.
 
         :param job_id: New job's id
         :param body: JSON document body for new job
@@ -41,7 +41,7 @@ class JobStore:
 
     def get(self, job_id):
         """
-        Get a job
+        Get a job.
 
         :param job_id: The job's id
         :returns: The elasticsearch response
@@ -54,7 +54,7 @@ class JobStore:
 
     def update(self, job_id, body):
         """
-        Update a job
+        Update a job.
 
         :param job_id: The job's id
         :param body: JSON document body for updated job fields
@@ -68,7 +68,7 @@ class JobStore:
 
     def delete(self, job_id):
         """
-        Delete a job
+        Delete a job.
 
         :param job_id: The job's id
         :returns: The elasticsearch response
@@ -81,10 +81,10 @@ class JobStore:
 
 
 class JobExistsException(Exception):
-    """Exception for job already exists"""
+    """Exception for job already exists."""
     pass
 
 
 class JobNotFoundException(Exception):
-    """Exception for job not found"""
+    """Exception for job not found."""
     pass

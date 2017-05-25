@@ -1,4 +1,4 @@
-"""Serialization schemas for scheduler classes"""
+"""Serialization schemas for scheduler classes."""
 import re
 import random
 
@@ -23,7 +23,7 @@ class TriggerSchema(marshmallow.Schema):
 
     Schedule triggers are used to schedule a job based on an AWS event instead of a date/time point.
     An example of a trigger would be when messages are present in an SQS queue.
-    Jobs may contain triggers"""
+    Jobs may contain triggers."""
     type = marshmallow.fields.String(required=True)
     queueName = marshmallow.fields.String()
     messagesPerTask = marshmallow.fields.Integer(validate=marshmallow.validate.Range(min=1))
@@ -38,16 +38,16 @@ class OverrideSchema(marshmallow.Schema):
     """
     Schema of a list of task overrides.
 
-    Task overrides are passed to ECS when a new task is stared"""
+    Task overrides are passed to ECS when a new task is stared."""
     containerName = marshmallow.fields.String(required=True)
     environment = marshmallow.fields.Dict()
 
 
 class TaskInfoSchema(marshmallow.Schema):
     """
-    Schema of task information
+    Schema of task information.
 
-    Task info records information about ECS assets started by the scheduler
+    Task info records information about ECS assets started by the scheduler.
     """
     taskId = marshmallow.fields.String()
     hostId = marshmallow.fields.String()
@@ -57,7 +57,7 @@ class JobSchema(marshmallow.Schema):
     """
     Schema of a job.
 
-    A job is an ecs scheduler document that defines a run schedule for an ECS task
+    A job is an ecs scheduler document that defines a run schedule for an ECS task.
     """
     _WILD_CARD = '?'
 
@@ -123,10 +123,10 @@ class JobSchema(marshmallow.Schema):
 
 class JobCreateSchema(JobSchema):
     """
-    Schema of a job creation request
+    Schema of a job creation request.
 
     This extends JobSchema to define id as a required field and validate input.
-    Used by the web api to create jobs
+    Used by the web api to create jobs.
     """
     # use validate param instead of decorator to report 'taskDefinition' as the invalid field instead of 'id'
     id = marshmallow.fields.String(required=True, validate=_validate_task_definition_name, load_from='taskDefinition', load_only=True)
@@ -136,10 +136,10 @@ class JobCreateSchema(JobSchema):
 
 class JobResponseSchema(JobSchema):
     """
-    Schema of a job response
+    Schema of a job response.
 
     This extends JobSchema to parse an elasticsearch job document into a Job object
-    and deserialize the object into a REST JSON representation
+    and deserialize the object into a REST JSON representation.
     """
     id = marshmallow.fields.String(load_from='_id')
     link = marshmallow.fields.Method('link_generator', dump_only=True)
@@ -160,7 +160,7 @@ class JobResponseSchema(JobSchema):
 
 
 class PaginationSchema(marshmallow.Schema):
-    """Schema for pagination arguments"""
+    """Schema for pagination arguments."""
     skip = marshmallow.fields.Integer(missing=0)
     count = marshmallow.fields.Integer(missing=10)
 

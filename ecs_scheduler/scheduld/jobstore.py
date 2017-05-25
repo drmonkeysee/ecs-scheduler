@@ -1,4 +1,4 @@
-"""Persistent job store operations"""
+"""Persistent job store operations."""
 import elasticsearch
 import elasticsearch.helpers
 
@@ -7,13 +7,13 @@ from ..serialization import JobSchema, JobResponseSchema
 
 
 class JobStore:
-    """Persistent job store"""
+    """Persistent job store."""
     _DOC_TYPE = 'job'
     _SCROLL_PERIOD = '1m'
 
     def __init__(self, config):
         """
-        Create job store
+        Create job store.
 
         :param config: elasticsearch configuration from app config
         """
@@ -24,7 +24,7 @@ class JobStore:
 
     def get_all(self):
         """
-        Get all jobs in the persistent store
+        Get all jobs in the persistent store.
 
         :returns: A generator that yields batches of documents
         """
@@ -34,7 +34,7 @@ class JobStore:
 
     def get(self, job_id):
         """
-        Get a job
+        Get a job.
 
         :param job_id: The job's id
         :returns: The parsed job
@@ -44,7 +44,7 @@ class JobStore:
 
     def update(self, job_id, job_data):
         """
-        Update a job
+        Update a job.
 
         :param job_id: The job's id
         :param job_data: The job fields to update as an elasticsearch JSON document

@@ -16,4 +16,5 @@ COPY . $APP_DIR
 
 EXPOSE 5000
 
+# TODO: use uwsgi and nginx
 CMD ["python", "ecsscheduler.py"]

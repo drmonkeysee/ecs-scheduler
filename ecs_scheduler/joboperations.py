@@ -6,13 +6,9 @@ _logger = logging.getLogger(__name__)
 
 
 class DirectQueue:
-    """
-    An operations queue directly wired to the scheduler daemon.
-    """
+    """An operations queue directly wired to the scheduler daemon."""
     def __init__(self):
-        """
-        Create a notifier queue.
-        """
+        """Create a notifier queue."""
         self._consumer = None
 
     def register(self, consumer):

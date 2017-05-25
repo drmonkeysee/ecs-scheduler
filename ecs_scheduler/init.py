@@ -1,4 +1,4 @@
-"""ECS scheduler initialization helper methods"""
+"""ECS scheduler initialization helper methods."""
 import os
 import logging
 import logging.handlers
@@ -10,7 +10,7 @@ _logger = logging.getLogger(__name__)
 
 
 def env():
-    """Set up runtime environment such as logging"""
+    """Set up runtime environment such as logging."""
     log_level = getattr(logging, os.getenv('LOG_LEVEL', default=''), None)
     log_handlers = [logging.StreamHandler()]
     log_folder = os.getenv('LOG_FOLDER')
@@ -23,7 +23,7 @@ def env():
 
 
 def config():
-    """Discover and parse environment-specific configuration file
+    """Discover and parse environment-specific configuration file.
 
     :returns: a union of default and environment-specific configuration as a dictionary
     """

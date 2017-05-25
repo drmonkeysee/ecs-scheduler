@@ -1,4 +1,4 @@
-"""Root url REST resources"""
+"""Root url REST resources."""
 import flask
 import flask_restful
 
@@ -7,11 +7,11 @@ from .spec import Spec
 
 
 class Home(flask_restful.Resource):
-    """Home url REST resource"""
+    """Home url REST resource."""
     def get(self):
         """
         Home
-        Available endpoints for the web api
+        Available endpoints for the web api.
         ---
         tags:
             - docs

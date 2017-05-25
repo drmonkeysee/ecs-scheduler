@@ -1,4 +1,4 @@
-"""Job scheduler classes"""
+"""Job scheduler classes."""
 import logging
 
 import apscheduler.events
@@ -13,10 +13,10 @@ _logger = logging.getLogger(__name__)
 
 
 class Scheduler:
-    """The job scheduler"""
+    """The job scheduler."""
     def __init__(self, store, job_func):
         """
-        Create the job scheduler
+        Create the job scheduler.
 
         :param store: The persistent job store
         :param job_func: The function to invoke when a scheduled job runs
@@ -38,7 +38,7 @@ class Scheduler:
             | apscheduler.events.EVENT_JOB_MISSED)
 
     def start(self):
-        """Start the scheduler"""
+        """Start the scheduler."""
         job_count = 0
         for job in self._store.get_all():
             self._insert_job(job)
@@ -48,9 +48,9 @@ class Scheduler:
 
     def stop(self):
         """
-        Stop the scheduler
+        Stop the scheduler.
 
-        After stopping the scheduler a new scheduler must be created to start again
+        After stopping the scheduler a new scheduler must be created to start again.
         """
         self._sched.shutdown()
 
@@ -103,16 +103,16 @@ class Scheduler:
 
 class ScheduleEventHandler:
     """
-    Handler for scheduler events
+    Handler for scheduler events.
 
     Intended for internal use by the Scheduler, the handler
     updates the run date stats in the persistent job store whenever a job
     executes or its state is modified in the schedule.
-    It also logs errors that bubble out of job runs or if jobs were missed
+    It also logs errors that bubble out of job runs or if jobs were missed.
     """
     def __init__(self, schedule, store):
         """
-        Create a handler
+        Create a handler.
 
         :param schedule: The internal schedule implementation of the Scheduler object
         :param store: The persistent job store
@@ -122,7 +122,7 @@ class ScheduleEventHandler:
 
     def __call__(self, event):
         """
-        Call the event handler
+        Call the event handler.
 
         :param event: The schedule event that was raised to this handler
         """

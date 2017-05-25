@@ -1,4 +1,4 @@
-"Job execution classes"
+"""Job execution classes."""
 import logging
 import math
 import copy
@@ -13,7 +13,7 @@ _logger = logging.getLogger(__name__)
 
 class JobExecutor:
     """
-    The executor run by all scheduled jobs
+    The executor run by all scheduled jobs.
 
     :attribute RETVAL_CHECKED_TASKS: The return value of the job executor when it successfully verifies the state of ECS for a job but starts no new tasks
     :attribute RETVAL_STARTED_TASKS: The return value of the job executor when it started new ECS tasks for a job
@@ -25,7 +25,7 @@ class JobExecutor:
     
     def __init__(self, config):
         """
-        Create an executor
+        Create an executor.
 
         :param config: AWS config section from app config
         """
@@ -35,7 +35,7 @@ class JobExecutor:
 
     def __call__(self, **job_data):
         """
-        Call the executor
+        Call the executor.
 
         :param job_data: The job data dictionary
         :returns: An executor return value
@@ -107,18 +107,18 @@ class JobExecutor:
 
 
 class JobResult:
-    """The result of a job run"""
+    """The result of a job run."""
     def __init__(self, return_code, task_info=None):
-        """Create a job result with a return code and optional task info"""
+        """Create a job result with a return code and optional task info."""
         self.return_code = return_code
         self.task_info = task_info
 
 
 class NoOpTrigger:
-    """The no-op trigger, used for jobs with no explicit trigger set"""
+    """The no-op trigger, used for jobs with no explicit trigger set."""
     def determine_task_count(self, job_data):
         """
-        Determine the number of tasks that should be running
+        Determine the number of tasks that should be running.
 
         :param job_data: The job data dictionary
         :returns: The job's task count value
@@ -127,14 +127,14 @@ class NoOpTrigger:
 
 
 class SqsTrigger:
-    """An SQS trigger for a job"""
+    """An SQS trigger for a job."""
     def __init__(self):
-        """Create a trigger"""
+        """Create a trigger."""
         self._sqs = boto3.resource('sqs')
 
     def determine_task_count(self, job_data):
         """
-        Determine the number of tasks that should be running
+        Determine the number of tasks that should be running.
 
         :param job_data: The job data dictionary
         :returns: The desired ECS task count based on the number of messages
@@ -158,7 +158,7 @@ _triggers = None
 
 def get_trigger(trigger_name):
     """
-    Get a trigger by its name
+    Get a trigger by its name.
 
     :param trigger_name: The string name of the trigger to get
     :returns: The trigger for the given name or the NoOpTrigger if no such trigger is found

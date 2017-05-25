@@ -1,4 +1,4 @@
-"""Job REST resources"""
+"""Job REST resources."""
 import logging
 import functools
 
@@ -62,7 +62,7 @@ _job_response_schema = JobResponseSchema(_job_link)
 class Jobs(flask_restful.Resource):
     """
     Jobs REST Resource
-    REST operations for a collection of jobs
+    REST operations for a collection of jobs.
     """
     def __init__(self, store, ops_queue):
         """
@@ -79,7 +79,7 @@ class Jobs(flask_restful.Resource):
     def get(self):
         """
         Get jobs
-        List of scheduled jobs
+        List of scheduled jobs.
         ---
         tags:
             - jobs
@@ -117,7 +117,7 @@ class Jobs(flask_restful.Resource):
     def post(self):
         """
         Create job
-        Create a new scheduled job
+        Create a new scheduled job.
         ---
         tags:
             - jobs
@@ -246,7 +246,7 @@ class Jobs(flask_restful.Resource):
 class Job(flask_restful.Resource):
     """
     Job REST Resource
-    REST operations for a single job
+    REST operations for a single job.
     """
     def __init__(self, store, ops_queue):
         """
@@ -262,7 +262,7 @@ class Job(flask_restful.Resource):
     def get(self, job_id):
         """
         Get a job
-        The job for the given id
+        The job for the given id.
         ---
         tags:
             - jobs
@@ -293,7 +293,7 @@ class Job(flask_restful.Resource):
     def put(self, job_id):
         """
         Update job
-        Update the specified job
+        Update the specified job.
         ---
         tags:
             - jobs
@@ -370,7 +370,7 @@ class Job(flask_restful.Resource):
     def delete(self, job_id):
         """
         Delete job
-        Delete and unschedule the specified job
+        Delete and unschedule the specified job.
         ---
         tags:
             - jobs
