@@ -34,8 +34,9 @@ class JobStore:
         :returns: The elasticsearch response
         :raises JobExistsException: If job already exists
         """
+        # TODO: refresh is temporary until we have a proper in-memory data layer
         try:
-            return self._es.create(index=self._index, doc_type=self._DOC_TYPE, id=job_id, body=body)
+            return self._es.create(index=self._index, doc_type=self._DOC_TYPE, id=job_id, body=body, refresh='true')
         except elasticsearch.exceptions.ConflictError as ex:
             raise JobExistsException() from ex
 
@@ -61,8 +62,9 @@ class JobStore:
         :returns: The elasticsearch response
         :raises JobNotFoundException: If job not found
         """
+        # TODO: refresh is temporary until we have a proper in-memory data layer
         try:
-            return self._es.update(index=self._index, doc_type=self._DOC_TYPE, id=job_id, body={'doc': body})
+            return self._es.update(index=self._index, doc_type=self._DOC_TYPE, id=job_id, body={'doc': body}, retry_on_conflict=3, refresh='true')
         except elasticsearch.exceptions.NotFoundError as ex:
             raise JobNotFoundException() from ex
 

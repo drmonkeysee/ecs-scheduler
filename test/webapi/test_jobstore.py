@@ -42,7 +42,7 @@ class JobStoreTests(unittest.TestCase):
 
         response = self._store.create(job_id, body)
 
-        self._store._es.create.assert_called_with(index=self._store._index, doc_type=self._store._DOC_TYPE, id=job_id, body=body)
+        self._store._es.create.assert_called_with(index=self._store._index, doc_type=self._store._DOC_TYPE, id=job_id, body=body, refresh='true')
         self.assertIs(self._store._es.create.return_value, response)
 
     def test_create_raises_if_ConflictError(self):
@@ -89,7 +89,7 @@ class JobStoreTests(unittest.TestCase):
 
         response = self._store.update(job_id, body)
 
-        self._store._es.update.assert_called_with(index=self._store._index, doc_type=self._store._DOC_TYPE, id=job_id, body={'doc': body})
+        self._store._es.update.assert_called_with(index=self._store._index, doc_type=self._store._DOC_TYPE, id=job_id, body={'doc': body}, retry_on_conflict=3, refresh='true')
         self.assertIs(self._store._es.update.return_value, response)
 
     def test_update_raises_if_NotFoundError(self):
