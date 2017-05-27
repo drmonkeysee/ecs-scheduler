@@ -1,17 +1,15 @@
 """Persistent job store operations."""
 import elasticsearch
 
+from ..configuration import config
+
 
 class JobStore:
     """Persistent job store."""
     _DOC_TYPE = 'job'
 
-    def __init__(self, config):
-        """
-        Create job store.
-
-        :param config: elasticsearch configuration from app config
-        """
+    def __init__(self):
+        """Create job store."""
         self._es = elasticsearch.Elasticsearch(**config['client'])
         self._index = config['index']
 

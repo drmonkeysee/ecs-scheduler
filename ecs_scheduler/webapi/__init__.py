@@ -11,11 +11,10 @@ from .jobs import Jobs, Job
 from .jobstore import JobStore
 
 
-def create(config, ops_queue):
+def create(ops_queue):
     """
     Create the web server.
 
-    :param config: The application configuration dictionary
     :param ops_queue: Job ops queue for sending job operations to the scheduler daemon
     :returns: A flask application instance
     """
@@ -27,7 +26,7 @@ def create(config, ops_queue):
 
     api.add_resource(Spec, '/spec')
 
-    job_store = JobStore(config['elasticsearch'])
+    job_store = JobStore()
     api.add_resource(Jobs, '/jobs', resource_class_args=(job_store, ops_queue))
     api.add_resource(Job, '/jobs/<job_id>', resource_class_args=(job_store, ops_queue))
 

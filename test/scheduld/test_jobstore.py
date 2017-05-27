@@ -9,8 +9,9 @@ from ecs_scheduler.scheduld.jobstore import JobStore
 
 class JobStoreTests(unittest.TestCase):
     def setUp(self):
-        with patch('elasticsearch.Elasticsearch'):
-            self._store = JobStore({'client': {'hosts': [{'host': 'foo', 'port': 9000}]}, 'index': 'test_index'})
+        with patch('elasticsearch.Elasticsearch'), \
+                patch.dict('ecs_scheduler.configuration.config', {'client': {'hosts': [{'host': 'foo', 'port': 9000}]}, 'index': 'test_index'}):
+            self._store = JobStore()
 
     @patch('elasticsearch.helpers.scan')
     def test_get_all_returns_empty_if_no_hits(self, fake_scan):

@@ -5,6 +5,8 @@ import logging.handlers
 
 import yaml
 
+from . import configuration
+
 
 _logger = logging.getLogger(__name__)
 
@@ -23,10 +25,16 @@ def env():
 
 
 def config():
-    """Discover and parse environment-specific configuration file.
-
-    :returns: a union of default and environment-specific configuration as a dictionary
     """
+    Discover and parse environment-specific configuration file.
+
+    Sets global configuration dict at ecs_scheduler.configuration.config.
+    """
+    c = _load_config()
+    configuration.config.update(c)
+
+
+def _load_config():
     with open('config/config_default.yaml') as config_file:
         config = yaml.safe_load(config_file)
 
@@ -47,17 +55,8 @@ def config():
 
 
 def _merge_env_vars(config):
-    component_name = os.getenv('COMPONENT')
-    if component_name:
-        config['component_name'] = component_name
-
-    sleep_time = os.getenv('SLEEP_IN_SECONDS')
-    if sleep_time:
-        try:
-            config['scheduld']['sleep_in_seconds'] = int(sleep_time)
-        except ValueError:
-            _logger.warning('SLEEP_IN_SECONDS env variable could not be converted to an integer: "%s"; using configured value of %s seconds instead',
-                sleep_time, config['scheduld']['sleep_in_seconds'])
+    # TODO: no env vars at the moment
+    pass
 
 
 def _merge_config(base, ext):

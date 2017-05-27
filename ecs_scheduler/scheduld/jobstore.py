@@ -4,6 +4,7 @@ import elasticsearch.helpers
 
 from .. import models
 from ..serialization import JobSchema, JobResponseSchema
+from ..configuration import config
 
 
 class JobStore:
@@ -11,12 +12,8 @@ class JobStore:
     _DOC_TYPE = 'job'
     _SCROLL_PERIOD = '1m'
 
-    def __init__(self, config):
-        """
-        Create job store.
-
-        :param config: elasticsearch configuration from app config
-        """
+    def __init__(self):
+        """Create job store."""
         self._es = elasticsearch.Elasticsearch(**config['client'])
         self._index = config['index']
         self._read_schema = JobResponseSchema(lambda obj: None, strict=True)

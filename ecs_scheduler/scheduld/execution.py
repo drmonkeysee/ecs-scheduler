@@ -5,6 +5,8 @@ import copy
 
 import boto3
 
+from ..configuration import config
+
 
 # see http://docs.aws.amazon.com/AmazonECS/latest/APIReference/API_RunTask.html
 _MAX_TASK_COUNT = 10
@@ -23,12 +25,8 @@ class JobExecutor:
     RETVAL_STARTED_TASKS = 1
     OVERRIDE_TAG = 'ECS_SCHEDULER_OVERRIDE_TAG'
     
-    def __init__(self, config):
-        """
-        Create an executor.
-
-        :param config: AWS config section from app config
-        """
+    def __init__(self):
+        """Create an executor."""
         self._ecs = boto3.client('ecs')
         self._cluster_name = config['ecs_cluster_name']
         self._my_name = config['ecs_scheduler_name']

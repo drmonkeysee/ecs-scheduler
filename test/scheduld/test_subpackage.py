@@ -9,13 +9,12 @@ class RunTests(unittest.TestCase):
     @patch('ecs_scheduler.scheduld.JobExecutor')
     @patch('ecs_scheduler.scheduld.JobStore')
     def test_create_scheduld(self, fake_store, fake_exec, fake_sched):
-        test_config = {'elasticsearch': {'bort': 'baz'}, 'aws': {'foo': 'bar'}, 'scheduld': {'blah': 'blah'}}
         test_queue = Mock()
         
-        result = create(test_config, test_queue)
+        result = create(test_queue)
 
-        fake_store.assert_called_with(test_config['elasticsearch'])
-        fake_exec.assert_called_with(test_config['aws'])
+        fake_store.assert_called_with()
+        fake_exec.assert_called_with()
         fake_sched.assert_called_with(fake_store.return_value, fake_exec.return_value)
         test_queue.register.assert_called_with(fake_sched.return_value)
         self.assertIsNotNone(result)
