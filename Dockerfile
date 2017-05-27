@@ -10,7 +10,6 @@ RUN pip install -r requirements.txt
 
 ENV LOG_LEVEL=WARNING
 ENV RUN_ENV=localdocker
-ENV COMPONENT=webapi
 
 COPY . $APP_DIR
 

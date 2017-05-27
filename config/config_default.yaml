@@ -1,8 +1,4 @@
 ---
-webapi:
-  debug: true
-scheduld:
-  sleep_in_seconds: 10
 elasticsearch:
   index: ecs-scheduler
   client:
@@ -11,4 +7,3 @@ elasticsearch:
 aws:
   ecs_cluster_name: dev-cluster
   ecs_scheduler_name: dev-ecs-scheduler
-  task_queue_name: dev-ecs-scheduler

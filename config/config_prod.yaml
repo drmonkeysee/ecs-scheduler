@@ -1,6 +1,4 @@
 ---
-webapi:
-  debug: false
 elasticsearch:
   client:
     hosts:
@@ -16,4 +14,3 @@ elasticsearch:
 aws:
   ecs_cluster_name: prod-cluster
   ecs_scheduler_name: prod-ecs-scheduler
-  task_queue_name: prod-ecs-scheduler
