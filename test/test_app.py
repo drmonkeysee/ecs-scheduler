@@ -10,7 +10,7 @@ from ecs_scheduler.app import create
 @patch('werkzeug.serving.is_running_from_reloader')
 @patch('ecs_scheduler.scheduld.create')
 @patch('ecs_scheduler.webapi.create')
-@patch('ecs_scheduler.app.joboperations.DirectQueue')
+@patch('ecs_scheduler.app.operations.DirectQueue')
 @patch('ecs_scheduler.app.init')
 class CreateTests(unittest.TestCase):
     def test_starts_daemon_in_prod_mode(self, fake_init, fake_queue_class, create_webapi, create_scheduld, reloader, exit_register):

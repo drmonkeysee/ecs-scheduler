@@ -9,7 +9,7 @@ import werkzeug.serving
 
 import ecs_scheduler.webapi
 import ecs_scheduler.scheduld
-from . import init, joboperations, __version__
+from . import init, operations, __version__
 
 
 _logger = logging.getLogger(__name__)
@@ -27,7 +27,7 @@ def create():
 
         component_name = config.get('component_name')
         _logger.info('ECS Scheduler v%s', __version__)
-        ops_queue = joboperations.DirectQueue()
+        ops_queue = operations.DirectQueue()
 
         _logger.info('Creating webapi...')
         # TODO: need to refresh es updates immediately until we have a proper jobs store layer

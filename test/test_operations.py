@@ -3,7 +3,7 @@ from unittest.mock import patch, Mock
 
 import marshmallow.exceptions
 
-from ecs_scheduler.joboperations import DirectQueue
+from ecs_scheduler.operations import DirectQueue
 
 
 class DirectQueueTests(unittest.TestCase):
