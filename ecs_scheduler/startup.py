@@ -6,12 +6,20 @@ import logging.handlers
 import yaml
 
 from . import configuration
+from .scheduld import triggers
 
 
 _logger = logging.getLogger(__name__)
 
 
-def env():
+def init():
+    """Initialize global application state."""
+    init_env()
+    init_config()
+    triggers.init()
+
+
+def init_env():
     """Set up runtime environment such as logging."""
     log_level = getattr(logging, os.getenv('LOG_LEVEL', default=''), None)
     log_handlers = [logging.StreamHandler()]
@@ -24,7 +32,7 @@ def env():
     logging.basicConfig(level=log_level, handlers=log_handlers, format='%(levelname)s:%(name)s:%(asctime)s %(message)s')
 
 
-def config():
+def init_config():
     """
     Discover and parse environment-specific configuration file.
 

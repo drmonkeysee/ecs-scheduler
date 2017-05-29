@@ -19,8 +19,7 @@ class CreateTests(unittest.TestCase):
 
         result = create()
 
-        fake_startup.env.assert_called_with()
-        fake_startup.config.assert_called_with()
+        fake_startup.init.assert_called_with()
         fake_queue_class.assert_called_with()
         create_scheduld.assert_called_with(fake_queue_class.return_value)
         create_webapi.assert_called_with(fake_queue_class.return_value)
@@ -34,8 +33,7 @@ class CreateTests(unittest.TestCase):
 
         result = create()
 
-        fake_startup.env.assert_called_with()
-        fake_startup.config.assert_called_with()
+        fake_startup.init.assert_called_with()
         fake_queue_class.assert_called_with()
         create_scheduld.assert_called_with(fake_queue_class.return_value)
         create_webapi.assert_called_with(fake_queue_class.return_value)
@@ -49,8 +47,7 @@ class CreateTests(unittest.TestCase):
 
         result = create()
 
-        fake_startup.env.assert_called_with()
-        fake_startup.config.assert_called_with()
+        fake_startup.init.assert_called_with()
         fake_queue_class.assert_called_with()
         create_scheduld.assert_not_called()
         create_webapi.assert_called_with(fake_queue_class.return_value)
@@ -60,7 +57,7 @@ class CreateTests(unittest.TestCase):
 
     @patch.object(logging.getLogger('ecs_scheduler.app'), 'critical')
     def test_startup_logs_exceptions(self, fake_log, fake_startup, fake_queue_class, create_webapi, create_scheduld, reloader, exit_register):
-        fake_startup.config.side_effect = RuntimeError
+        fake_startup.init.side_effect = RuntimeError
 
         with self.assertRaises(RuntimeError):
             create()

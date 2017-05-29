@@ -22,8 +22,7 @@ def create():
     :returns: The flask server instance
     """
     try:
-        startup.env()
-        startup.config()
+        startup.init()
 
         _logger.info('ECS Scheduler v%s', __version__)
         ops_queue = operations.DirectQueue()

@@ -1,11 +1,11 @@
 """Job execution classes."""
 import logging
-import math
 import copy
 
 import boto3
 
 from ..configuration import config
+from . import triggers
 
 
 # see http://docs.aws.amazon.com/AmazonECS/latest/APIReference/API_RunTask.html
@@ -67,7 +67,7 @@ class JobExecutor:
 
     def _calculate_expected_count(self, job_data):
         trigger_data = job_data.get('trigger', {})
-        trigger = get_trigger(trigger_data.get('type'))
+        trigger = triggers.get(trigger_data.get('type'))
         return trigger.determine_task_count(job_data)
 
     def _launch_tasks(self, task_def_id, task_count, job_data):
@@ -110,62 +110,3 @@ class JobResult:
         """Create a job result with a return code and optional task info."""
         self.return_code = return_code
         self.task_info = task_info
-
-
-class NoOpTrigger:
-    """The no-op trigger, used for jobs with no explicit trigger set."""
-    def determine_task_count(self, job_data):
-        """
-        Determine the number of tasks that should be running.
-
-        :param job_data: The job data dictionary
-        :returns: The job's task count value
-        """
-        return min(job_data.get('maxCount', float('inf')), job_data['taskCount'])
-
-
-class SqsTrigger:
-    """An SQS trigger for a job."""
-    def __init__(self):
-        """Create a trigger."""
-        self._sqs = boto3.resource('sqs')
-
-    def determine_task_count(self, job_data):
-        """
-        Determine the number of tasks that should be running.
-
-        :param job_data: The job data dictionary
-        :returns: The desired ECS task count based on the number of messages
-            in the queue and the desired scale factor in the job definition.
-            At a minimum will return the task count of the job
-        """
-        queue = self._sqs.get_queue_by_name(QueueName=job_data['trigger']['queueName'])
-        message_count = int(queue.attributes['ApproximateNumberOfMessages'])
-        if message_count > 0:
-            return self._calculate_task_count(message_count, job_data)
-        return 0
-
-    def _calculate_task_count(self, message_count, job_data):
-        scaling_factor = job_data['trigger'].get('messagesPerTask')
-        scaled_task_count = math.ceil(message_count / scaling_factor) if scaling_factor else 0
-        return min(job_data.get('maxCount', float('inf')), max(scaled_task_count, job_data['taskCount']))
-
-
-_triggers = None
-
-
-def get_trigger(trigger_name):
-    """
-    Get a trigger by its name.
-
-    :param trigger_name: The string name of the trigger to get
-    :returns: The trigger for the given name or the NoOpTrigger if no such trigger is found
-    """
-    if not _triggers:
-        _init_triggers()
-    return _triggers.get(trigger_name, _triggers['noop'])
-
-
-def _init_triggers():
-    global _triggers
-    _triggers = {'sqs': SqsTrigger(), 'noop': NoOpTrigger()}
