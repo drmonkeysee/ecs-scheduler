@@ -10,8 +10,8 @@ class JobStore:
 
     def __init__(self):
         """Create job store."""
-        self._es = elasticsearch.Elasticsearch(**config['client'])
-        self._index = config['index']
+        self._es = elasticsearch.Elasticsearch(**config['elasticsearch']['client'])
+        self._index = config['elasticsearch']['index']
 
     def get_jobs(self, skip, count):
         """

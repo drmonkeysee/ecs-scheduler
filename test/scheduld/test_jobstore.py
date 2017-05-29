@@ -10,7 +10,7 @@ from ecs_scheduler.scheduld.jobstore import JobStore
 class JobStoreTests(unittest.TestCase):
     def setUp(self):
         with patch('elasticsearch.Elasticsearch'), \
-                patch.dict('ecs_scheduler.configuration.config', {'client': {'hosts': [{'host': 'foo', 'port': 9000}]}, 'index': 'test_index'}):
+                patch.dict('ecs_scheduler.configuration.config', {'elasticsearch': {'client': {'hosts': [{'host': 'foo', 'port': 9000}]}, 'index': 'test_index'}}):
             self._store = JobStore()
 
     @patch('elasticsearch.helpers.scan')

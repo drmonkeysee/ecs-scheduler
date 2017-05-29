@@ -8,7 +8,7 @@ from ecs_scheduler.webapi.jobstore import JobStore, JobExistsException, JobNotFo
 
 class JobStoreTests(unittest.TestCase):
     def setUp(self):
-        self._test_config = {'client': {'hosts': [{'host': 'test_host', 'port': 20}]}, 'index': 'test_index'}
+        self._test_config = {'elasticsearch': {'client': {'hosts': [{'host': 'test_host', 'port': 20}]}, 'index': 'test_index'}}
         with patch('elasticsearch.Elasticsearch') as self._fake_es_cls, \
                 patch.dict('ecs_scheduler.configuration.config', self._test_config):
             self._store = JobStore()
@@ -16,8 +16,8 @@ class JobStoreTests(unittest.TestCase):
     def test_ctor_initializes_es(self):
         self._fake_es_cls.assert_called()
         expected_args = self._fake_es_cls.call_args[1]
-        self.assertEqual(self._test_config['index'], self._store._index)
-        self.assertEqual(self._test_config['client'], expected_args)
+        self.assertEqual(self._test_config['elasticsearch']['index'], self._store._index)
+        self.assertEqual(self._test_config['elasticsearch']['client'], expected_args)
 
     def test_get_jobs_calls_store(self):
         skip = 5

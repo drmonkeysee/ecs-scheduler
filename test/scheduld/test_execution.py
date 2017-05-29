@@ -9,7 +9,7 @@ from ecs_scheduler.scheduld.execution import JobExecutor, JobResult
 class JobExecutorTests(unittest.TestCase):
     def setUp(self):
         with patch('boto3.client'), \
-                patch.dict('ecs_scheduler.configuration.config', {'ecs_cluster_name': 'testCluster', 'ecs_scheduler_name': 'testName'}):
+                patch.dict('ecs_scheduler.configuration.config', {'aws': {'ecs_cluster_name': 'testCluster', 'ecs_scheduler_name': 'testName'}}):
             self._exec = JobExecutor()
 
     def test_call_does_nothing_if_zero_task_count(self, fake_get_trigger):

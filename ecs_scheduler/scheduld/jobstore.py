@@ -14,8 +14,8 @@ class JobStore:
 
     def __init__(self):
         """Create job store."""
-        self._es = elasticsearch.Elasticsearch(**config['client'])
-        self._index = config['index']
+        self._es = elasticsearch.Elasticsearch(**config['elasticsearch']['client'])
+        self._index = config['elasticsearch']['index']
         self._read_schema = JobResponseSchema(lambda obj: None, strict=True)
         self._write_schema = JobSchema()
 

@@ -28,8 +28,8 @@ class JobExecutor:
     def __init__(self):
         """Create an executor."""
         self._ecs = boto3.client('ecs')
-        self._cluster_name = config['ecs_cluster_name']
-        self._my_name = config['ecs_scheduler_name']
+        self._cluster_name = config['aws']['ecs_cluster_name']
+        self._my_name = config['aws']['ecs_scheduler_name']
 
     def __call__(self, **job_data):
         """
