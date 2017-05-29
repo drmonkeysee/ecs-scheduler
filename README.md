@@ -11,50 +11,34 @@ ECS Scheduler is organized as two components:
 - **webapi**: a REST web application providing the scheduler UI; used to create, modify, and remove scheduled jobs
 - **scheduld**: the scheduler daemon that runs scheduled jobs and talks to ECS to start tasks
 
+The scheduld instance is hosted within the Flask application that makes up webapi.
+
 ## Getting Started (PROVISIONAL)
 
-This particular version of ECS Scheduler is a nearly direct adaptation from an internal [Openmail](https://github.com/Openmail) project and is designed to be run as a standalone application. Later releases of this project will expose it as a pip-installable package with greater flexibility in hosting and running the scheduler components. In the meantime this can be run as an application script directly from the repo contents. A Dockerfile is also provided that sets the repository up to host in docker.
+This particular version of ECS Scheduler is a modified adaptation from an internal [Openmail](https://github.com/Openmail) project and is designed to be run as a standalone application. Later releases of this project will expose it as a pip-installable package with greater flexibility in hosting and running the scheduler components. In the meantime this can be run as an application script directly from the repo contents. A Dockerfile is also provided that sets the repository up to host in docker.
 
-ECS Scheduler startup is controlled through a combination of configuration files and environment variables and depends on some minimal AWS infrastructure to operate.
+ECS Scheduler startup is controlled through a combination of configuration files and environment variables. Primary configuration is controlled via the contents of YAML files in the **config/** directory. It begins by loading the contents of **config_default.yaml** and then overlaying the contents of one of the environment-specific config files based on the `RUN_ENV` environment variable. For example if `RUN_ENV=test` then **config_test.yaml** and **config_default.yaml** will be combined.
 
-Primary configuration is controlled via the contents of YAML files in the **config/** directory. It begins by loading the contents of **config_default.yaml** and then overlaying the contents of one of the environment-specific config files based on the `RUN_ENV` environment variable. For example if `RUN_ENV=test` then **config_test.yaml** and **config_default.yaml** will be combined.
-
-ECS Scheduler is composed of two independent components: webapi and scheduld. They are run as seperate processes and the environment variable `COMPONENT` controls which process runs (set to either `webapi` or `scheduld`). In the future these will be hostable in a single process and not required to run separately. In the meantime they communicate to each other via an SQS queue, named under the appropriate key in one of the configuration files (see the files in **config/** for details).
-
-[boto3](https://github.com/boto/boto3) is the package used to communicate to AWS. To set up credentials and default AWS configuration see the details in the [boto3 docs](https://boto3.readthedocs.io/en/latest/guide/configuration.html).
+[boto3](https://github.com/boto/boto3) is the package used to communicate to AWS services. To set up credentials and default AWS configuration see the details in the [boto3 docs](https://boto3.readthedocs.io/en/latest/guide/configuration.html).
 
 For historical reasons [elasticsearch](https://www.elastic.co/products/elasticsearch) is used as the backing store for persisting job information so an elasticsearch cluster is also required to run ECS scheduler. An index will be created automatically the first time a job is added; however you may want to use a more specific mapping, in which case consult the `JobSchema` and related classes in **serialization.py**. In a later release there will be a static file and a simple S3 storage option as well as hooks to implement your own persistence layer. When testing locally I would recommend using the [elasticsearch docker image](https://www.elastic.co/guide/en/elasticsearch/reference/current/docker.html).
 
 Finally the log level can be controlled via the `LOG_LEVEL` env variable, set to one of the values defined in the [`logging` Python module](https://docs.python.org/3/library/logging.html#logging-levels).
 
-As an example, to launch the webapi component of ECS Scheduler using the test configuration and logging at the info level execute this command:
+The make file provides a `debug` target that will launch ecs-scheduler for local testing, placing Flask in debug mode. To run ecs-scheduler in release mode use the **ecsscheduler.py** script. The example below will run ecs-scheduler using the test environment configuration and using a log level of info.
 
 ```sh
-> LOG_LEVEL=INFO RUN_ENV=test COMPONENT=webapi ./ecsscheduler
+> LOG_LEVEL=INFO RUN_ENV=test python ecsscheduler.py
 ```
-
-### SQS Setup
-
-ECS Scheduler uses an SQS queue to communicate between the web api and the scheduler daemon. If the queue is not already set up then:
-
-1. Create the dead letter sqs queue
-2. Create the primary scheduler queue
-3. Add the dead letter queue to the scheduler queue
-4. Make sure the queue name is correct in the corresponding config file
-
-See [this link](http://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/SQSDeadLetterQueue.html) for more info on creating dead letter queues.
 
 ### Application Configuration
 
 ECS Scheduler looks for configuration files automatically in the **config/** directory. This repository comes with sample configuration files (both default and environment-specific) that contain sample values. Configuration controls the following aspects of the application:
 
-- Flask debug mode
 - elasticsearch cluster connectivity
 - elasticsearch index name in which to store jobs
-- SNS queue name used to communicate job updates between webapi and scheduld
 - ECS cluster name in which to start tasks
 - name used to tag tasks in ECS so they can be identified as being started by scheduld
-- SQS polling frequency in seconds for scheduld
 
 ## Webapi
 
@@ -83,7 +67,7 @@ DELETE - delete the current job
 
 ### Scheduled Jobs
 
-The unit of ECS scheduler that controls tasks is the scheduled job. See the Swagger spec for full documentation on scheduled jobs but a quick summary of the most commonly used fields is listed below:
+The unit of ECS scheduler that controls tasks is the scheduled job. See the Swagger spec for full documentation on scheduled jobs but a job field summary is listed below:
 
 ```
 taskDefinition - required field; name of the ECS task to control via this job
@@ -444,13 +428,14 @@ If you want to build the package yourself but do not need a development environm
 
 Run `make test` and follow the displayed instructions. Once your development environment is set up `make test` will run the unit tests.
 
+Run `make debug` to launch ecs-scheduler in debug mode.
+
 ### Docker
 
-If you want to run ECS Scheduler in docker use `make docker` to build the image. Assuming you have an elasticsearch docker container running as `scheduler-es` and an environment file with your AWS credentials named **docker-env** then you can start the webapi and scheduld containers as:
+If you want to run ECS Scheduler in docker use `make docker` to build the image. Assuming you have an elasticsearch docker container running as `scheduler-es` and an environment file with your AWS credentials named **docker-env** then you can start ecs-scheduler as:
 
 ```sh
-> docker run --name ecs-webapi -p 5000:5000 -e LOG_LEVEL=INFO --env-file ~/.aws/docker-env --link=scheduler-es:es -d ecs-scheduler
-> docker run --name ecs-scheduld -e COMPONENT=scheduld -e LOG_LEVEL=INFO --env-file ~/.aws/docker-env --link=scheduler-es:es -d ecs-scheduler
+> docker run --name ecs-scheduler -p 5000:5000 -e LOG_LEVEL=INFO --env-file ~/.aws/docker-env --link=scheduler-es:es -d ecs-scheduler
 ```
 
 `make docker-clean` will delete all stopped ecs-scheduler containers and remove the image.
