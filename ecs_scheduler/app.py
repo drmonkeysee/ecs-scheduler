@@ -9,7 +9,7 @@ import werkzeug.serving
 
 import ecs_scheduler.webapi
 import ecs_scheduler.scheduld
-from . import init, operations, __version__
+from . import startup, operations, __version__
 
 
 _logger = logging.getLogger(__name__)
@@ -22,14 +22,13 @@ def create():
     :returns: The flask server instance
     """
     try:
-        init.env()
-        init.config()
+        startup.env()
+        startup.config()
 
         _logger.info('ECS Scheduler v%s', __version__)
         ops_queue = operations.DirectQueue()
 
         _logger.info('Creating webapi...')
-        # TODO: need to refresh es updates immediately until we have a proper jobs store layer
         app = ecs_scheduler.webapi.create(ops_queue)
 
         # NOTE: Flask in debug mode will restart after initial startup
