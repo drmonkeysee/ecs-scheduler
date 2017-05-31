@@ -108,8 +108,8 @@ class JobsTests(unittest.TestCase):
         response = self._jobs.post.__wrapped__(self._jobs)
 
         self._fake_es.create.assert_called_with('foobar', {'taskCount': 1, 'schedule': '*', 'taskDefinition': 'foobar'})
-        self._fake_queue.put.assert_called()
-        job_op_args, k = self._fake_queue.put.call_args
+        self._fake_queue.post.assert_called()
+        job_op_args, k = self._fake_queue.post.call_args
         self.assertEqual(1, len(job_op_args))
         self.assertEqual(ecs_scheduler.models.JobOperation.ADD, job_op_args[0].operation)
         self.assertEqual('foobar', job_op_args[0].job_id)
@@ -124,7 +124,7 @@ class JobsTests(unittest.TestCase):
     def test_post_returns_committed_response_error_if_queue_throws(self, fake_request, fake_abort, fake_url, fake_log):
         fake_request.json = {'taskDefinition': 'foobar', 'schedule': '*'}
         self._fake_es.create.return_value = 'yay'
-        self._fake_queue.put.side_effect = Exception
+        self._fake_queue.post.side_effect = Exception
 
         self._jobs.post.__wrapped__(self._jobs)
 
@@ -200,8 +200,8 @@ class JobTests(unittest.TestCase):
         response = self._job.put.__wrapped__(self._job, 'foobar')
 
         self._fake_es.update.assert_called_with('foobar', {'taskCount': 30})
-        self._fake_queue.put.assert_called()
-        job_op_args, k = self._fake_queue.put.call_args
+        self._fake_queue.post.assert_called()
+        job_op_args, k = self._fake_queue.post.call_args
         self.assertEqual(1, len(job_op_args))
         self.assertEqual(ecs_scheduler.models.JobOperation.MODIFY, job_op_args[0].operation)
         self.assertEqual('foobar', job_op_args[0].job_id)
@@ -218,8 +218,8 @@ class JobTests(unittest.TestCase):
         response = self._job.put.__wrapped__(self._job, 'foobar')
 
         self._fake_es.update.assert_called_with('foobar', {'taskCount': 30, 'schedule': '*'})
-        self._fake_queue.put.assert_called()
-        job_op_args, k = self._fake_queue.put.call_args
+        self._fake_queue.post.assert_called()
+        job_op_args, k = self._fake_queue.post.call_args
         self.assertEqual(1, len(job_op_args))
         self.assertEqual(ecs_scheduler.models.JobOperation.MODIFY, job_op_args[0].operation)
         self.assertEqual('foobar', job_op_args[0].job_id)
@@ -234,7 +234,7 @@ class JobTests(unittest.TestCase):
     def test_put_returns_committed_response_error_if_queue_throws(self, fake_request, fake_abort, fake_url, fake_log):
         fake_request.json = {'taskCount': 30}
         self._fake_es.update.return_value = 'yay'
-        self._fake_queue.put.side_effect = Exception
+        self._fake_queue.post.side_effect = Exception
 
         response = self._job.put.__wrapped__(self._job, 'foobar')
 
@@ -267,8 +267,8 @@ class JobTests(unittest.TestCase):
         response = self._job.delete('foobar')
 
         self._fake_es.delete.assert_called_with('foobar')
-        self._fake_queue.put.assert_called()
-        job_op_args, k = self._fake_queue.put.call_args
+        self._fake_queue.post.assert_called()
+        job_op_args, k = self._fake_queue.post.call_args
         self.assertEqual(1, len(job_op_args))
         self.assertEqual(ecs_scheduler.models.JobOperation.REMOVE, job_op_args[0].operation)
         self.assertEqual('foobar', job_op_args[0].job_id)
@@ -279,7 +279,7 @@ class JobTests(unittest.TestCase):
     @patch('flask.request')
     def test_delete_returns_committed_response_error_if_queue_throws(self, fake_request, fake_abort, fake_url, fake_log):
         self._fake_es.delete.return_value = 'yay'
-        self._fake_queue.put.side_effect = Exception
+        self._fake_queue.post.side_effect = Exception
 
         response = self._job.delete('foobar')
 

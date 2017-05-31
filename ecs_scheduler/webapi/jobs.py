@@ -40,7 +40,7 @@ def _job_notfound_response(job_id):
 
 def _post_operation(job_op, ops_queue, job_response):
     try:
-        ops_queue.put(job_op)
+        ops_queue.post(job_op)
     except Exception:
         _logger.exception('Exception when posting job operation to ops queue')
         flask_restful.abort(500,
