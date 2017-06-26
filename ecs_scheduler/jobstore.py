@@ -1,14 +1,19 @@
+from .persistence import MemoryStore
+
+
 """Job storage interface."""
 class JobStore:
     """A job storage instance used by the application to load and store jobs."""
     @classmethod
-    def load(cls, source):
+    def load(cls, source=None):
         """
         Create and load a job store from the given job source.
 
-        :param source: The job source from which to load and store jobs
+        :param source: The job source from which to load and store jobs;
+                        uses empty in-memory source if not specified
         :returns: A job store attached to the given job data source
         """
+        source = source or MemoryStore()
         pass
 
     def __init__(self, source):
