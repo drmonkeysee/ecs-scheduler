@@ -3,13 +3,12 @@ import os
 import logging
 import atexit
 
-# TODO: get this working once the package is deployable
-#from setuptools_scm import get_version
+from setuptools_scm import get_version
 import werkzeug.serving
 
 import ecs_scheduler.webapi
 import ecs_scheduler.scheduld
-from . import startup, operations, __version__
+from . import startup, operations
 
 
 _logger = logging.getLogger(__name__)
@@ -24,7 +23,7 @@ def create():
     try:
         startup.init()
 
-        _logger.info('ECS Scheduler v%s', __version__)
+        _logger.info('ECS Scheduler v%s', get_version())
         ops_queue = operations.DirectQueue()
 
         _logger.info('Creating webapi...')
