@@ -1,16 +1,13 @@
 """Built-in job data source implementations."""
-class MemorySource:
+class NullSource:
     """
-    In memory data source.
+    Null data source.
 
-    NOTE: as the name implies this is a memory-only
-    data source and will not be saved when the application terminates.
+    This source loads nothing and saves nothing.
+    Effectively makes the JobStore an in-memory store.
     """
-    def get_all(self):
-        pass
-
-    def get(self, job_id):
-        pass
+    def load_all(self):
+        return {}
 
     def create(self, job_id, **job):
         pass
@@ -24,10 +21,7 @@ class MemorySource:
 
 class FileSource:
     """File system data source."""
-    def get_all(self):
-        pass
-
-    def get(self, job_id):
+    def load_all(self):
         pass
 
     def create(self, job_id, **job):
@@ -42,10 +36,7 @@ class FileSource:
 
 class S3Source:
     """AWS S3 data source."""
-    def get_all(self):
-        pass
-
-    def get(self, job_id):
+    def load_all(self):
         pass
 
     def create(self, job_id, **job):
@@ -60,10 +51,7 @@ class S3Source:
 
 class ElasticsearchSource:
     """Elasticsearch data source."""
-    def get_all(self):
-        pass
-
-    def get(self, job_id):
+    def load_all(self):
         pass
 
     def create(self, job_id, **job):
