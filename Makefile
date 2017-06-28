@@ -14,32 +14,33 @@ endef
 
 .PHONY: build check clean docker docker-clean venv test debug
 
-build:
-	$(PY) setup.py bdist_wheel
+ifndef LOG_LEVEL
+LOG_LEVEL := INFO
+endif
+debug: venv
+	FLASK_DEBUG=1 FLASK_APP=ecsscheduler.py LOG_LEVEL=$(LOG_LEVEL) flask run
 
-check: build
-	$(PY) setup.py test
-
-clean:
-	rm -rf .eggs build dist ecs_scheduler.egg-info
-
-docker: #build
-	docker build -t $(CONTAINER_NAME) .
-
-docker-clean:
-	docker ps -a | awk '/$(CONTAINER_NAME)/ { print $$1 }' | xargs docker rm
-	docker rmi $(CONTAINER_NAME)
+test: venv
+	$(PY) -m unittest
 
 venv:
 ifneq ($(CURRENT_PY), $(VENV_PY))
 	$(error $(VENV_ERROR))
 endif
 
-test: venv
-	$(PY) -m unittest
+# TODO: revisit when packagifying application
+#build:
+#	$(PY) setup.py bdist_wheel
+#
+#check: build
+#	$(PY) setup.py test
+#
+#clean:
+#	rm -rf .eggs build dist ecs_scheduler.egg-info
 
-ifndef LOG_LEVEL
-LOG_LEVEL := INFO
-endif
-debug: venv
-	FLASK_DEBUG=1 FLASK_APP=ecsscheduler.py LOG_LEVEL=$(LOG_LEVEL) flask run
+#docker: #build
+#	docker build -t $(CONTAINER_NAME) .
+#
+#docker-clean:
+#	docker ps -a | awk '/$(CONTAINER_NAME)/ { print $$1 }' | xargs docker rm
+#	docker rmi $(CONTAINER_NAME)
