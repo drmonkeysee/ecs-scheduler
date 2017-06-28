@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import Mock
 
-from ..jobstore import JobStore
+from ecs_scheduler.jobstore import JobStore
 
 
 class JobStoreTests(unittest.TestCase):
