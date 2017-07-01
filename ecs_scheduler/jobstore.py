@@ -1,4 +1,9 @@
+import logging
+
 from .persistence import NullSource
+
+
+_logger = logging.getLogger(__name__)
 
 
 """Job storage interface."""
@@ -14,7 +19,9 @@ class JobStore:
         :returns: A job store attached to the given job data source
         """
         # TODO: rework to pick data source based on config
-        source = source or NullSource()
+        if not source:
+            source = NullSource()
+            _logger.warning('!!! Warning !!!: No registered persistence layer found; falling back to null data source! Jobs will not be saved when the application terminates!')
         store = cls(source)
         store.fill()
         return store
