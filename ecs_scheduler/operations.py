@@ -1,10 +1,4 @@
 """Classes for operating on job operations."""
-import logging
-
-
-_logger = logging.getLogger(__name__)
-
-
 class DirectQueue:
     """An operations queue directly wired to the scheduler daemon."""
     def __init__(self):
