@@ -1,9 +1,27 @@
 import logging
+import functools
+from threading import RLock
 
 from .persistence import NullSource
 
 
 _logger = logging.getLogger(__name__)
+
+
+def _sync(f):
+    @functools.wraps(f)
+    def wrapper(self, *args, **kwargs):
+        with self._lock:
+            return f(self, *args, **kwargs)
+    return wrapper
+
+
+def _sync_yield(f):
+    @functools.wraps(f)
+    def wrapper(self, *args, **kwargs):
+        with self._lock:
+            yield from f(self, *args, **kwargs)
+    return wrapper
 
 
 """Job storage interface."""
@@ -23,7 +41,7 @@ class JobStore:
             source = NullSource()
             _logger.warning('!!! Warning !!!: No registered persistence layer found; falling back to null data source! Jobs will not be saved when the application terminates!')
         store = cls(source)
-        store.fill()
+        store._fill()
         return store
 
     def __init__(self, source):
@@ -36,18 +54,10 @@ class JobStore:
         :param source: The data source to use for loading and storing jobs
         """
         self._source = source
+        self._lock = RLock()
         self._jobs = None
 
-    def fill(self):
-        """
-        Fill the job store with the contents of the data source.
-
-        get_all() and get() will not return anything until this method is called.
-        Use JobStore.load() instead of creating the object directly to ensure
-        a properly initialized job store.
-        """
-        self._jobs = self._source.load_all()
-
+    @_sync_yield
     def get_all(self):
         """
         Get all jobs.
@@ -56,6 +66,7 @@ class JobStore:
         """
         yield from self._jobs.values()
 
+    @_sync
     def get(self, job_id):
         """
         Get a job by id.
@@ -68,6 +79,7 @@ class JobStore:
             return self._jobs[job_id]
         raise JobNotFound(job_id)
 
+    @_sync
     def create(self, job_id, **job):
         """
         Create a new job.
@@ -78,6 +90,7 @@ class JobStore:
         """
         pass
 
+    @_sync
     def update(self, job_id, **job):
         """
         Update a job by id.
@@ -88,6 +101,7 @@ class JobStore:
         """
         pass
 
+    @_sync
     def annotate(self, job_id, **job):
         """
         Annotate a job by id.
@@ -102,6 +116,7 @@ class JobStore:
         """
         pass
 
+    @_sync
     def delete(self, job_id):
         """
         Delete a job.
@@ -110,6 +125,9 @@ class JobStore:
         :raises JobNotFound: If job not found
         """
         pass
+
+    def _fill(self):
+        self._jobs = self._source.load_all()
 
 
 class JobNotFound(Exception):
