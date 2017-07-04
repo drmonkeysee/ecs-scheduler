@@ -1,33 +1,16 @@
 """Built-in job data source implementations."""
-from abc import ABCMeta, abstractmethod
 
 
-# TODO: use ABCMeta to allow alternate registrations and pick implementation automatically
-class JobSource(metaclass=ABCMeta):
+def resolve():
     """
-    Abstract base class for Job Source implementations.
+    Resolve a data source from the current execution environment.
 
-    Register a new job source implementation either by inheriting from JobStore
-    or calling JobSource.register(MyJobSourceClass).
+    :returns: A data source implementation
     """
-    @abstractmethod
-    def load_all(self):
-        raise NotImplementedError()
-
-    @abstractmethod
-    def create(self, job_id, **job):
-        raise NotImplementedError()
-
-    @abstractmethod
-    def update(self, job_id, **job):
-        raise NotImplementedError()
-
-    @abstractmethod
-    def delete(self, job_id):
-        raise NotImplementedError()
+    pass
 
 
-class NullSource(JobSource):
+class NullSource:
     """
     Null data source.
 
@@ -47,16 +30,34 @@ class NullSource(JobSource):
         pass
 
 
-class FileSource(JobSource):
+class FileSource:
     """File system data source."""
-    pass
+    def __init__(self, file_path):
+        """
+        Create a file-based data source.
+
+        :param file_path: The full path of the file to use for loading and storing jobs
+        """
+        self.file_path = file_path
+
+    def load_all(self):
+        pass
+
+    def create(self, job_id, **job):
+        pass
+
+    def update(self, job_id, **job):
+        pass
+
+    def delete(self, job_id):
+        pass
 
 
-class S3Source(JobSource):
+class S3Source:
     """AWS S3 data source."""
     pass
 
 
-class ElasticsearchSource(JobSource):
+class ElasticsearchSource:
     """Elasticsearch data source."""
     pass
