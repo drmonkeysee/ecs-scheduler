@@ -13,8 +13,8 @@ _MAX_TASKS = 50
 
 
 def _validate_task_definition_name(value):
-    if re.search(':\d*', value):
-        raise marshmallow.ValidationError('task definition names cannot contain revision numbers')
+    if not re.match(r'[0-9A-Z_-]+$', value, re.I):
+        raise marshmallow.ValidationError('task definition names must contain only alphanumeric, underscore, and hyphen')
 
 
 class TriggerSchema(marshmallow.Schema):
@@ -23,7 +23,8 @@ class TriggerSchema(marshmallow.Schema):
 
     Schedule triggers are used to schedule a job based on an AWS event instead of a date/time point.
     An example of a trigger would be when messages are present in an SQS queue.
-    Jobs may contain triggers."""
+    Jobs may contain triggers.
+    """
     type = marshmallow.fields.String(required=True)
     queueName = marshmallow.fields.String()
     messagesPerTask = marshmallow.fields.Integer(validate=marshmallow.validate.Range(min=1))
@@ -38,7 +39,8 @@ class OverrideSchema(marshmallow.Schema):
     """
     Schema of a list of task overrides.
 
-    Task overrides are passed to ECS when a new task is stared."""
+    Task overrides are passed to ECS when a new task is stared.
+    """
     containerName = marshmallow.fields.String(required=True)
     environment = marshmallow.fields.Dict()
 
@@ -138,7 +140,7 @@ class JobResponseSchema(JobSchema):
     """
     Schema of a job response.
 
-    This extends JobSchema to parse an elasticsearch job document into a Job object
+    This extends JobSchema to parse a stored job document into a Job object
     and deserialize the object into a REST JSON representation.
     """
     id = marshmallow.fields.String(load_from='_id')

@@ -513,6 +513,14 @@ class JobCreateSchemaTests(unittest.TestCase):
         self.assertEqual(0, len(errors))
         self.assertEqual(data, job.data)
 
+    def test_deserialize_fails_if_id_includes_invalid_characters(self):
+        schema = JobCreateSchema()
+        data = {'taskDefinition': 'foo/bar.baz', 'schedule': '*'}
+
+        job, errors = schema.load(data)
+
+        self.assertEqual({'taskDefinition'}, set(errors.keys()))
+
 
 class JobResponseSchemaTests(unittest.TestCase):
     def test_deserialize_from_esdoc(self):
