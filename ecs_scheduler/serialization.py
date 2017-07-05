@@ -63,19 +63,18 @@ class JobSchema(marshmallow.Schema):
     """
     _WILD_CARD = '?'
 
+    # use validate param instead of decorator to report 'taskDefinition' as the invalid field instead of 'id'
+    id = marshmallow.fields.String(required=True, validate=_validate_task_definition_name, load_from='taskDefinition', load_only=True)
     taskDefinition = marshmallow.fields.String(validate=_validate_task_definition_name)
-    schedule = marshmallow.fields.String()
+    schedule = marshmallow.fields.String(required=True)
     scheduleStart = marshmallow.fields.DateTime()
     scheduleEnd = marshmallow.fields.DateTime()
-    taskCount = marshmallow.fields.Integer(validate=marshmallow.validate.Range(_MIN_TASKS, _MAX_TASKS))
+    taskCount = marshmallow.fields.Integer(missing=_MIN_TASKS, validate=marshmallow.validate.Range(_MIN_TASKS, _MAX_TASKS))
     maxCount = marshmallow.fields.Integer(validate=marshmallow.validate.Range(_MIN_TASKS, _MAX_TASKS))
     trigger = marshmallow.fields.Nested(TriggerSchema)
     suspended = marshmallow.fields.Boolean()
     parsedSchedule = marshmallow.fields.Raw(load_only=True)
     overrides = marshmallow.fields.List(marshmallow.fields.Nested(OverrideSchema))
-    lastRun = marshmallow.fields.DateTime()
-    lastRunTasks = marshmallow.fields.List(marshmallow.fields.Nested(TaskInfoSchema))
-    estimatedNextRun = marshmallow.fields.DateTime()
 
     @marshmallow.validates('parsedSchedule')
     def validate_parsed_schedule(self, value):
@@ -91,14 +90,6 @@ class JobSchema(marshmallow.Schema):
         schedule = data.get('schedule')
         if schedule:
             data['schedule'], data['parsedSchedule'] = self._parse_schedule(schedule)
-
-    @marshmallow.post_load
-    def create_job(self, data):
-        return Job(**data)
-
-    @marshmallow.pre_dump
-    def get_job_data(self, data):
-        return data.data
 
     def _parse_schedule(self, value):
         schedule_parts = value.split()
@@ -123,28 +114,21 @@ class JobSchema(marshmallow.Schema):
         return schedule_expression, schedule_args
 
 
-class JobCreateSchema(JobSchema):
-    """
-    Schema of a job creation request.
-
-    This extends JobSchema to define id as a required field and validate input.
-    Used by the web api to create jobs.
-    """
-    # use validate param instead of decorator to report 'taskDefinition' as the invalid field instead of 'id'
-    id = marshmallow.fields.String(required=True, validate=_validate_task_definition_name, load_from='taskDefinition', load_only=True)
-    schedule = marshmallow.fields.String(required=True)
-    taskCount = marshmallow.fields.Integer(missing=_MIN_TASKS, validate=marshmallow.validate.Range(_MIN_TASKS, _MAX_TASKS))
-
-
+# TODO: rework this to run from models.Job data
 class JobResponseSchema(JobSchema):
     """
     Schema of a job response.
 
     This extends JobSchema to parse a stored job document into a Job object
     and deserialize the object into a REST JSON representation.
+
+    Used for serialization only.
     """
     id = marshmallow.fields.String(load_from='_id')
     link = marshmallow.fields.Method('link_generator', dump_only=True)
+    lastRun = marshmallow.fields.DateTime()
+    lastRunTasks = marshmallow.fields.List(marshmallow.fields.Nested(TaskInfoSchema))
+    estimatedNextRun = marshmallow.fields.DateTime()
     
     def __init__(self, link_func, **kwargs):
         self._link_func = link_func
