@@ -18,7 +18,7 @@ class NullSource:
     Effectively makes the JobStore an in-memory store.
     """
     def load_all(self):
-        return {}
+        yield from {}.items()
 
     def create(self, job_id, **job):
         pass

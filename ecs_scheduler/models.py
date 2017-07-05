@@ -1,13 +1,21 @@
 """
 Model classes.
 
-Most of these classes are intended for indirect use via the serialization module.
+Jobs and Job represent job storage and individual jobs, respectively.
+Job data is controlled by the schemas in ecs_scheduler.serialization module.
+All job loading and storing exceptions inherit from JobError.
+
+JobOperation communicates updates between the webapi and scheduler.
+
+Pagination is a simple model object for webapi pagination operations.
 """
 import logging
 import functools
+import collections.abc
 from threading import RLock
 
 from .persistence import NullSource
+from .serialization import JobSchema
 
 
 _logger = logging.getLogger(__name__)
@@ -29,18 +37,19 @@ def _sync_yield(f):
     return wrapper
 
 
-# TODO: figure out schema usage
-"""Job storage interface."""
+"""Job storage."""
 class Jobs:
     """A job storage instance used by the application to load and store jobs."""
     @classmethod
     def load(cls, source=None):
         """
-        Create and load a jobs from the given job source.
+        Create and load jobs from the given job source.
 
         :param source: The job source from which to load and store jobs;
                         uses null source if not specified
         :returns: A jobs storage resource attached to the given job data source
+        :raises: InvalidJobData if job fields fail validation
+        :raises: JobPersistenceError if job loading fails
         """
         # TODO: rework to pick data source based on config
         if not source:
@@ -88,25 +97,26 @@ class Jobs:
 
         :param job_id: The id of the job to get
         :returns: The job for the given id
-        :raises JobNotFound: If job not found
+        :raises: JobNotFound if job not found
         """
         if job_id not in self._jobs:
             raise JobNotFound(job_id)
         return self._jobs[job_id]
 
     @_sync
-    def create(self, job_id, job):
+    def create(self, job_id, job_data):
         """
         Create a new job.
 
         :param job_id: The id of the job to create
-        :param **job: Keyword arguments for the new job
-        :raises JobAlreadyExists: If job already exists
+        :param job_data: Data dictionary for the new job
+        :raises: JobAlreadyExists if job already exists
+        :raises: InvalidJobData if job fields fail validation
+        :raises: JobPersistenceError if job creation fails
         """
         if job_id in self._jobs:
             raise JobAlreadyExists(job_id)
-        self._source.create(job_id, job)
-        self._jobs[job_id] = job
+        self._jobs[job_id] = self._create_job(job_id, job_data)
 
     @_sync
     def delete(self, job_id):
@@ -114,37 +124,56 @@ class Jobs:
         Delete a job.
 
         :param job_id: The id of the job to delete
-        :raises JobNotFound: If job not found
+        :raises: JobNotFound if job not found
+        :raises: JobPersistenceError if job deletion fails
         """
         if job_id not in self._jobs:
             raise JobNotFound(job_id)
-        self._source.delete(job_id)
+        try:
+            self._source.delete(job_id)
+        except Exception as ex:
+            raise JobPersistenceError(self.id) from ex
         del self._jobs[job_id]
 
     def _fill(self):
-        self._jobs = self._source.load_all()
+        parsed_jobs = (self._create_job(job_id, raw_data) for job_id, raw_data in self._source.load_all())
+        return {job.id: job for job in parsed_jobs}
+
+    def _create_job(job_id, job_data):
+        return Job(job_id, job_data, self._lock, self._source)
 
 
 class Job:
-    """A scheduled job for an ECS task."""
-    def __init__(self, data, lock, source):
+    """
+    A persistent job representing an ECS scheduled task.
+
+    Stored and retrieved by a Jobs job store.
+    """
+    def __init__(self, job_id, data, lock, source):
         """
-        Create a job.
+        Create a persistent job.
 
         Use Jobs.create() instead of creating the object directly to ensure
-        a properly initialized job.
+        a properly initialized and persisted job.
 
-        :param data: The job data from the persistent store.
-            The expected fields are determined by the ecs_scheduler.serialization.JobSchema class
-            and its subclasses
+        :param data: The job fields that make up the job
         :param lock: The data source synchronization lock, provided by the Jobs instance
         :param source: The data source to use for persistence, provided by the Jobs instance
-
-        :attribute data: The job data used to construct this job, as a dictionary
+        :raises: InvalidJobData if job data fails field validation
+        :raises: JobPersistenceError if job creation fails
         """
-        self.data = data
+        self._id = job_id
+        self._schema = JobSchema()
+        self._data, errors = self._schema.load(data)
+        if errors:
+            raise InvalidJobData(job_id, errors)
+        self._mapping = JobDataMapping(self._data)
         self._lock = lock
         self._source = source
+        try:
+            self._source.create(self.id, self._schema.dump(self._data).data)
+        except Exception as ex:
+            raise JobPersistenceError(self.id) from ex
 
     @property
     def id(self):
@@ -153,11 +182,16 @@ class Job:
 
         :returns: The job id string
         """
-        return self.data['id']
+        return self._id
 
-    @id.setter
-    def id(self, value):
-        self.data['id'] = value
+    @property
+    def data(self):
+        """
+        Get a read-only view of the job data.
+
+        :returns: The job data read-only dict
+        """
+        return self._mapping
 
     @property
     def suspended(self):
@@ -184,9 +218,17 @@ class Job:
         Update the job.
 
         :param **fields: Fields to update on the given job
+        :raises: InvalidJobData if job data fails field validation
+        :raises: JobPersistenceError if job update fails
         """
-        self._source.update(self.id, fields)
-        self.annotate(**fields)
+        validated_fields, errors = self._schema.load(fields)
+        if errors:
+            raise InvalidJobData(self.id, errors)
+        try:
+            self._source.update(self.id, self._schema.dump(validated_fields).data)
+        except Exception as ex:
+            raise JobPersistenceError(self.id) from ex
+        self.annotate(fields)
 
     @_sync
     def annotate(self, **fields):
@@ -199,7 +241,43 @@ class Job:
 
         :param **fields: Fields to set on the given job
         """
-        self.data.update(fields)
+        self._data.update(fields)
+
+
+class JobDataMapping(collections.abc.Mapping):
+    """A read-only dictionary wrapper for job data."""
+    def __init__(self, data):
+        """
+        Create a mapping for the given dictionary.
+
+        :param data: The data dictionary to wrap
+        """
+        self._data = data
+
+    def __getitem__(self, key):
+        """
+        Get a value for the given key.
+
+        :param key: The key for the value to get
+        :returns: The value for the given key
+        """
+        return self._data[key]
+
+    def __iter__(self):
+        """
+        Iterate the underlying data.
+
+        :returns: An iterator for the underlying data
+        """
+        return iter(self._data)
+
+    def __len__(self):
+        """
+        The length of the data.
+
+        :returns: Length of the underlying data
+        """
+        return len(self._data)
 
 
 class JobError(Exception):
@@ -224,6 +302,26 @@ class JobNotFound(JobError):
 class JobAlreadyExists(JobError):
     """Job exists error."""
     pass
+
+
+class JobPersistenceError(JobError):
+    """General error for job persistence failures."""
+    pass
+
+
+class InvalidJobData(JobError):
+    """Invalid job data error."""
+    def __init__(self, job_id, errors, *args, **kwargs):
+        """
+        Create a job error.
+
+        :param job_id: The job id related to the failed jobs call
+        :param errors: Job validation errors
+        :param *args: Additional exception positional arguments
+        :param **kwargs: Additional exception keyword arugments
+        """
+        super().__init__(job_id, *args, **kwargs)
+        self.errors = errors
 
 
 class JobOperation:
