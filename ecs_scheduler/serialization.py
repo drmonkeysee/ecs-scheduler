@@ -114,32 +114,24 @@ class JobSchema(marshmallow.Schema):
         return schedule_expression, schedule_args
 
 
-# TODO: rework this to run from models.Job data
 class JobResponseSchema(JobSchema):
     """
     Schema of a job response.
 
-    This extends JobSchema to parse a stored job document into a Job object
-    and deserialize the object into a REST JSON representation.
+    This extends JobSchema to deserialize a Job into a REST JSON representation.
 
     Used for serialization only.
     """
-    id = marshmallow.fields.String(load_from='_id')
+    # override id to include in dump output
+    id = marshmallow.fields.String()
     link = marshmallow.fields.Method('link_generator', dump_only=True)
     lastRun = marshmallow.fields.DateTime()
     lastRunTasks = marshmallow.fields.List(marshmallow.fields.Nested(TaskInfoSchema))
     estimatedNextRun = marshmallow.fields.DateTime()
     
-    def __init__(self, link_func, **kwargs):
+    def __init__(self, link_func, *args, **kwargs):
         self._link_func = link_func
-        super().__init__(**kwargs)
-
-    @marshmallow.pre_load
-    def flatten_source(self, data):
-        if '_source' in data:
-            d = data.copy()
-            d.update(data['_source'])
-            return d
+        super().__init__(*args, **kwargs)
 
     def link_generator(self, obj):
         return self._link_func(obj['id'])
