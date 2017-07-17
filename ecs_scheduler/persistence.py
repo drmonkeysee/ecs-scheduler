@@ -1,20 +1,20 @@
-"""Built-in job data source implementations."""
+"""Built-in job data store implementations."""
 
 
 def resolve():
     """
-    Resolve a data source from the current execution environment.
+    Resolve a data store from the current execution environment.
 
-    :returns: A data source implementation
+    :returns: A data store implementation
     """
     pass
 
 
-class NullSource:
+class NullStore:
     """
-    Null data source.
+    Null data store.
 
-    This source loads nothing and saves nothing.
+    This store loads nothing and saves nothing.
     Effectively makes the JobStore an in-memory store.
     """
     def load_all(self):
@@ -30,11 +30,11 @@ class NullSource:
         pass
 
 
-class FileSource:
-    """File system data source."""
+class FileStore:
+    """File system data store."""
     def __init__(self, file_path):
         """
-        Create a file-based data source.
+        Create a file-based data store.
 
         :param file_path: The full path of the file to use for loading and storing jobs
         """
@@ -53,11 +53,11 @@ class FileSource:
         pass
 
 
-class S3Source:
-    """AWS S3 data source."""
+class S3Store:
+    """AWS S3 data store."""
     pass
 
 
-class ElasticsearchSource:
-    """Elasticsearch data source."""
+class ElasticsearchStore:
+    """Elasticsearch data store."""
     pass

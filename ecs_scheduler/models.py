@@ -14,7 +14,7 @@ import functools
 import collections.abc
 from threading import RLock
 
-from .persistence import NullSource
+from .persistence import NullStore
 from .serialization import JobSchema
 
 
@@ -37,38 +37,38 @@ def _sync_yield(f):
     return wrapper
 
 
-"""Job storage."""
+"""Job data context."""
 class Jobs:
-    """A job storage instance used by the application to load and store jobs."""
+    """A job data context used by the application to load and store jobs."""
     @classmethod
-    def load(cls, source=None):
+    def load(cls, store=None):
         """
-        Create and load jobs from the given job source.
+        Create and load jobs from the given job store.
 
-        :param source: The job source from which to load and store jobs;
-                        uses null source if not specified
-        :returns: A jobs storage resource attached to the given job data source
+        :param store: The job store from which to load and store jobs;
+                        uses null store if not specified
+        :returns: A jobs storage resource attached to the given job data store
         :raises: InvalidJobData if job fields fail validation
         :raises: JobPersistenceError if job loading fails
         """
-        # TODO: rework to pick data source based on config
-        if not source:
-            source = NullSource()
-            _logger.warning('!!! Warning !!!: No registered persistence layer found; falling back to null data source! Jobs will not be saved when the application terminates!')
-        store = cls(source)
+        # TODO: rework to pick data store based on config
+        if not store:
+            store = Nullstore()
+            _logger.warning('!!! Warning !!!: No registered persistence layer found; falling back to null data store! Jobs will not be saved when the application terminates!')
+        store = cls(store)
         store._fill()
         return store
 
-    def __init__(self, source):
+    def __init__(self, store):
         """
-        Create a job store.
+        Create a job data context.
 
         Use Jobs.load() instead of creating the object directly to ensure
-        a properly initialized job store.
+        a properly initialized job context.
 
-        :param source: The data source to use for loading and storing jobs
+        :param store: The data store to use for loading and storing jobs
         """
-        self._source = source
+        self._store = store
         self._lock = RLock()
         self._jobs = None
 
@@ -130,26 +130,26 @@ class Jobs:
         if job_id not in self._jobs:
             raise JobNotFound(job_id)
         try:
-            self._source.delete(job_id)
+            self._store.delete(job_id)
         except Exception as ex:
             raise JobPersistenceError(self.id) from ex
         del self._jobs[job_id]
 
     def _fill(self):
-        parsed_jobs = (self._create_job(job_id, raw_data) for job_id, raw_data in self._source.load_all())
+        parsed_jobs = (self._create_job(job_id, raw_data) for job_id, raw_data in self._store.load_all())
         return {job.id: job for job in parsed_jobs}
 
     def _create_job(job_id, job_data):
-        return Job(job_id, job_data, self._lock, self._source)
+        return Job(job_id, job_data, self._lock, self._store)
 
 
 class Job:
     """
     A persistent job representing an ECS scheduled task.
 
-    Stored and retrieved by a Jobs job store.
+    Stored and retrieved by a Jobs data context.
     """
-    def __init__(self, job_id, data, lock, source):
+    def __init__(self, job_id, data, store):
         """
         Create a persistent job.
 
@@ -157,8 +157,7 @@ class Job:
         a properly initialized and persisted job.
 
         :param data: The job fields that make up the job
-        :param lock: The data source synchronization lock, provided by the Jobs instance
-        :param source: The data source to use for persistence, provided by the Jobs instance
+        :param store: The data store to use for persistence, provided by the Jobs instance
         :raises: InvalidJobData if job data fails field validation
         :raises: JobPersistenceError if job creation fails
         """
@@ -168,10 +167,10 @@ class Job:
         if errors:
             raise InvalidJobData(job_id, errors)
         self._mapping = JobDataMapping(self._data)
-        self._lock = lock
-        self._source = source
+        self._lock = RLock()
+        self._store = store
         try:
-            self._source.create(self.id, self._schema.dump(self._data).data)
+            self._store.create(self.id, self._schema.dump(self._data).data)
         except Exception as ex:
             raise JobPersistenceError(self.id) from ex
 
@@ -225,7 +224,7 @@ class Job:
         if errors:
             raise InvalidJobData(self.id, errors)
         try:
-            self._source.update(self.id, self._schema.dump(validated_fields).data)
+            self._store.update(self.id, self._schema.dump(validated_fields).data)
         except Exception as ex:
             raise JobPersistenceError(self.id) from ex
         self.annotate(fields)
@@ -235,7 +234,7 @@ class Job:
         """
         Annotate the job.
 
-        Annotated fields do not persist into the job data source.
+        Annotated fields do not persist into the job data store.
         This is used for storing job fields that are only relevant
         during runtime and do not need to be persisted between application runs.
 
