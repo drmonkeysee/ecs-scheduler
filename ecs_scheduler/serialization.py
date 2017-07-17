@@ -5,7 +5,7 @@ import random
 import marshmallow
 import apscheduler.triggers.cron
 
-from .models import Job, Pagination
+from .models import Pagination
 
 
 _MIN_TASKS = 1
@@ -63,13 +63,11 @@ class JobSchema(marshmallow.Schema):
     """
     _WILD_CARD = '?'
 
-    # use validate param instead of decorator to report 'taskDefinition' as the invalid field instead of 'id'
-    id = marshmallow.fields.String(required=True, validate=_validate_task_definition_name, load_from='taskDefinition', load_only=True)
     taskDefinition = marshmallow.fields.String(validate=_validate_task_definition_name)
-    schedule = marshmallow.fields.String(required=True)
+    schedule = marshmallow.fields.String()
     scheduleStart = marshmallow.fields.DateTime()
     scheduleEnd = marshmallow.fields.DateTime()
-    taskCount = marshmallow.fields.Integer(missing=_MIN_TASKS, validate=marshmallow.validate.Range(_MIN_TASKS, _MAX_TASKS))
+    taskCount = marshmallow.fields.Integer(validate=marshmallow.validate.Range(_MIN_TASKS, _MAX_TASKS))
     maxCount = marshmallow.fields.Integer(validate=marshmallow.validate.Range(_MIN_TASKS, _MAX_TASKS))
     trigger = marshmallow.fields.Nested(TriggerSchema)
     suspended = marshmallow.fields.Boolean()
@@ -114,6 +112,18 @@ class JobSchema(marshmallow.Schema):
         return schedule_expression, schedule_args
 
 
+class JobCreateSchema(JobSchema):
+    """
+    Schema of a job creation request.
+
+    This extends JobSchema to define fields required for a new job.
+    """
+    # use validate param instead of decorator to report 'taskDefinition' as the invalid field instead of 'id'
+    id = marshmallow.fields.String(required=True, validate=_validate_task_definition_name, load_from='taskDefinition', load_only=True)
+    schedule = marshmallow.fields.String(required=True)
+    taskCount = marshmallow.fields.Integer(missing=_MIN_TASKS, validate=marshmallow.validate.Range(_MIN_TASKS, _MAX_TASKS))
+
+
 class JobResponseSchema(JobSchema):
     """
     Schema of a job response.
@@ -123,11 +133,11 @@ class JobResponseSchema(JobSchema):
     Used for serialization only.
     """
     # override id to include in dump output
-    id = marshmallow.fields.String()
+    id = marshmallow.fields.String(dump_only=True)
     link = marshmallow.fields.Method('link_generator', dump_only=True)
-    lastRun = marshmallow.fields.DateTime()
-    lastRunTasks = marshmallow.fields.List(marshmallow.fields.Nested(TaskInfoSchema))
-    estimatedNextRun = marshmallow.fields.DateTime()
+    lastRun = marshmallow.fields.DateTime(dump_only=True)
+    lastRunTasks = marshmallow.fields.List(marshmallow.fields.Nested(TaskInfoSchema), dump_only=True)
+    estimatedNextRun = marshmallow.fields.DateTime(dump_only=True)
     
     def __init__(self, link_func, *args, **kwargs):
         self._link_func = link_func

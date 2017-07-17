@@ -7,7 +7,7 @@ import dateutil
 from ecs_scheduler.serialization import (TriggerSchema, JobSchema,
                                             JobCreateSchema, JobResponseSchema,
                                             PaginationSchema, OverrideSchema, TaskInfoSchema)
-from ecs_scheduler.models import Job, Pagination, JobOperation
+from ecs_scheduler.models import Pagination, JobOperation
 
 
 class TriggerSchemaTests(unittest.TestCase):
@@ -119,8 +119,7 @@ class JobSchemaTests(unittest.TestCase):
         job, errors = schema.load(data)
 
         self.assertEqual(0, len(errors))
-        self.assertIsInstance(job, Job)
-        self.assertEqual({}, job.data)
+        self.assertEqual({}, job)
 
     def test_complete_deserialize(self):
         schema = JobSchema()
@@ -144,12 +143,11 @@ class JobSchemaTests(unittest.TestCase):
         job, errors = schema.load(data)
 
         self.assertEqual(0, len(errors))
-        self.assertIsInstance(job, Job)
         
         expected_data = data.copy()
         _parse_datetime_fields(expected_data, 'scheduleStart', 'scheduleEnd')
         
-        self.assertEqual(expected_data, job.data)
+        self.assertEqual(expected_data, job)
 
     def test_deserialize_ignores_parsed_schedule_on_input(self):
         schema = JobSchema()
@@ -161,8 +159,7 @@ class JobSchemaTests(unittest.TestCase):
         job, errors = schema.load(data)
 
         self.assertEqual(0, len(errors))
-        self.assertIsInstance(job, Job)
-        self.assertEqual({'second': '*'}, job.data['parsedSchedule'])
+        self.assertEqual({'second': '*'}, job['parsedSchedule'])
 
     def test_deserialize_parses_full_schedule(self):
         schema = JobSchema()
@@ -173,7 +170,6 @@ class JobSchemaTests(unittest.TestCase):
         job, errors = schema.load(data)
 
         self.assertEqual(0, len(errors))
-        self.assertIsInstance(job, Job)
         expected_data = {
             'second': '10',
             'minute': '12',
@@ -184,7 +180,7 @@ class JobSchemaTests(unittest.TestCase):
             'month': '2',
             'year': '2012-2015'
         }
-        self.assertEqual(expected_data, job.data['parsedSchedule'])
+        self.assertEqual(expected_data, job['parsedSchedule'])
 
     def test_deserialize_ignores_extra_schedule_stuff(self):
         schema = JobSchema()
@@ -195,7 +191,6 @@ class JobSchemaTests(unittest.TestCase):
         job, errors = schema.load(data)
 
         self.assertEqual(0, len(errors))
-        self.assertIsInstance(job, Job)
         expected_data = {
             'second': '10',
             'minute': '12',
@@ -206,7 +201,7 @@ class JobSchemaTests(unittest.TestCase):
             'month': '2',
             'year': '2012-2015'
         }
-        self.assertEqual(expected_data, job.data['parsedSchedule'])
+        self.assertEqual(expected_data, job['parsedSchedule'])
 
     def test_deserialize_uses_underscore_to_denote_spaces(self):
         schema = JobSchema()
@@ -217,7 +212,6 @@ class JobSchemaTests(unittest.TestCase):
         job, errors = schema.load(data)
 
         self.assertEqual(0, len(errors))
-        self.assertIsInstance(job, Job)
         expected_data = {
             'second': '0',
             'minute': '0',
@@ -226,7 +220,7 @@ class JobSchemaTests(unittest.TestCase):
             'week': '*',
             'day': '2nd wed'
         }
-        self.assertEqual(expected_data, job.data['parsedSchedule'])
+        self.assertEqual(expected_data, job['parsedSchedule'])
 
     def test_deserialize_supports_wildcards_for_secminhour(self):
         schema = JobSchema()
@@ -237,12 +231,11 @@ class JobSchemaTests(unittest.TestCase):
         job, errors = schema.load(data)
 
         self.assertEqual(0, len(errors))
-        self.assertIsInstance(job, Job)
-        self.assertTrue(0 <= int(job.data['parsedSchedule']['second']) < 60, 'wildcard second not in expected range')
-        self.assertTrue(0 <= int(job.data['parsedSchedule']['minute']) < 60, 'wildcard minute not in expected range')
-        self.assertTrue(0 <= int(job.data['parsedSchedule']['hour']) < 24, 'wildcard hour not in expected range')
-        expected_expression = ' '.join((job.data['parsedSchedule']['second'], job.data['parsedSchedule']['minute'], job.data['parsedSchedule']['hour']))
-        self.assertEqual(expected_expression, job.data['schedule'])
+        self.assertTrue(0 <= int(job['parsedSchedule']['second']) < 60, 'wildcard second not in expected range')
+        self.assertTrue(0 <= int(job['parsedSchedule']['minute']) < 60, 'wildcard minute not in expected range')
+        self.assertTrue(0 <= int(job['parsedSchedule']['hour']) < 24, 'wildcard hour not in expected range')
+        expected_expression = ' '.join((job['parsedSchedule']['second'], job['parsedSchedule']['minute'], job['parsedSchedule']['hour']))
+        self.assertEqual(expected_expression, job['schedule'])
 
     def test_deserialize_supports_wildcards_combined_with_other_fields(self):
         schema = JobSchema()
@@ -253,12 +246,11 @@ class JobSchemaTests(unittest.TestCase):
         job, errors = schema.load(data)
 
         self.assertEqual(0, len(errors))
-        self.assertIsInstance(job, Job)
-        self.assertTrue(0 <= int(job.data['parsedSchedule']['second']) < 60, 'wildcard second not in expected range')
-        self.assertTrue(0 <= int(job.data['parsedSchedule']['minute']) < 60, 'wildcard minute not in expected range')
-        self.assertTrue(0 <= int(job.data['parsedSchedule']['hour']) < 24, 'wildcard hour not in expected range')
-        expected_expression = ' '.join((job.data['parsedSchedule']['second'], job.data['parsedSchedule']['minute'], job.data['parsedSchedule']['hour'], 'sun 34 last 2 2012-2015'))
-        self.assertEqual(expected_expression, job.data['schedule'])
+        self.assertTrue(0 <= int(job['parsedSchedule']['second']) < 60, 'wildcard second not in expected range')
+        self.assertTrue(0 <= int(job['parsedSchedule']['minute']) < 60, 'wildcard minute not in expected range')
+        self.assertTrue(0 <= int(job['parsedSchedule']['hour']) < 24, 'wildcard hour not in expected range')
+        expected_expression = ' '.join((job['parsedSchedule']['second'], job['parsedSchedule']['minute'], job['parsedSchedule']['hour'], 'sun 34 last 2 2012-2015'))
+        self.assertEqual(expected_expression, job['schedule'])
 
     def test_deserialize_does_not_support_wildcards_for_other_fields(self):
         schema = JobSchema()
@@ -334,8 +326,8 @@ class JobSchemaTests(unittest.TestCase):
         job, errors = schema.load(data)
 
         self.assertEqual(0, len(errors))
-        self.assertEqual(50, job.data['taskCount'])
-        self.assertEqual(50, job.data['maxCount'])
+        self.assertEqual(50, job['taskCount'])
+        self.assertEqual(50, job['maxCount'])
 
     def test_deserialize_succeeds_if_max_less_than_task_count(self):
         schema = JobSchema()
@@ -344,8 +336,8 @@ class JobSchemaTests(unittest.TestCase):
         job, errors = schema.load(data)
 
         self.assertEqual(0, len(errors))
-        self.assertEqual(21, job.data['taskCount'])
-        self.assertEqual(20, job.data['maxCount'])
+        self.assertEqual(21, job['taskCount'])
+        self.assertEqual(20, job['maxCount'])
 
     def test_deserialize_succeeds_with_empty_overrides(self):
         schema = JobSchema()
@@ -354,7 +346,7 @@ class JobSchemaTests(unittest.TestCase):
         job, errors = schema.load(data)
 
         self.assertEqual(0, len(errors))
-        self.assertEqual(data, job.data)
+        self.assertEqual({'overrides': []}, job)
 
     def test_deserialize_fails_if_task_definition_includes_revision(self):
         schema = JobSchema()
@@ -372,25 +364,34 @@ class JobSchemaTests(unittest.TestCase):
 
         self.assertEqual({'taskDefinition'}, set(errors.keys()))
 
+    def test_deserialize_fails_if_task_definition_includes_invalid_characters(self):
+        schema = JobSchema()
+        data = {'taskDefinition': 'foo/bar.baz', 'schedule': '*'}
+
+        job, errors = schema.load(data)
+
+        self.assertEqual({'taskDefinition'}, set(errors.keys()))
+
     def test_serialize(self):
         schema = JobSchema()
-        job = Job(id='idIsIgnored',
-            taskDefinition='test-task',
-            schedule='test-schedule',
-            scheduleStart=datetime(2015, 10, 7, 13, 44, 53, 123456, timezone.utc),
-            scheduleEnd=datetime(2015, 10, 10, 4, 10, 3, 654321, timezone.utc),
-            taskCount=12,
-            suspended=True,
-            trigger={
+        job_data = {
+            'id': 'idIsIgnored',
+            'taskDefinition': 'test-task',
+            'schedule': 'test-schedule',
+            'scheduleStart': datetime(2015, 10, 7, 13, 44, 53, 123456, timezone.utc),
+            'scheduleEnd': datetime(2015, 10, 10, 4, 10, 3, 654321, timezone.utc),
+            'taskCount': 12,
+            'suspended': True,
+            'trigger': {
                 'type': 'test-type'
             },
-            overrides=[{
+            'overrides': [{
                 'containerName': 'test-container',
                 'environment': {'foo': 'foo_value', 'bar': 'bar_value', 'baz': 'baz_value'}
             }]
-        )
+        }
 
-        doc, errors = schema.dump(job)
+        doc, errors = schema.dump(job_data)
 
         self.assertEqual(0, len(errors))
         expected_data = {
@@ -412,12 +413,12 @@ class JobSchemaTests(unittest.TestCase):
 
     def test_serialize_empty_doc(self):
         schema = JobSchema()
-        job = Job()
+        job_data = {}
 
-        doc, errors = schema.dump(job)
+        doc, errors = schema.dump(job_data)
 
         self.assertEqual(0, len(errors))
-        self.assertEqual({}, job.data)
+        self.assertEqual({}, doc)
 
 
 class JobCreateSchemaTests(unittest.TestCase):
@@ -428,7 +429,6 @@ class JobCreateSchemaTests(unittest.TestCase):
         job, errors = schema.load(data)
 
         self.assertEqual(0, len(errors))
-        self.assertIsInstance(job, Job)
         expected_data = {
             'id': data['taskDefinition'],
             'taskDefinition': data['taskDefinition'],
@@ -436,7 +436,7 @@ class JobCreateSchemaTests(unittest.TestCase):
             'schedule': '*',
             'parsedSchedule': {'second': '*'}
         }
-        self.assertEqual(expected_data, job.data)
+        self.assertEqual(expected_data, job)
 
     def test_deserialize_fails_if_missing_required_fields(self):
         schema = JobCreateSchema()
@@ -493,7 +493,7 @@ class JobCreateSchemaTests(unittest.TestCase):
         job, errors = schema.load(data)
 
         self.assertEqual(0, len(errors))
-        self.assertEqual(50, job.data['taskCount'])
+        self.assertEqual(50, job['taskCount'])
 
     def test_deserialize_sets_id_if_given_explicitly(self):
         schema = JobCreateSchema()
@@ -502,7 +502,7 @@ class JobCreateSchemaTests(unittest.TestCase):
         job, errors = schema.load(data)
 
         self.assertEqual(0, len(errors))
-        self.assertEqual(data, job.data)
+        self.assertEqual(data, job)
 
     def test_deserialize_sets_id_and_task_definition(self):
         schema = JobCreateSchema()
@@ -511,7 +511,7 @@ class JobCreateSchemaTests(unittest.TestCase):
         job, errors = schema.load(data)
 
         self.assertEqual(0, len(errors))
-        self.assertEqual(data, job.data)
+        self.assertEqual(data, job)
 
     def test_deserialize_fails_if_id_includes_invalid_characters(self):
         schema = JobCreateSchema()
@@ -523,96 +523,38 @@ class JobCreateSchemaTests(unittest.TestCase):
 
 
 class JobResponseSchemaTests(unittest.TestCase):
-    def test_deserialize_from_esdoc(self):
-        schema = JobResponseSchema(lambda obj: None)
-        data = {
-            '_source': {
-                'taskDefinition': 'test-task',
-                'schedule': '*',
-                'taskCount': 5,
-                'scheduleStart': '2015-10-07T13:44:53.123456+00:00',
-                'scheduleEnd': '2015-10-10T04:10:03.654321+00:00',
-                'lastRun': '2015-10-08T04:02:56.777777+00:00',
-                'lastRunTasks': [{'taskId': 'foo1', 'hostId': 'bar1'}, {'taskId': 'foo2', 'hostId': 'bar2'}],
-                'estimatedNextRun': '2015-10-09T23:44:23.888888+00:00',
-                'suspended': True,
-                'trigger': {
-                    'type': 'test-type'
-                },
-                'overrides': [{
-                    'containerName': 'test-container',
-                    'environment': {'foo': 'foo_value', 'bar': 'bar_value', 'baz': 'baz_value'}
-                }]
-            }
-        }
-
-        job, errors = schema.load(data)
-
-        self.assertEqual(0, len(errors))
-        self.assertIsInstance(job, Job)
-        
-        expected_data = data.copy()
-        expected_data.update(expected_data['_source'])
-        del expected_data['_source']
-        expected_data['parsedSchedule'] = {'second': '*'}
-        _parse_datetime_fields(expected_data, 'estimatedNextRun', 'lastRun', 'scheduleStart', 'scheduleEnd')
-        
-        self.assertEqual(expected_data, job.data)
-
-    def test_deserialize_from_esdoc_missing_optional_fields(self):
-        schema = JobResponseSchema(lambda obj: None)
-        data = {
-            '_source': {
-                'schedule': '*',
-                'taskCount': 5
-            }
-        }
-
-        job, errors = schema.load(data)
-
-        self.assertEqual(0, len(errors))
-        self.assertIsInstance(job, Job)
-        
-        expected_data = data.copy()
-        expected_data.update(expected_data['_source'])
-        del expected_data['_source']
-        expected_data['parsedSchedule'] = {'second': '*'}
-        
-        self.assertEqual(expected_data, job.data)
-
     def test_serialize(self):
         def link_gen(job_id):
             return {'rel': 'foo', 'href': 'link/' + job_id, 'title': 'test-title'}
 
         schema = JobResponseSchema(link_gen)
-        test_data = {
-            '_id': 'testid',
-            '_source': {
-                'taskDefinition': 'test-task',
-                'schedule': '*',
-                'taskCount': 5,
-                'scheduleStart': '2015-10-07T13:44:53.123456+00:00',
-                'scheduleEnd': '2015-10-10T04:10:03.654321+00:00',
-                'lastRun': '2015-10-08T04:02:56.777777+00:00',
-                'lastRunTasks': [{'taskId': 'foo1', 'hostId': 'bar1'}, {'taskId': 'foo2', 'hostId': 'bar2'}],
-                'estimatedNextRun': '2015-10-09T23:44:23.888888+00:00',
-                'suspended': True,
-                'trigger': {
-                    'type': 'test-type'
-                },
-                'overrides': [{
-                    'containerName': 'test-container',
-                    'environment': {'foo': 'foo_value', 'bar': 'bar_value', 'baz': 'baz_value'}
-                }]
-            }
+        job_data = {'id': 'testid',
+            'taskDefinition': 'test-task',
+            'schedule': '*',
+            'parsedSchedule': {'second': '*'},
+            'scheduleStart': datetime(2015, 10, 7, 13, 44, 53, 123456, timezone.utc),
+            'scheduleEnd': datetime(2015, 10, 10, 4, 10, 3, 654321, timezone.utc),
+            'lastRun': datetime(2015, 10, 8, 4, 2, 56, 777777, timezone.utc),
+            'lastRunTasks': [{'taskId': 'foo1', 'hostId': 'bar1'}, {'taskId': 'foo2', 'hostId': 'bar2'}],
+            'taskCount': 5,
+            'suspended': True,
+            'trigger': {
+                'type': 'test-type'
+            },
+            'overrides': [{
+                'containerName': 'test-container',
+                'environment': {'foo': 'foo_value', 'bar': 'bar_value', 'baz': 'baz_value'}
+            }]
         }
-        job, errors = schema.load(test_data)
         
-        data, errors = schema.dump(job)
+        data, errors = schema.dump(job_data)
 
         self.assertEqual(0, len(errors))
-        expected_data = test_data['_source']
-        expected_data['id'] = test_data['_id']
+        expected_data = job_data.copy()
+        del expected_data['parsedSchedule']
+        expected_data['scheduleStart'] = '2015-10-07T13:44:53.123456+00:00'
+        expected_data['scheduleEnd'] = '2015-10-10T04:10:03.654321+00:00'
+        expected_data['lastRun'] = '2015-10-08T04:02:56.777777+00:00'
         expected_data['link'] = {'rel': 'foo', 'href': 'link/testid', 'title': 'test-title'}
         self.assertEqual(expected_data, data)
 
