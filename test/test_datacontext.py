@@ -4,22 +4,21 @@ from unittest.mock import Mock, patch
 
 from ecs_scheduler.datacontext import (Jobs, Job, JobDataMapping,
                                         JobNotFound, InvalidJobData,
-                                        JobAlreadyExists, JobPersistenceError)
+                                        JobAlreadyExists, JobPersistenceError,
+                                        JobFieldsRequirePersistence, ImmutableJobFields)
 
 
 class JobsTests(unittest.TestCase):
     def setUp(self):
-        schema_patch = patch('ecs_scheduler.datacontext.JobCreateSchema')
-        self._schema = schema_patch.start().return_value
-        self.addCleanup(schema_patch.stop)
-        lock_patch = patch('ecs_scheduler.datacontext.RLock')
-        self._lock = lock_patch.start().return_value
-        self.addCleanup(lock_patch.stop)
         self._store = Mock()
         self._store.load_all.return_value = {'id': 1}, {'id': 2}
-        self._schema.load.side_effect = lambda d: (d, {})
-        self._schema.dump.side_effect = lambda d: Mock(data=d)
-        self._target = Jobs.load(self._store)
+        with patch('ecs_scheduler.datacontext.JobCreateSchema') as sp, \
+                patch('ecs_scheduler.datacontext.RLock') as rp:
+            self._schema = sp.return_value
+            self._schema.load.side_effect = lambda d: (d, {})
+            self._schema.dump.side_effect = lambda d: Mock(data={'validated': True, **d})
+            self._lock = rp.return_value
+            self._target = Jobs.load(self._store)
 
     @patch.object(logging.getLogger('ecs_scheduler.datacontext'), 'warning')
     def test_load_selects_null_source_if_not_specified(self, fake_log):
@@ -64,7 +63,7 @@ class JobsTests(unittest.TestCase):
         self.assertEqual(4, result.id)
         self.assertIs(result, self._target.get(4))
         self.assertEqual(3, self._target.total())
-        self._store.create.assert_called_with(4, data)
+        self._store.create.assert_called_with(4, {'validated': True, **data})
         self._lock.__enter__.assert_called()
         self._lock.__exit__.assert_called()
 
@@ -82,7 +81,7 @@ class JobsTests(unittest.TestCase):
         self._lock.__enter__.assert_called()
         self._lock.__exit__.assert_called()
 
-    def test_create_raises_if_missing_id(self):
+    def test_create_raises_with_missing_id(self):
         self._schema.load.side_effect = lambda d: (d, {'error': 'noid'})
         data = {'foo': 'bar'}
 
@@ -117,7 +116,7 @@ class JobsTests(unittest.TestCase):
 
         self.assertEqual(4, cm.exception.job_id)
         self.assertEqual(2, self._target.total())
-        self._store.create.assert_called_with(4, data)
+        self._store.create.assert_called_with(4, {'validated': True, **data})
         self._lock.__enter__.assert_called()
         self._lock.__exit__.assert_called()
 
@@ -154,37 +153,156 @@ class JobsTests(unittest.TestCase):
 
 
 class JobTests(unittest.TestCase):
-    def test_ctor_sets_data(self):
-        data = {'foo': 'bar', 'baz': 5, 'bort': {'named': 'bart'}}
-        job = Job(**data)
+    def setUp(self):
+        self._store = Mock()
+        self._job_data = {'id': 32, 'foo': 'bar'}
+        with patch('ecs_scheduler.datacontext.JobSchema') as sp, \
+                patch('ecs_scheduler.datacontext.RLock') as rp:
+            self._schema = sp.return_value
+            self._lock = rp.return_value
+            self._target = Job(self._job_data, self._store)
+        self._schema.load.side_effect = lambda d: (d, {})
+        self._schema.dump.side_effect = lambda d: Mock(data={'validated': True, **d})
 
-        self.assertEqual(data, job.data)
+    def test_data_returns_all_data(self):
+        self.assertEqual(self._job_data, self._target.data)
+
+    def test_data_is_read_only(self):
+        with self.assertRaises(TypeError):
+            self._target.data['baz'] = 'bort'
 
     def test_id_property_returns_id(self):
-        job = Job(id='test')
+        self.assertEqual(32, self._target.id)
 
-        self.assertEqual('test', job.id)
+    def test_suspended_property_missing(self):
+        self.assertFalse(self._target.suspended)
 
-        job.id = 'foo'
+    def test_suspended_property_field(self):
+        self._job_data['suspended'] = True
 
-        self.assertEqual('foo', job.id)
+        self.assertTrue(self._target.suspended)
 
-    def test_suspended_property_returns_suspended_true(self):
-        job = Job(suspended=True)
+    def test_parsed_schedule_field(self):
+        self._job_data['parsedSchedule'] = 'parsed'
 
-        self.assertTrue(job.suspended)
+        self.assertEqual('parsed', self._target.parsed_schedule)
 
-    def test_suspended_property_returns_suspended_false(self):
-        job = Job(suspended=False)
+    def test_update(self):
+        new_data = {'a': 1, 'b': 2}
 
-        self.assertFalse(job.suspended)
+        self._target.update(new_data)
 
-    def test_suspended_property_returns_suspended_false_if_missing(self):
-        job = Job()
+        self.assertEqual(1, self._target.data['a'])
+        self.assertEqual(2, self._target.data['b'])
+        self._store.update.assert_called_with(32, {'validated': True, **new_data})
+        self._lock.__enter__.assert_called()
+        self._lock.__exit__.assert_called()
 
-        self.assertFalse(job.suspended)
+    def test_update_changes_existing_fields(self):
+        new_data = {'a': 1, 'foo': 'baz'}
 
-    def test_parsed_schedule_property_gets_value(self):
-        job = Job(parsedSchedule='foo')
+        self._target.update(new_data)
 
-        self.assertEqual('foo', job.parsed_schedule)
+        self.assertEqual(1, self._target.data['a'])
+        self.assertEqual('baz', self._target.data['foo'])
+        self._store.update.assert_called_with(32, {'validated': True, **new_data})
+        self._lock.__enter__.assert_called()
+        self._lock.__exit__.assert_called()
+
+    def test_update_does_not_allow_id_override(self):
+        job_with_real_schema = Job({'id': 44, 'foo': 'bar'}, self._store)
+        new_data = {'id': 77, 'taskCount': 4}
+        
+        job_with_real_schema.update(new_data)
+
+        self.assertEqual(44, job_with_real_schema.id)
+        self._store.update.assert_called_with(44, {'taskCount': 4})
+
+    def test_update_raises_if_invalid_data(self):
+        self._schema.load.side_effect = lambda d: (d, {'error': 'bad'})
+        new_data = {'a': 1, 'b': 2}
+
+        with self.assertRaises(InvalidJobData) as cm:
+            self._target.update(new_data)
+
+        self.assertEqual(32, cm.exception.job_id)
+        self.assertEqual({'error': 'bad'}, cm.exception.errors)
+        self.assertNotIn('a', self._target.data)
+        self.assertNotIn('b', self._target.data)
+        self._store.update.assert_not_called()
+        self._lock.__enter__.assert_called()
+        self._lock.__exit__.assert_called()
+
+    def test_update_raises_if_store_error(self):
+        self._store.update.side_effect = RuntimeError
+        new_data = {'a': 1, 'b': 2}
+
+        with self.assertRaises(JobPersistenceError) as cm:
+            self._target.update(new_data)
+
+        self.assertEqual(32, cm.exception.job_id)
+        self.assertNotIn('a', self._target.data)
+        self.assertNotIn('b', self._target.data)
+        self._store.update.assert_called_with(32, {'validated': True, **new_data})
+        self._lock.__enter__.assert_called()
+        self._lock.__exit__.assert_called()
+
+    def test_annotate(self):
+        self._schema.load.side_effect = lambda d: ({}, {})
+        new_data = {'a': 1, 'b': 2}
+
+        self._target.annotate(new_data)
+
+        self.assertEqual(1, self._target.data['a'])
+        self.assertEqual(2, self._target.data['b'])
+        self._store.update.assert_not_called()
+        self._lock.__enter__.assert_called()
+        self._lock.__exit__.assert_called()
+
+    def test_annotate_does_not_allow_id_override(self):
+        job_with_real_schema = Job({'id': 44, 'foo': 'bar'}, self._store)
+        new_data = {'id': 77, 'b': 2}
+
+        with self.assertRaises(ImmutableJobFields) as cm:
+            job_with_real_schema.annotate(new_data)
+
+        self.assertEqual(44, cm.exception.job_id)
+        self.assertCountEqual(['id'], cm.exception.fields)
+        self.assertNotIn('b', job_with_real_schema.data)
+        self._store.update.assert_not_called()
+
+    def test_annotate_does_not_allow_setting_persistent_fields(self):
+        job_with_real_schema = Job({'id': 44, 'foo': 'bar'}, self._store)
+        new_data = {'taskCount': 4, 'schedule': '* *', 'b': 2}
+
+        with self.assertRaises(JobFieldsRequirePersistence) as cm:
+            job_with_real_schema.annotate(new_data)
+
+        self.assertEqual(44, cm.exception.job_id)
+        self.assertCountEqual({'taskCount', 'schedule', 'parsedSchedule'}, cm.exception.fields)
+        self.assertNotIn('taskCount', job_with_real_schema.data)
+        self.assertNotIn('schedule', job_with_real_schema.data)
+        self.assertNotIn('b', job_with_real_schema.data)
+        self._store.update.assert_not_called()
+
+
+class JobDataMappingTests(unittest.TestCase):
+    def setUp(self):
+        self._data = {'a': 1, 'b': 2}
+        self._target = JobDataMapping(self._data)
+
+    def test_get(self):
+        self.assertEqual(self._data['a'], self._target['a'])
+
+    def test_set_unsupported(self):
+        with self.assertRaises(TypeError):
+            self._target['c'] = 3
+
+    def test_iterate(self):
+        expected = list(iter(self._data))
+        actual = list(iter(self._target))
+
+        self.assertCountEqual(expected, actual)
+
+    def test_length(self):
+        self.assertEqual(len(self._data), len(self._target))
