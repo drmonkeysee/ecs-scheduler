@@ -28,7 +28,7 @@ class JobsTests(unittest.TestCase):
         fake_log.assert_called()
 
     def test_get_all_returns_all(self):
-        self._store.load_all.assert_called()
+        self._store.load_all.assert_called_with()
         self.assertCountEqual([1, 2], [j.id for j in self._target.get_all()])
         self._lock.__enter__.assert_called()
         self._lock.__exit__.assert_called()
