@@ -5,7 +5,7 @@ from unittest.mock import Mock, patch
 from ecs_scheduler.datacontext import (Jobs, Job, JobDataMapping,
                                         JobNotFound, InvalidJobData,
                                         JobAlreadyExists, JobPersistenceError,
-                                        JobFieldsRequirePersistence, ImmutableJobFields)
+                                        JobFieldsRequirePersistence)
 
 
 class JobsTests(unittest.TestCase):
@@ -155,12 +155,12 @@ class JobsTests(unittest.TestCase):
 class JobTests(unittest.TestCase):
     def setUp(self):
         self._store = Mock()
-        self._job_data = {'id': 32, 'foo': 'bar'}
+        self._job_data = {'foo': 'bar'}
         with patch('ecs_scheduler.datacontext.JobSchema') as sp, \
                 patch('ecs_scheduler.datacontext.RLock') as rp:
             self._schema = sp.return_value
             self._lock = rp.return_value
-            self._target = Job(self._job_data, self._store)
+            self._target = Job(32, self._job_data, self._store)
         self._schema.load.side_effect = lambda d: (d, {})
         self._schema.dump.side_effect = lambda d: Mock(data={'validated': True, **d})
 
@@ -173,6 +173,10 @@ class JobTests(unittest.TestCase):
 
     def test_id_property_returns_id(self):
         self.assertEqual(32, self._target.id)
+
+    def test_id_property_cannot_be_set(self):
+        with self.assertRaises(AttributeError):
+            self._target.id = 77
 
     def test_suspended_property_missing(self):
         self.assertFalse(self._target.suspended)
@@ -210,7 +214,7 @@ class JobTests(unittest.TestCase):
         self._lock.__exit__.assert_called()
 
     def test_update_does_not_allow_id_override(self):
-        job_with_real_schema = Job({'id': 44, 'foo': 'bar'}, self._store)
+        job_with_real_schema = Job(44, {'foo': 'bar'}, self._store)
         new_data = {'id': 77, 'taskCount': 4}
         
         job_with_real_schema.update(new_data)
@@ -259,20 +263,18 @@ class JobTests(unittest.TestCase):
         self._lock.__enter__.assert_called()
         self._lock.__exit__.assert_called()
 
-    def test_annotate_does_not_allow_id_override(self):
-        job_with_real_schema = Job({'id': 44, 'foo': 'bar'}, self._store)
+    def test_annotate_ignores_id_override(self):
+        job_with_real_schema = Job(44, {'foo': 'bar'}, self._store)
         new_data = {'id': 77, 'b': 2}
 
-        with self.assertRaises(ImmutableJobFields) as cm:
-            job_with_real_schema.annotate(new_data)
+        job_with_real_schema.annotate(new_data)
 
-        self.assertEqual(44, cm.exception.job_id)
-        self.assertCountEqual(['id'], cm.exception.fields)
-        self.assertNotIn('b', job_with_real_schema.data)
+        self.assertEqual(44, job_with_real_schema.id)
+        self.assertEqual(2, job_with_real_schema.data['b'])
         self._store.update.assert_not_called()
 
     def test_annotate_does_not_allow_setting_persistent_fields(self):
-        job_with_real_schema = Job({'id': 44, 'foo': 'bar'}, self._store)
+        job_with_real_schema = Job(44, {'foo': 'bar'}, self._store)
         new_data = {'taskCount': 4, 'schedule': '* *', 'b': 2}
 
         with self.assertRaises(JobFieldsRequirePersistence) as cm:
