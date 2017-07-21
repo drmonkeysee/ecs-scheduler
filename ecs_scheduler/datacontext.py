@@ -148,8 +148,7 @@ class Jobs:
         job_data, errors = self._schema.load(raw_data)
         if errors:
             raise InvalidJobData(job_data.get('id'), errors)
-        job_id = job_data.pop('id')
-        return Job(job_id, job_data, self._store)
+        return Job(job_data, self._store)
 
 
 class Job:
@@ -158,19 +157,19 @@ class Job:
 
     Stored and retrieved by a Jobs data context.
     """
-    def __init__(self, job_id, data, store):
+    _RESERVED_FIELDS = {'id'}
+
+    def __init__(self, data, store):
         """
         Create a persistent job.
 
         Use Jobs.create() instead of creating the object directly to ensure
         a properly initialized and persisted job.
 
-        :param job_id: The job id
         :param data: The job fields that make up the job
         :param store: The data store to use for persistence, provided by the Jobs instance
         """
         self._schema = JobSchema()
-        self._id = job_id
         self._data = data
         self._mapping = JobDataMapping(self._data)
         self._lock = RLock()
@@ -183,7 +182,7 @@ class Job:
 
         :returns: The job id string
         """
-        return self._id
+        return self._data['id']
 
     @property
     def data(self):
@@ -248,6 +247,10 @@ class Job:
         persisted_fields = persisted_data.keys() | errors.keys()
         if persisted_fields:
             raise JobFieldsRequirePersistence(self.id, persisted_fields)
+
+        reserved_fields = self._RESERVED_FIELDS & fields.keys()
+        if reserved_fields:
+            raise ImmutableJobFields(self.id, reserved_fields)
 
         self._update_data(fields)
 
@@ -339,8 +342,8 @@ class InvalidJobData(JobError):
         self.errors = errors
 
 
-class JobFieldsRequirePersistence(JobError):
-    """Error for attempting to annotate instead of update persistent job fields."""
+class JobFieldsError(JobError):
+    """General error for modifying invalid fields."""
     def __init__(self, job_id, fields, *args, **kwargs):
         """
         Create a job error.
@@ -352,3 +355,13 @@ class JobFieldsRequirePersistence(JobError):
         """
         super().__init__(job_id, *args, **kwargs)
         self.fields = fields
+
+
+class JobFieldsRequirePersistence(JobFieldsError):
+    """Error for attempting to annotate instead of update persistent job fields."""
+    pass
+
+
+class ImmutableJobFields(JobFieldsError):
+    """Error for attempting to modify a field that cannot be changed."""
+    pass
