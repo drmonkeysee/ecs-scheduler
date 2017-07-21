@@ -11,11 +11,12 @@ from .jobs import Jobs, Job
 from .jobstore import JobStore
 
 
-def create(ops_queue):
+def create(ops_queue, jobs_datacontext):
     """
     Create the web server.
 
     :param ops_queue: Job ops queue for sending job operations to the scheduler daemon
+    :param jobs_datacontext: The jobs data context for loading and saving jobs
     :returns: A flask application instance
     """
     app = flask.Flask(__name__)

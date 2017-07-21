@@ -6,9 +6,7 @@ import atexit
 from setuptools_scm import get_version
 import werkzeug.serving
 
-import ecs_scheduler.webapi
-import ecs_scheduler.scheduld
-from . import startup, operations
+from . import webapi, scheduld, startup, operations, datacontext
 
 
 _logger = logging.getLogger(__name__)
@@ -25,15 +23,16 @@ def create():
 
         _logger.info('ECS Scheduler v%s', get_version())
         ops_queue = operations.DirectQueue()
+        jobs_dc = datacontext.Jobs.load()
 
         _logger.info('Creating webapi...')
-        app = ecs_scheduler.webapi.create(ops_queue)
+        app = webapi.create(ops_queue, jobs_dc)
 
         # NOTE: Flask in debug mode will restart after initial startup
         # so only launch scheduler in the main Flask process to avoid duplicate daemons
         # see: https://github.com/pallets/werkzeug/blob/master/werkzeug/_reloader.py
         if werkzeug.serving.is_running_from_reloader() or not app.debug:
-            _launch_scheduld(ops_queue)
+            _launch_scheduld(ops_queue, jobs_dc)
 
         return app
     except Exception:
@@ -41,9 +40,9 @@ def create():
         raise
 
 
-def _launch_scheduld(ops_queue):
+def _launch_scheduld(ops_queue, jobs_dc):
     _logger.info('Starting scheduld...')
-    scheduler = ecs_scheduler.scheduld.create(ops_queue)
+    scheduler = scheduld.create(ops_queue, jobs_dc)
     scheduler.start()
     atexit.register(_on_exit, scheduler)
 
