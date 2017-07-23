@@ -1,5 +1,5 @@
 import unittest
-import logging
+import logging.handlers
 from unittest.mock import patch, Mock
 
 import ecs_scheduler.webapi.home
@@ -23,8 +23,8 @@ class CreateTests(unittest.TestCase):
         fake_flask_restful.assert_called_with(fake_flask.return_value, catch_all_404s=True)
         fake_flask_restful.return_value.add_resource.assert_any_call(ecs_scheduler.webapi.home.Home, '/')
         fake_jobstore.assert_called_with()
-        fake_flask_restful.return_value.add_resource.assert_any_call(ecs_scheduler.webapi.jobs.Jobs, '/jobs', resource_class_args=(fake_jobstore.return_value, self._queue))
-        fake_flask_restful.return_value.add_resource.assert_any_call(ecs_scheduler.webapi.jobs.Job, '/jobs/<job_id>', resource_class_args=(fake_jobstore.return_value, self._queue))
+        fake_flask_restful.return_value.add_resource.assert_any_call(ecs_scheduler.webapi.jobs.Jobs, '/jobs', resource_class_args=(fake_jobstore.return_value, self._queue, self._dc))
+        fake_flask_restful.return_value.add_resource.assert_any_call(ecs_scheduler.webapi.jobs.Job, '/jobs/<job_id>', resource_class_args=(fake_jobstore.return_value, self._queue, self._dc))
         fake_cors.assert_called_with(fake_flask.return_value, allow_headers='Content-Type')
         fake_flask.return_value.logger.addHandler.assert_not_called()
 

@@ -1,5 +1,6 @@
 """ECS Scheduler web api subpackage."""
 import logging
+import logging.handlers
 
 import flask
 import flask_restful
@@ -11,12 +12,12 @@ from .jobs import Jobs, Job
 from .jobstore import JobStore
 
 
-def create(ops_queue, jobs_datacontext):
+def create(ops_queue, datacontext):
     """
     Create the web server.
 
     :param ops_queue: Job ops queue for sending job operations to the scheduler daemon
-    :param jobs_datacontext: The jobs data context for loading and saving jobs
+    :param datacontext: The jobs data context for loading and saving jobs
     :returns: A flask application instance
     """
     app = flask.Flask(__name__)
@@ -28,8 +29,8 @@ def create(ops_queue, jobs_datacontext):
     api.add_resource(Spec, '/spec')
 
     job_store = JobStore()
-    api.add_resource(Jobs, '/jobs', resource_class_args=(job_store, ops_queue))
-    api.add_resource(Job, '/jobs/<job_id>', resource_class_args=(job_store, ops_queue))
+    api.add_resource(Jobs, '/jobs', resource_class_args=(job_store, ops_queue, datacontext))
+    api.add_resource(Job, '/jobs/<job_id>', resource_class_args=(job_store, ops_queue, datacontext))
 
     _update_logger(app)
 
