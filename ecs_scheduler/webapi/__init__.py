@@ -9,7 +9,6 @@ import flask_cors
 from .home import Home
 from .spec import Spec
 from .jobs import Jobs, Job
-from .jobstore import JobStore
 
 
 def create(ops_queue, datacontext):
@@ -21,16 +20,17 @@ def create(ops_queue, datacontext):
     :returns: A flask application instance
     """
     app = flask.Flask(__name__)
+    # TODO: revisit this when nginx is added
     flask_cors.CORS(app, allow_headers='Content-Type')
     api = flask_restful.Api(app, catch_all_404s=True)
+    app.config['ERROR_404_HELP'] = False
 
     api.add_resource(Home, '/')
 
     api.add_resource(Spec, '/spec')
 
-    job_store = JobStore()
-    api.add_resource(Jobs, '/jobs', resource_class_args=(job_store, ops_queue, datacontext))
-    api.add_resource(Job, '/jobs/<job_id>', resource_class_args=(job_store, ops_queue, datacontext))
+    api.add_resource(Jobs, '/jobs', resource_class_args=(ops_queue, datacontext))
+    api.add_resource(Job, '/jobs/<job_id>', resource_class_args=(ops_queue, datacontext))
 
     _update_logger(app)
 
