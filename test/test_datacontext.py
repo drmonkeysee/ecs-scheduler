@@ -2,10 +2,10 @@ import unittest
 import logging
 from unittest.mock import Mock, patch
 
-from ecs_scheduler.datacontext import (Jobs, Job, JobDataMapping,
-                                        JobNotFound, InvalidJobData,
-                                        JobAlreadyExists, JobPersistenceError,
-                                        JobFieldsRequirePersistence, ImmutableJobFields)
+from ecs_scheduler.datacontext import Jobs, Job, JobDataMapping, \
+                                        JobNotFound, InvalidJobData, \
+                                        JobAlreadyExists, JobPersistenceError, \
+                                        JobFieldsRequirePersistence, ImmutableJobFields
 
 
 class JobsTests(unittest.TestCase):

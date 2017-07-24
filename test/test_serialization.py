@@ -4,9 +4,9 @@ from unittest.mock import patch
 
 import dateutil
 
-from ecs_scheduler.serialization import (TriggerSchema, JobSchema,
-                                            JobCreateSchema, JobResponseSchema,
-                                            PaginationSchema, OverrideSchema, TaskInfoSchema)
+from ecs_scheduler.serialization import TriggerSchema, JobSchema, \
+                                            JobCreateSchema, JobResponseSchema, \
+                                            PaginationSchema, OverrideSchema, TaskInfoSchema
 from ecs_scheduler.models import Pagination, JobOperation
 
 
