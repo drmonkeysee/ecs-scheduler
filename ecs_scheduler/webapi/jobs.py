@@ -1,13 +1,14 @@
 """Job REST resources."""
 import logging
 import functools
+from itertools import islice
 
 import flask
 import flask_restful
 
-from ..serialization import PaginationSchema, JobSchema, JobCreateSchema, JobResponseSchema
+from ..serialization import PaginationSchema, JobResponseSchema
 from ..models import Pagination, JobOperation
-from .jobstore import JobExistsException, JobNotFoundException
+from ..datacontext import JobAlreadyExists, JobNotFound, InvalidJobData
 
 
 _logger = logging.getLogger(__name__)
@@ -19,7 +20,7 @@ def require_json_content_type(verb):
     def ct_checker(*args, **kwargs):
         return verb(*args, **kwargs) \
                 if flask.request.headers.get('Content-Type', '').startswith('application/json') \
-                else ({'message': 'Request requires Content-Type: application/json'}, 415)
+                else ({'message': 'Request requires header "Content-Type: application/json".'}, 415)
     return ct_checker
 
 
@@ -34,29 +35,17 @@ def _job_committed_response(job_id):
     }
 
 
-def _job_notfound_response(job_id):
-    return {'message': f'Job {job_id} does not exist'}, 404
-
-
 def _post_operation(job_op, ops_queue, job_response):
     try:
         ops_queue.post(job_op)
     except Exception:
-        _logger.exception('Exception when posting job operation to ops queue')
+        _logger.exception('Exception when posting job operation to ops queue.')
         flask_restful.abort(500,
             item=job_response,
-            message='Job update was saved correctly but failed to post update message to scheduler')
+            message='Job update was saved correctly but failed to post update message to scheduler.')
 
 
-def _deserialize_data(data, schema, status_if_failure=400):
-    obj, errors = schema.load(data)
-    if errors:
-        flask_restful.abort(status_if_failure, messages=errors)
-    else:
-        return obj
-
-
-_job_response_schema = JobResponseSchema(_job_link)
+_job_response_schema = JobResponseSchema(_job_link, strict=True)
 
 
 class Jobs(flask_restful.Resource):
@@ -64,17 +53,16 @@ class Jobs(flask_restful.Resource):
     Jobs REST Resource
     REST operations for a collection of jobs.
     """
-    def __init__(self, store, ops_queue):
+    def __init__(self, ops_queue, datacontext):
         """
         Create jobs resource.
 
-        :param store: Document store for updating persistent data
         :param ops_queue: Ops queue to post job operations to after updating document store
+        :param datacontext: The jobs data context for loading and saving jobs
         """
-        self._store = store
         self._ops_queue = ops_queue
+        self._dc = datacontext
         self._pagination_schema = PaginationSchema()
-        self._request_schema = JobCreateSchema()
 
     def get(self):
         """
@@ -104,13 +92,12 @@ class Jobs(flask_restful.Resource):
             default:
                 description: Server error
         """
-        pagination = _deserialize_data(flask.request.values, self._pagination_schema)
-        response = self._store.get_jobs(pagination.skip, pagination.count)
-        docs = response['hits']['hits']
+        pagination = self._parse_pagination(flask.request.values)
+        jobs_page = islice(self._dc.get_all(), pagination.skip, pagination.skip + pagination.count)
         result = {
-            'jobs': [_job_response_schema.dump(job_obj).data for job_obj in [_deserialize_data(d, _job_response_schema, status_if_failure=500) for d in docs]]
+            'jobs': [_job_response_schema.dump(j.data).data for j in jobs_page]
         }
-        self._set_pagination(result, pagination, response['hits']['total'])
+        self._set_pagination(result, pagination, self._dc.total())
         return result
 
     @require_json_content_type
@@ -220,15 +207,23 @@ class Jobs(flask_restful.Resource):
             default:
                 description: Server error
         """
-        job_item = _deserialize_data(flask.request.json, self._request_schema)
-        job_doc_body, e = self._request_schema.dump(job_item)
+        job_data = flask.request.json
         try:
-            response = self._store.create(job_item.id, job_doc_body)
-        except JobExistsException:
-            return {'message': f'Job {job_item.id} already exists'}, 409
-        web_response = _job_committed_response(job_item.id)
-        _post_operation(JobOperation.add(job_item.id), self._ops_queue, web_response)
+            new_job = self._dc.create(job_data)
+        except InvalidJobData as ex:
+            flask_restful.abort(400, messages=ex.errors)
+        except JobAlreadyExists as ex:
+            flask_restful.abort(409, message=f'Job {ex.job_id} already exists.')
+        web_response = _job_committed_response(new_job.id)
+        _post_operation(JobOperation.add(new_job.id), self._ops_queue, web_response)
         return web_response, 201
+
+    def _parse_pagination(self, data):
+        obj, errors = self._pagination_schema.load(data)
+        if errors:
+            flask_restful.abort(400, messages=errors)
+        else:
+            return obj
 
     def _set_pagination(self, result, pagination, total):
         prev_link = self._pagination_link(Pagination(pagination.skip - pagination.count, pagination.count, total))
@@ -248,16 +243,16 @@ class Job(flask_restful.Resource):
     Job REST Resource
     REST operations for a single job.
     """
-    def __init__(self, store, ops_queue):
+    def __init__(self, ops_queue, datacontext):
         """
         Create job resource.
 
         :param store: Document store for updating persistent data
         :param ops_queue: Ops queue to post job operations to after updating document store
+        :param datacontext: The jobs data context for loading and saving jobs
         """
-        self._store = store
         self._ops_queue = ops_queue
-        self._request_schema = JobSchema()
+        self._dc = datacontext
 
     def get(self, job_id):
         """
@@ -283,11 +278,10 @@ class Job(flask_restful.Resource):
                 description: Server error
         """
         try:
-            response = self._store.get(job_id)
-        except JobNotFoundException:
-            return _job_notfound_response(job_id)
-        job = _deserialize_data(response, _job_response_schema, status_if_failure=500)
-        return _job_response_schema.dump(job).data
+            job = self._dc.get(job_id)
+        except JobNotFound:
+            self._raise_job_notfound(job_id)
+        return _job_response_schema.dump(job.data).data
 
     @require_json_content_type
     def put(self, job_id):
@@ -357,12 +351,15 @@ class Job(flask_restful.Resource):
             default:
                 description: Server error
         """
-        job_update = _deserialize_data(flask.request.json, self._request_schema)
-        job_doc, e = self._request_schema.dump(job_update)
         try:
-            response = self._store.update(job_id, job_doc)
-        except JobNotFoundException:
-            return _job_notfound_response(job_id)
+            current_job = self._dc.get(job_id)
+        except JobNotFound:
+            self._raise_job_notfound(job_id)
+        job_update = flask.request.json
+        try:
+            current_job.update(job_update)
+        except InvalidJobData as ex:
+            flask_restful.abort(400, messages=ex.errors)
         web_response = _job_committed_response(job_id)
         _post_operation(JobOperation.modify(job_id), self._ops_queue, web_response)
         return web_response
@@ -391,9 +388,12 @@ class Job(flask_restful.Resource):
                 description: Server error
         """
         try:
-            response = self._store.delete(job_id)
-        except JobNotFoundException:
-            return _job_notfound_response(job_id)
+            self._dc.delete(job_id)
+        except JobNotFound:
+            self._raise_job_notfound(job_id)
         web_response = {'id': job_id}
         _post_operation(JobOperation.remove(job_id), self._ops_queue, web_response)
         return web_response
+
+    def _raise_job_notfound(self, job_id):
+        flask_restful.abort(404, message=f'Job {job_id} does not exist.')
