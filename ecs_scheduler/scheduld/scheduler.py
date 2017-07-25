@@ -7,6 +7,7 @@ from apscheduler.jobstores.base import JobLookupError
 
 from .execution import JobExecutor
 from ..models import JobOperation
+from ..datacontext import JobNotFound
 
 
 _logger = logging.getLogger(__name__)
@@ -14,14 +15,14 @@ _logger = logging.getLogger(__name__)
 
 class Scheduler:
     """The job scheduler."""
-    def __init__(self, store, job_func):
+    def __init__(self, datacontext, job_func):
         """
         Create the job scheduler.
 
-        :param store: The persistent job store
+        :param datacontext: The jobs data context for loading and saving jobs
         :param job_func: The function to invoke when a scheduled job runs
         """
-        self._store = store
+        self._dc = datacontext
         self._exec = job_func
         job_defaults = {
             'coalesce': True,
@@ -29,7 +30,7 @@ class Scheduler:
             'misfire_grace_time': 60 * 60 # 1 hour
         }
         self._sched = BackgroundScheduler(timezone='UTC', job_defaults=job_defaults)
-        self._handler = ScheduleEventHandler(self._sched, store)
+        self._handler = ScheduleEventHandler(self._sched, datacontext)
         self._sched.add_listener(self._handler,
             apscheduler.events.EVENT_JOB_ADDED
             | apscheduler.events.EVENT_JOB_MODIFIED
@@ -40,7 +41,7 @@ class Scheduler:
     def start(self):
         """Start the scheduler."""
         job_count = 0
-        for job in self._store.get_all():
+        for job in self._dc.get_all():
             self._insert_job(job)
             job_count += 1
         self._sched.start()
@@ -69,7 +70,7 @@ class Scheduler:
             raise RuntimeError(f'Received unknown job operation {job_op.job_id} {{{job_op.operation}}}')
 
     def _insert_job_from_id(self, job_id):
-        job = self._store.get(job_id)
+        job = self._dc.get(job_id)
         self._insert_job(job)
 
     def _insert_job(self, job):
@@ -110,15 +111,15 @@ class ScheduleEventHandler:
     executes or its state is modified in the schedule.
     It also logs errors that bubble out of job runs or if jobs were missed.
     """
-    def __init__(self, schedule, store):
+    def __init__(self, schedule, datacontext):
         """
         Create a handler.
 
         :param schedule: The internal schedule implementation of the Scheduler object
-        :param store: The persistent job store
+        :param datacontext: The jobs data context for loading and saving jobs
         """
         self._sched = schedule
-        self._store = store
+        self._dc = datacontext
 
     def __call__(self, event):
         """
@@ -166,7 +167,7 @@ class ScheduleEventHandler:
     def _update_job_doc(self, job_id, job_data=None):
         scheduled_job = self._sched.get_job(job_id)
         if not scheduled_job:
-            _logger.warning('Job %s not found in scheduler to update stats', job_id)
+            _logger.warning('Job %s not found in scheduler from which to get updated stats', job_id)
             return
 
         job_data = job_data if job_data else {}
@@ -175,8 +176,13 @@ class ScheduleEventHandler:
         
         if job_data:
             try:
-                self._store.update(job_id, job_data)
+                stored_job = self._dc.get(job_id)
+            except JobNotFound:
+                _logger.warning('Stored job %s not found to update stats', job_id)
+                return
+            try:
+                stored_job.annotate(job_data)
             except Exception:
-                _logger.exception('Unable to update job stats for %s', job_id)
+                _logger.exception('Unable to annotate job stats for %s', job_id)
         else:
             _logger.info('No job updates needed')
