@@ -65,8 +65,8 @@ class JobSchema(marshmallow.Schema):
 
     taskDefinition = marshmallow.fields.String(validate=_validate_task_definition_name)
     schedule = marshmallow.fields.String()
-    scheduleStart = marshmallow.fields.DateTime()
-    scheduleEnd = marshmallow.fields.DateTime()
+    scheduleStart = marshmallow.fields.LocalDateTime()
+    scheduleEnd = marshmallow.fields.LocalDateTime()
     taskCount = marshmallow.fields.Integer(validate=marshmallow.validate.Range(_MIN_TASKS, _MAX_TASKS))
     maxCount = marshmallow.fields.Integer(validate=marshmallow.validate.Range(_MIN_TASKS, _MAX_TASKS))
     trigger = marshmallow.fields.Nested(TriggerSchema)
@@ -79,7 +79,7 @@ class JobSchema(marshmallow.Schema):
         if not value:
             return
         try:
-            apscheduler.triggers.cron.CronTrigger(timezone='UTC', **value)
+            apscheduler.triggers.cron.CronTrigger(**value)
         except ValueError as ex:
             raise marshmallow.ValidationError([f'Invalid schedule syntax: {error}' for error in ex.args]) from ex
 
@@ -135,9 +135,9 @@ class JobResponseSchema(JobSchema):
     # override id to include in dump output
     id = marshmallow.fields.String(dump_only=True)
     link = marshmallow.fields.Method('link_generator', dump_only=True)
-    lastRun = marshmallow.fields.DateTime(dump_only=True)
+    lastRun = marshmallow.fields.LocalDateTime(dump_only=True)
     lastRunTasks = marshmallow.fields.List(marshmallow.fields.Nested(TaskInfoSchema), dump_only=True)
-    estimatedNextRun = marshmallow.fields.DateTime(dump_only=True)
+    estimatedNextRun = marshmallow.fields.LocalDateTime(dump_only=True)
     
     def __init__(self, link_func, *args, **kwargs):
         self._link_func = link_func

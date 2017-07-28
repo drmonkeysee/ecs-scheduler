@@ -148,10 +148,14 @@ class Jobs(flask_restful.Resource):
                             description: Maximum number of tasks to run
                         scheduleStart:
                             type: string
-                            description: Start date in ISO-8601 format from which to begin scheduling the job
+                            description: >
+                                Start date in ISO-8601 format from which to begin scheduling the job;
+                                if timezone offset is omitted it will default to UTC
                         scheduledEnd:
                             type: string
-                            description: End date in ISO-8601 format at which to stop scheduling the job
+                            description: >
+                                End date in ISO-8601 format at which to stop scheduling the job;
+                                if timezone offset is omitted it will default to UTC
                         suspended:
                             type: boolean
                             default: false
@@ -325,10 +329,14 @@ class Job(flask_restful.Resource):
                             description: Maximum number of tasks to run
                         scheduleStart:
                             type: string
-                            description: Start date in ISO-8601 format from which to begin scheduling the job
+                            description: >
+                                Start date in ISO-8601 format from which to begin scheduling the job;
+                                if timezone offset is omitted it will default to UTC
                         scheduledEnd:
                             type: string
-                            description: End date in ISO-8601 format at which to stop scheduling the job
+                            description: >
+                                End date in ISO-8601 format at which to stop scheduling the job;
+                                if timezone offset is omitted it will default to UTC
                         suspended:
                             type: boolean
                             default: false
