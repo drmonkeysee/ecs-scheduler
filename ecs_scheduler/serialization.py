@@ -32,7 +32,7 @@ class TriggerSchema(marshmallow.Schema):
     @marshmallow.validates_schema
     def validate_trigger(self, data):
         if data.get('type') == 'sqs' and 'queueName' not in data:
-            raise marshmallow.ValidationError('sqs trigger type requires "queueName" field')
+            raise marshmallow.ValidationError('sqs trigger type requires queueName field')
 
 
 class OverrideSchema(marshmallow.Schema):

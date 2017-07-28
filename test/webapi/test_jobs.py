@@ -36,14 +36,14 @@ class RequireJsonContentTypeTests(unittest.TestCase):
 
         result = self.fake_verb()
 
-        self.assertEqual(({'message': 'Request requires header "Content-Type: application/json".'}, 415), result)
+        self.assertEqual(({'message': 'Header Content-Type: application/json required to send a request body.'}, 415), result)
 
     def test_returns_error_if_invalid_header(self, fake_request):
         fake_request.headers = {'Content-Type': 'application/x-www-form-urlencoded'}
 
         result = self.fake_verb()
 
-        self.assertEqual(({'message': 'Request requires header "Content-Type: application/json".'}, 415), result)
+        self.assertEqual(({'message': 'Header Content-Type: application/json required to send a request body.'}, 415), result)
 
 
 @patch('flask.url_for', side_effect=lambda *args, **kwargs: 'foo/' + args[0] + '/' + kwargs['job_id'] if 'job_id' in kwargs else 'pageLink')

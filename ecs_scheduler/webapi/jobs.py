@@ -20,7 +20,7 @@ def require_json_content_type(verb):
     def ct_checker(*args, **kwargs):
         return verb(*args, **kwargs) \
                 if flask.request.headers.get('Content-Type', '').startswith('application/json') \
-                else ({'message': 'Request requires header "Content-Type: application/json".'}, 415)
+                else ({'message': 'Header Content-Type: application/json required to send a request body.'}, 415)
     return ct_checker
 
 
