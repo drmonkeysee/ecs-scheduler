@@ -4,6 +4,7 @@ import random
 
 import marshmallow
 import apscheduler.triggers.cron
+from pytz.exceptions import UnknownTimeZoneError
 
 from .models import Pagination
 
@@ -67,6 +68,7 @@ class JobSchema(marshmallow.Schema):
     schedule = marshmallow.fields.String()
     scheduleStart = marshmallow.fields.LocalDateTime()
     scheduleEnd = marshmallow.fields.LocalDateTime()
+    timezone = marshmallow.fields.String()
     taskCount = marshmallow.fields.Integer(validate=marshmallow.validate.Range(_MIN_TASKS, _MAX_TASKS))
     maxCount = marshmallow.fields.Integer(validate=marshmallow.validate.Range(_MIN_TASKS, _MAX_TASKS))
     trigger = marshmallow.fields.Nested(TriggerSchema)
@@ -82,6 +84,15 @@ class JobSchema(marshmallow.Schema):
             apscheduler.triggers.cron.CronTrigger(**value)
         except ValueError as ex:
             raise marshmallow.ValidationError([f'Invalid schedule syntax: {error}' for error in ex.args]) from ex
+
+    @marshmallow.validates('timezone')
+    def validate_timezone(self, value):
+        if not value:
+            return
+        try:
+            apscheduler.triggers.cron.CronTrigger(timezone=value)
+        except UnknownTimeZoneError:
+            raise marshmallow.ValidationError(f'Invalid timezone format: {value} (see pytz documentation for valid formats)')
 
     @marshmallow.pre_load
     def parse_schedule(self, data):

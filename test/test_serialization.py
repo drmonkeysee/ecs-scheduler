@@ -35,7 +35,7 @@ class TriggerSchemaTests(unittest.TestCase):
 
         trigger, errors = schema.load(data)
 
-        self.assertEqual({'type'}, set(errors.keys()))
+        self.assertEqual({'type'}, errors.keys())
 
     def test_deserialize_fails_if_type_constraints_violated(self):
         schema = TriggerSchema()
@@ -43,7 +43,7 @@ class TriggerSchemaTests(unittest.TestCase):
 
         trigger, errors = schema.load(data)
 
-        self.assertEqual({'_schema'}, set(errors.keys()))
+        self.assertEqual({'_schema'}, errors.keys())
 
     def test_deserialize_fails_if_range_constraints_violated(self):
         schema = TriggerSchema()
@@ -51,7 +51,7 @@ class TriggerSchemaTests(unittest.TestCase):
 
         trigger, errors = schema.load(data)
 
-        self.assertEqual({'messagesPerTask'}, set(errors.keys()))
+        self.assertEqual({'messagesPerTask'}, errors.keys())
 
 
 class OverrideSchemaTests(unittest.TestCase):
@@ -128,6 +128,7 @@ class JobSchemaTests(unittest.TestCase):
             'schedule': '*',
             'scheduleStart': '2015-10-07T13:44:53.123456+00:00',
             'scheduleEnd': '2015-10-10T04:10:03.654321+00:00',
+            'timezone': 'UTC',
             'taskCount': 12,
             'maxCount': 20,
             'suspended': True,
@@ -153,7 +154,8 @@ class JobSchemaTests(unittest.TestCase):
         schema = JobSchema()
         data = {
             'scheduleStart': '2015-10-07T13:44:53.123456+10:00',
-            'scheduleEnd': '2015-10-10T04:10:03.654321-06:00'
+            'scheduleEnd': '2015-10-10T04:10:03.654321-06:00',
+            'timezone': 'US/Pacific'
         }
 
         job, errors = schema.load(data)
@@ -276,7 +278,7 @@ class JobSchemaTests(unittest.TestCase):
 
         job, errors = schema.load(data)
 
-        self.assertEqual({'parsedSchedule'}, set(errors.keys()))
+        self.assertEqual({'parsedSchedule'}, errors.keys())
 
     def test_complete_deserialize_fails_if_invalid_schedule(self):
         schema = JobSchema()
@@ -298,7 +300,7 @@ class JobSchemaTests(unittest.TestCase):
 
         job, errors = schema.load(data)
 
-        self.assertEqual({'parsedSchedule'}, set(errors.keys()))
+        self.assertEqual({'parsedSchedule'}, errors.keys())
 
     def test_deserialize_fails_if_bad_trigger(self):
         schema = JobSchema()
@@ -309,7 +311,7 @@ class JobSchemaTests(unittest.TestCase):
 
         job, errors = schema.load(data)
 
-        self.assertEqual({'trigger'}, set(errors.keys()))
+        self.assertEqual({'trigger'}, errors.keys())
 
     def test_deserialize_fails_if_zero_task_count(self):
         schema = JobSchema()
@@ -317,7 +319,7 @@ class JobSchemaTests(unittest.TestCase):
 
         job, errors = schema.load(data)
 
-        self.assertEqual({'taskCount', 'maxCount'}, set(errors.keys()))
+        self.assertEqual({'taskCount', 'maxCount'}, errors.keys())
 
     def test_deserialize_fails_if_negative_task_count(self):
         schema = JobSchema()
@@ -325,7 +327,7 @@ class JobSchemaTests(unittest.TestCase):
 
         job, errors = schema.load(data)
 
-        self.assertEqual({'taskCount', 'maxCount'}, set(errors.keys()))
+        self.assertEqual({'taskCount', 'maxCount'}, errors.keys())
 
     def test_deserialize_fails_if_above_max_task_count(self):
         schema = JobSchema()
@@ -333,7 +335,7 @@ class JobSchemaTests(unittest.TestCase):
 
         job, errors = schema.load(data)
 
-        self.assertEqual({'taskCount', 'maxCount'}, set(errors.keys()))
+        self.assertEqual({'taskCount', 'maxCount'}, errors.keys())
 
     def test_deserialize_succeeds_if_at_max_task_count(self):
         schema = JobSchema()
@@ -370,7 +372,7 @@ class JobSchemaTests(unittest.TestCase):
 
         job, errors = schema.load(data)
 
-        self.assertEqual({'taskDefinition'}, set(errors.keys()))
+        self.assertEqual({'taskDefinition'}, errors.keys())
 
     def test_deserialize_fails_if_task_definition_includes_malformed_revision(self):
         schema = JobSchema()
@@ -378,7 +380,7 @@ class JobSchemaTests(unittest.TestCase):
 
         job, errors = schema.load(data)
 
-        self.assertEqual({'taskDefinition'}, set(errors.keys()))
+        self.assertEqual({'taskDefinition'}, errors.keys())
 
     def test_deserialize_fails_if_task_definition_includes_invalid_characters(self):
         schema = JobSchema()
@@ -386,7 +388,15 @@ class JobSchemaTests(unittest.TestCase):
 
         job, errors = schema.load(data)
 
-        self.assertEqual({'taskDefinition'}, set(errors.keys()))
+        self.assertEqual({'taskDefinition'}, errors.keys())
+
+    def test_deserialize_fails_if_invalid_timezone(self):
+        schema = JobSchema()
+        data = {'timezone': 'FOO'}
+
+        job, errors = schema.load(data)
+
+        self.assertEqual({'timezone'}, errors.keys())
 
     def test_serialize(self):
         schema = JobSchema()
@@ -396,6 +406,7 @@ class JobSchemaTests(unittest.TestCase):
             'schedule': 'test-schedule',
             'scheduleStart': datetime(2015, 10, 7, 13, 44, 53, 123456, timezone.utc),
             'scheduleEnd': datetime(2015, 10, 10, 4, 10, 3, 654321, timezone.utc),
+            'timezone': 'UTC',
             'taskCount': 12,
             'suspended': True,
             'trigger': {
@@ -415,6 +426,7 @@ class JobSchemaTests(unittest.TestCase):
             'schedule': 'test-schedule',
             'scheduleStart': '2015-10-07T13:44:53.123456+00:00',
             'scheduleEnd': '2015-10-10T04:10:03.654321+00:00',
+            'timezone': 'UTC',
             'taskCount': 12,
             'suspended': True,
             'trigger': {
@@ -440,7 +452,8 @@ class JobSchemaTests(unittest.TestCase):
         schema = JobSchema()
         job_data = {
             'scheduleStart': datetime(2015, 10, 7, 13, 44, 53, 123456, timezone(timedelta(hours=10))),
-            'scheduleEnd': datetime(2015, 10, 10, 4, 10, 3, 654321, timezone(timedelta(hours=-6)))
+            'scheduleEnd': datetime(2015, 10, 10, 4, 10, 3, 654321, timezone(timedelta(hours=-6))),
+            'timezone': 'US/Eastern'
         }
 
         doc, errors = schema.dump(job_data)
@@ -448,7 +461,24 @@ class JobSchemaTests(unittest.TestCase):
         self.assertEqual(0, len(errors))
         expected_data = {
             'scheduleStart': '2015-10-07T13:44:53.123456+10:00',
-            'scheduleEnd': '2015-10-10T04:10:03.654321-06:00'
+            'scheduleEnd': '2015-10-10T04:10:03.654321-06:00',
+            'timezone': 'US/Eastern'
+        }
+        self.assertEqual(expected_data, doc)
+
+    def test_serialize_timezone_naive(self):
+        schema = JobSchema()
+        job_data = {
+            'scheduleStart': datetime(2015, 10, 7, 13, 44, 53, 123456),
+            'scheduleEnd': datetime(2015, 10, 10, 4, 10, 3, 654321)
+        }
+
+        doc, errors = schema.dump(job_data)
+
+        self.assertEqual(0, len(errors))
+        expected_data = {
+            'scheduleStart': '2015-10-07T13:44:53.123456+00:00',
+            'scheduleEnd': '2015-10-10T04:10:03.654321+00:00'
         }
         self.assertEqual(expected_data, doc)
 
@@ -476,7 +506,7 @@ class JobCreateSchemaTests(unittest.TestCase):
 
         job, errors = schema.load(data)
 
-        self.assertEqual({'taskDefinition', 'schedule'}, set(errors.keys()))
+        self.assertEqual({'taskDefinition', 'schedule'}, errors.keys())
 
     def test_deserialize_fails_if_id_includes_revision(self):
         schema = JobCreateSchema()
@@ -484,7 +514,7 @@ class JobCreateSchemaTests(unittest.TestCase):
 
         job, errors = schema.load(data)
 
-        self.assertEqual({'taskDefinition'}, set(errors.keys()))
+        self.assertEqual({'taskDefinition'}, errors.keys())
 
     def test_deserialize_fails_if_id_includes_malformed_revision(self):
         schema = JobCreateSchema()
@@ -492,7 +522,7 @@ class JobCreateSchemaTests(unittest.TestCase):
 
         job, errors = schema.load(data)
 
-        self.assertEqual({'taskDefinition'}, set(errors.keys()))
+        self.assertEqual({'taskDefinition'}, errors.keys())
 
     def test_deserialize_fails_if_zero_task_count(self):
         schema = JobCreateSchema()
@@ -500,7 +530,7 @@ class JobCreateSchemaTests(unittest.TestCase):
 
         job, errors = schema.load(data)
 
-        self.assertEqual({'taskCount'}, set(errors.keys()))
+        self.assertEqual({'taskCount'}, errors.keys())
 
     def test_deserialize_fails_if_negative_task_count(self):
         schema = JobCreateSchema()
@@ -508,7 +538,7 @@ class JobCreateSchemaTests(unittest.TestCase):
 
         job, errors = schema.load(data)
 
-        self.assertEqual({'taskCount'}, set(errors.keys()))
+        self.assertEqual({'taskCount'}, errors.keys())
 
     def test_deserialize_fails_if_above_max_task_count(self):
         schema = JobCreateSchema()
@@ -516,7 +546,7 @@ class JobCreateSchemaTests(unittest.TestCase):
 
         job, errors = schema.load(data)
 
-        self.assertEqual({'taskCount'}, set(errors.keys()))
+        self.assertEqual({'taskCount'}, errors.keys())
 
     def test_deserialize_succeeds_if_at_max_task_count(self):
         schema = JobCreateSchema()
@@ -551,7 +581,7 @@ class JobCreateSchemaTests(unittest.TestCase):
 
         job, errors = schema.load(data)
 
-        self.assertEqual({'taskDefinition'}, set(errors.keys()))
+        self.assertEqual({'taskDefinition'}, errors.keys())
 
 
 class JobResponseSchemaTests(unittest.TestCase):
@@ -655,7 +685,7 @@ class PaginationSchemaTests(unittest.TestCase):
 
         page, errors = schema.load(data)
 
-        self.assertEqual({'count', 'skip'}, set(errors.keys()))
+        self.assertEqual({'count', 'skip'}, errors.keys())
 
     def test_serialize(self):
         schema = PaginationSchema()
