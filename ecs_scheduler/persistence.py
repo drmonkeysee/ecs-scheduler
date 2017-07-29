@@ -40,27 +40,15 @@ class NullStore:
         pass
 
 
-class FileStore:
-    """File system data store."""
-    def __init__(self, file_path):
-        """
-        Create a file-based data store.
-
-        :param file_path: The full path of the file to use for loading and storing jobs
-        """
-        self.file_path = file_path
-
-    def load_all(self):
-        pass
-
-    def create(self, job_id, job_data):
-        pass
-
-    def update(self, job_id, job_data):
-        pass
-
-    def delete(self, job_id):
-        pass
+class SQLiteStore:
+    """SQLite data store."""
+    pass
+    # TODO:
+    # - multithreaded connection
+    # - create table ID JSON
+    # - write json adapter
+    # - replace NullStore with in-memory sqlite
+    # separate locks for Jobs and Job sufficient?
 
 
 class S3Store:
