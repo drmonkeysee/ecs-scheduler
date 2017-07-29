@@ -3,7 +3,7 @@ import logging
 from unittest.mock import patch
 from datetime import datetime
 
-from ecs_scheduler.persistence import NullStore, FileStore, ElasticsearchStore
+from ecs_scheduler.persistence import NullStore, SQLiteStore, ElasticsearchStore
 
 
 class NullStoreTests(unittest.TestCase):
@@ -24,7 +24,7 @@ class NullStoreTests(unittest.TestCase):
             self.fail('Unexpected error raised: {}'.format(ex))
 
 
-class FileStoreTests(unittest.TestCase):
+class SQLiteStoreTests(unittest.TestCase):
     pass
 
 
