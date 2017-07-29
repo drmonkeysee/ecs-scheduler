@@ -7,6 +7,7 @@ from setuptools_scm import get_version
 import werkzeug.serving
 
 from . import webapi, scheduld, startup, operations, datacontext
+from .persistence import ElasticsearchStore
 
 
 _logger = logging.getLogger(__name__)
@@ -23,7 +24,7 @@ def create():
 
         _logger.info('ECS Scheduler v%s', get_version())
         ops_queue = operations.DirectQueue()
-        jobs_dc = datacontext.Jobs.load()
+        jobs_dc = datacontext.Jobs.load(store=ElasticsearchStore())
 
         _logger.info('Creating webapi...')
         app = webapi.create(ops_queue, jobs_dc)
