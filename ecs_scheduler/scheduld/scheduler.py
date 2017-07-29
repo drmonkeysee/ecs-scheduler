@@ -93,6 +93,9 @@ class Scheduler:
         end_date = job.data.get('scheduleEnd')
         if end_date:
             kwargs['end_date'] = end_date
+        tz = job.data.get('timezone')
+        if tz:
+            kwargs['timezone'] = tz
         return kwargs
 
     def _remove_job(self, job_id):

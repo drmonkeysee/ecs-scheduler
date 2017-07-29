@@ -97,6 +97,16 @@ class SchedulerTests(unittest.TestCase):
         self._bg_sched.add_job.assert_called_with(self._test_exec, 'cron',
             kwargs=job.data, id=job.id, replace_existing=True, day='23', start_date=test_date)
 
+    def test_add_job_sets_timezone_if_given(self):
+        job = Mock(id='job4', parsed_schedule={'day': '23'}, suspended=False, data={'timezone': 'US/Pacific'})
+        self._dc.get.return_value = job
+
+        self._target.notify(JobOperation.add('job4'))
+
+        self._dc.get.assert_called_with('job4')
+        self._bg_sched.add_job.assert_called_with(self._test_exec, 'cron',
+            kwargs=job.data, id=job.id, replace_existing=True, day='23', timezone='US/Pacific')
+
     def test_add_job_sets_start_date_as_last_run_if_given(self):
         schedule_start = datetime.datetime(2013, 2, 28)
         last_run = datetime.datetime.now()
