@@ -156,6 +156,12 @@ class Jobs(flask_restful.Resource):
                             description: >
                                 End date in ISO-8601 format at which to stop scheduling the job;
                                 if timezone offset is omitted it will default to UTC
+                        timezone:
+                            type: string
+                            description: >
+                                Timezone used for interpreting the schedule;
+                                if omitted the scheduler will use UTC;
+                                see pytz documentation for valid values
                         suspended:
                             type: boolean
                             default: false
@@ -337,6 +343,12 @@ class Job(flask_restful.Resource):
                             description: >
                                 End date in ISO-8601 format at which to stop scheduling the job;
                                 if timezone offset is omitted it will default to UTC
+                        timezone:
+                            type: string
+                            description: >
+                                Timezone used for interpreting the schedule;
+                                if omitted the scheduler will use UTC;
+                                see pytz documentation for valid values
                         suspended:
                             type: boolean
                             default: false

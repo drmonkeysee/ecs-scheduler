@@ -92,7 +92,7 @@ class JobSchema(marshmallow.Schema):
         try:
             apscheduler.triggers.cron.CronTrigger(timezone=value)
         except UnknownTimeZoneError:
-            raise marshmallow.ValidationError(f'Invalid timezone format: {value} (see pytz documentation for valid formats)')
+            raise marshmallow.ValidationError(f'Invalid timezone format: {value}')
 
     @marshmallow.pre_load
     def parse_schedule(self, data):
