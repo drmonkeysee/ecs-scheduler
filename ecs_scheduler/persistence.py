@@ -1,6 +1,6 @@
 """Built-in job data store implementations."""
 import logging
-import os.path
+import posixpath
 import collections
 import json
 from datetime import datetime
@@ -60,10 +60,12 @@ class S3Store:
     """AWS S3 data store."""
     _JobObject = collections.namedtuple('JobObject', ['summary', 'prefix', 'job_id', 'ext'])
     _JOB_EXT = '.json'
+    _ENCODING = 'utf-8'
 
     def __init__(self, bucket, prefix=None):
         """Create store."""
-        self._bucket = boto3.resource('s3').Bucket(bucket)
+        self._s3 = boto3.resource('s3')
+        self._bucket = self._s3.Bucket(bucket)
         self._prefix = prefix or ''
         self._ensure_bucket()
 
@@ -80,11 +82,8 @@ class S3Store:
         _logger.info(msg)
         job_objects = self._get_objects()
         for jo in job_objects:
-            full_object = jo.summary.get()
-            contents = full_object['Body'].read()
-            job_data = json.loads(contents, encoding='utf-8')
-            job_data.update(id=jo.job_id)
-            yield job_data
+            job_data = self._load_obj_contents(jo.summary)
+            yield {'id': jo.job_id, **job_data}
 
     def create(self, job_id, job_data):
         """
@@ -93,7 +92,8 @@ class S3Store:
         :param job_id: Job object id
         :param job_data: Job object contents
         """
-        pass
+        new_obj = self._make_object(job_id)
+        self._store_obj(new_obj, job_data)
 
     def update(self, job_id, job_data):
         """
@@ -102,7 +102,10 @@ class S3Store:
         :param job_id: Job object id
         :param job_data: Job object body
         """
-        pass
+        updated_obj = self._make_object(job_id)
+        current_data = self._load_obj_contents(updated_obj)
+        current_data.update(job_data)
+        self._store_obj(updated_obj, current_data)
 
     def delete(self, job_id):
         """
@@ -110,7 +113,8 @@ class S3Store:
 
         :param job_id: Job object id
         """
-        pass
+        deleted_obj = self._make_object(job_id)
+        deleted_obj.delete()
 
     def _ensure_bucket(self):
         try:
@@ -129,8 +133,8 @@ class S3Store:
         return (j for j in job_objects if self._valid_job(j))
 
     def _make_job_object(self, s3_obj_summary):
-        prefix, name = os.path.split(s3_obj_summary.key)
-        job_id, extension = os.path.splitext(name)
+        prefix, name = posixpath.split(s3_obj_summary.key)
+        job_id, extension = posixpath.splitext(name)
         return self._JobObject(s3_obj_summary, prefix, job_id, extension)
 
     def _valid_job(self, job_object):
@@ -138,6 +142,22 @@ class S3Store:
                         if self._prefix and self._prefix[-1] == '/' \
                         else self._prefix
         return job_object.prefix == prefix_check and job_object.ext == self._JOB_EXT
+
+    def _make_object(self, job_id):
+        key = posixpath.join(self._prefix, job_id) + self._JOB_EXT
+        return self._s3.Object(self._bucket.name, key)
+
+    def _load_obj_contents(self, obj_handle):
+        job_bytes = obj_handle.get()['Body'].read()
+        return json.loads(job_bytes, encoding=self._ENCODING)
+
+    def _store_obj(self, obj_handle, data):
+        obj_handle.put(Body=json.dumps(data, sort_keys=True).encode(self._ENCODING))
+
+
+class DynamoDBStore:
+    """DynamoDB data store."""
+    pass
 
 
 class ElasticsearchStore:

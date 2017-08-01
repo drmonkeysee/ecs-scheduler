@@ -34,8 +34,10 @@ class SQLiteStoreTests(unittest.TestCase):
 class S3StoreTests(unittest.TestCase):
     def setUp(self):
         with patch('boto3.resource') as self._s3:
-            self._target = S3Store('test-bucket')
+            bn = 'test-bucket'
+            self._target = S3Store(bn)
             self._bucket = self._s3.return_value.Bucket.return_value
+            self._bucket.name = bn
 
     def test_init(self):
         self._s3.return_value.Bucket.assert_called_with('test-bucket')
@@ -179,6 +181,103 @@ class S3StoreTests(unittest.TestCase):
         ]
         self.assertCountEqual(expected, results)
         self._bucket.objects.filter.assert_called_with(Prefix='test-prefix')
+
+    def test_create(self):
+        new_obj = self._s3.return_value.Object.return_value
+        data = {'a': 1}
+
+        self._target.create('test-id', data)
+
+        self._s3.return_value.Object.assert_called_with('test-bucket', 'test-id.json')
+        new_obj.put(Body=b'{"a": 1, "id": "test-id"}')
+
+    def test_create_with_prefix(self):
+        self._target._prefix = 'test-prefix'
+        new_obj = self._s3.return_value.Object.return_value
+        data = {'a': 1}
+
+        self._target.create('test-id', data)
+
+        self._s3.return_value.Object.assert_called_with('test-bucket', 'test-prefix/test-id.json')
+        new_obj.put(Body=b'{"a": 1, "id": "test-id"}')
+
+    def test_create_with_slashed_prefix(self):
+        self._target._prefix = 'test-prefix/'
+        new_obj = self._s3.return_value.Object.return_value
+        data = {'a': 1}
+
+        self._target.create('test-id', data)
+
+        self._s3.return_value.Object.assert_called_with('test-bucket', 'test-prefix/test-id.json')
+        new_obj.put(Body=b'{"a": 1, "id": "test-id"}')
+
+    def test_update_adds_fields(self):
+        up_obj = self._s3.return_value.Object.return_value
+        up_obj.get.return_value = {'Body': BytesIO(b'{"a": 1}')}
+        updated_data = {'b': 2}
+
+        self._target.update('test-id', updated_data)
+
+        self._s3.return_value.Object.assert_called_with('test-bucket', 'test-id.json')
+        up_obj.put(Body=b'{"a": 1, "b": 2, "id": "test-id"}')
+
+    def test_update_replace_fields(self):
+        up_obj = self._s3.return_value.Object.return_value
+        up_obj.get.return_value = {'Body': BytesIO(b'{"a": 1}')}
+        updated_data = {'a': 3}
+
+        self._target.update('test-id', updated_data)
+
+        self._s3.return_value.Object.assert_called_with('test-bucket', 'test-id.json')
+        up_obj.put(Body=b'{"a": 3 "id": "test-id"}')
+
+    def test_update_with_prefix(self):
+        self._target._prefix = 'test-prefix'
+        up_obj = self._s3.return_value.Object.return_value
+        up_obj.get.return_value = {'Body': BytesIO(b'{"a": 1, "b": 2}')}
+        updated_data = {'b': 4, 'w': 'foo'}
+
+        self._target.update('test-id', updated_data)
+
+        self._s3.return_value.Object.assert_called_with('test-bucket', 'test-prefix/test-id.json')
+        up_obj.put(Body=b'{"a": 1, "b": 4, "id": "test-id", "w": "foo"}')
+
+    def test_update_with_slashed_prefix(self):
+        self._target._prefix = 'test-prefix/'
+        up_obj = self._s3.return_value.Object.return_value
+        up_obj.get.return_value = {'Body': BytesIO(b'{"a": 1, "b": 2}')}
+        updated_data = {'b': 4, 'w': 'foo'}
+
+        self._target.update('test-id', updated_data)
+
+        self._s3.return_value.Object.assert_called_with('test-bucket', 'test-prefix/test-id.json')
+        up_obj.put(Body=b'{"a": 1, "b": 4, "id": "test-id", "w": "foo"}')
+
+    def test_delete(self):
+        del_obj = self._s3.return_value.Object.return_value
+
+        self._target.delete('test-id')
+
+        self._s3.return_value.Object.assert_called_with('test-bucket', 'test-id.json')
+        del_obj.delete()
+
+    def test_delete_with_prefix(self):
+        self._target._prefix = 'test-prefix'
+        del_obj = self._s3.return_value.Object.return_value
+
+        self._target.delete('test-id')
+
+        self._s3.return_value.Object.assert_called_with('test-bucket', 'test-prefix/test-id.json')
+        del_obj.delete()
+
+    def test_delete_with_slashed_prefix(self):
+        self._target._prefix = 'test-prefix/'
+        del_obj = self._s3.return_value.Object.return_value
+
+        self._target.delete('test-id')
+
+        self._s3.return_value.Object.assert_called_with('test-bucket', 'test-prefix/test-id.json')
+        del_obj.delete()
 
 
 class ElasticsearchStoreTests(unittest.TestCase):
