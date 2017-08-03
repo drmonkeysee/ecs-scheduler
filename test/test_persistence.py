@@ -4,9 +4,10 @@ from unittest.mock import patch, Mock
 from datetime import datetime
 from io import BytesIO
 
+import boto3
 import botocore.exceptions
 
-from ecs_scheduler.persistence import NullStore, S3Store, SQLiteStore, ElasticsearchStore
+from ecs_scheduler.persistence import NullStore, SQLiteStore, S3Store, DynamoDBStore, ElasticsearchStore
 
 
 class NullStoreTests(unittest.TestCase):
@@ -33,35 +34,36 @@ class SQLiteStoreTests(unittest.TestCase):
 
 class S3StoreTests(unittest.TestCase):
     def setUp(self):
-        with patch('boto3.resource') as self._s3:
+        with patch('boto3.resource') as self._res:
             bn = 'test-bucket'
             self._target = S3Store(bn)
-            self._bucket = self._s3.return_value.Bucket.return_value
+            self._bucket = self._res.return_value.Bucket.return_value
             self._bucket.name = bn
 
     def test_init(self):
-        self._s3.return_value.Bucket.assert_called_with('test-bucket')
+        self._res.return_value.Bucket.assert_called_with('test-bucket')
         self._bucket.load.assert_called_with()
         self._bucket.create.assert_not_called()
 
     @patch.object(logging.getLogger('ecs_scheduler.persistence'), 'warning')
     def test_init_creates_bucket_if_not_found(self, warning):
-        with patch('boto3.resource') as s3, \
+        with patch('boto3.resource') as res, \
                 patch('boto3.session.Session') as s:
-            bucket = s3.return_value.Bucket.return_value
-            bucket.load.side_effect = botocore.exceptions.ClientError({'Error': {'Code': '404'}}, 'fake_name')
+            bucket = res.return_value.Bucket.return_value
+            bucket.load.side_effect = botocore.exceptions.ClientError({'Error': {'Code': '404'}}, 'fake_operation')
             session = s.return_value
             session.region_name = 'test-region'
             target = S3Store('test-bucket', 'test-prefix')
 
         bucket.create.assert_called_with(CreateBucketConfiguration={'LocationConstraint': 'test-region'})
+        bucket.wait_until_exists.assert_called_with()
         warning.assert_called()
 
     @patch.object(logging.getLogger('ecs_scheduler.persistence'), 'warning')
     def test_init_raises_unknown_errors(self, warning):
-        with patch('boto3.resource') as s3:
-            bucket = s3.return_value.Bucket.return_value
-            bucket.load.side_effect = botocore.exceptions.ClientError({'Error': {'Code': '500'}}, 'fake_name')
+        with patch('boto3.resource') as res:
+            bucket = res.return_value.Bucket.return_value
+            bucket.load.side_effect = botocore.exceptions.ClientError({'Error': {'Code': '500'}}, 'fake_operation')
             with self.assertRaises(botocore.exceptions.ClientError):
                 target = S3Store('test-bucket', 'test-prefix')
 
@@ -183,101 +185,137 @@ class S3StoreTests(unittest.TestCase):
         self._bucket.objects.filter.assert_called_with(Prefix='test-prefix')
 
     def test_create(self):
-        new_obj = self._s3.return_value.Object.return_value
+        new_obj = self._res.return_value.Object.return_value
         data = {'a': 1}
 
         self._target.create('test-id', data)
 
-        self._s3.return_value.Object.assert_called_with('test-bucket', 'test-id.json')
+        self._res.return_value.Object.assert_called_with('test-bucket', 'test-id.json')
         new_obj.put(Body=b'{"a": 1, "id": "test-id"}')
 
     def test_create_with_prefix(self):
         self._target._prefix = 'test-prefix'
-        new_obj = self._s3.return_value.Object.return_value
+        new_obj = self._res.return_value.Object.return_value
         data = {'a': 1}
 
         self._target.create('test-id', data)
 
-        self._s3.return_value.Object.assert_called_with('test-bucket', 'test-prefix/test-id.json')
+        self._res.return_value.Object.assert_called_with('test-bucket', 'test-prefix/test-id.json')
         new_obj.put(Body=b'{"a": 1, "id": "test-id"}')
 
     def test_create_with_slashed_prefix(self):
         self._target._prefix = 'test-prefix/'
-        new_obj = self._s3.return_value.Object.return_value
+        new_obj = self._res.return_value.Object.return_value
         data = {'a': 1}
 
         self._target.create('test-id', data)
 
-        self._s3.return_value.Object.assert_called_with('test-bucket', 'test-prefix/test-id.json')
+        self._res.return_value.Object.assert_called_with('test-bucket', 'test-prefix/test-id.json')
         new_obj.put(Body=b'{"a": 1, "id": "test-id"}')
 
     def test_update_adds_fields(self):
-        up_obj = self._s3.return_value.Object.return_value
+        up_obj = self._res.return_value.Object.return_value
         up_obj.get.return_value = {'Body': BytesIO(b'{"a": 1}')}
         updated_data = {'b': 2}
 
         self._target.update('test-id', updated_data)
 
-        self._s3.return_value.Object.assert_called_with('test-bucket', 'test-id.json')
+        self._res.return_value.Object.assert_called_with('test-bucket', 'test-id.json')
         up_obj.put(Body=b'{"a": 1, "b": 2, "id": "test-id"}')
 
     def test_update_replace_fields(self):
-        up_obj = self._s3.return_value.Object.return_value
+        up_obj = self._res.return_value.Object.return_value
         up_obj.get.return_value = {'Body': BytesIO(b'{"a": 1}')}
         updated_data = {'a': 3}
 
         self._target.update('test-id', updated_data)
 
-        self._s3.return_value.Object.assert_called_with('test-bucket', 'test-id.json')
+        self._res.return_value.Object.assert_called_with('test-bucket', 'test-id.json')
         up_obj.put(Body=b'{"a": 3 "id": "test-id"}')
 
     def test_update_with_prefix(self):
         self._target._prefix = 'test-prefix'
-        up_obj = self._s3.return_value.Object.return_value
+        up_obj = self._res.return_value.Object.return_value
         up_obj.get.return_value = {'Body': BytesIO(b'{"a": 1, "b": 2}')}
         updated_data = {'b': 4, 'w': 'foo'}
 
         self._target.update('test-id', updated_data)
 
-        self._s3.return_value.Object.assert_called_with('test-bucket', 'test-prefix/test-id.json')
+        self._res.return_value.Object.assert_called_with('test-bucket', 'test-prefix/test-id.json')
         up_obj.put(Body=b'{"a": 1, "b": 4, "id": "test-id", "w": "foo"}')
 
     def test_update_with_slashed_prefix(self):
         self._target._prefix = 'test-prefix/'
-        up_obj = self._s3.return_value.Object.return_value
+        up_obj = self._res.return_value.Object.return_value
         up_obj.get.return_value = {'Body': BytesIO(b'{"a": 1, "b": 2}')}
         updated_data = {'b': 4, 'w': 'foo'}
 
         self._target.update('test-id', updated_data)
 
-        self._s3.return_value.Object.assert_called_with('test-bucket', 'test-prefix/test-id.json')
+        self._res.return_value.Object.assert_called_with('test-bucket', 'test-prefix/test-id.json')
         up_obj.put(Body=b'{"a": 1, "b": 4, "id": "test-id", "w": "foo"}')
 
     def test_delete(self):
-        del_obj = self._s3.return_value.Object.return_value
+        del_obj = self._res.return_value.Object.return_value
 
         self._target.delete('test-id')
 
-        self._s3.return_value.Object.assert_called_with('test-bucket', 'test-id.json')
+        self._res.return_value.Object.assert_called_with('test-bucket', 'test-id.json')
         del_obj.delete()
 
     def test_delete_with_prefix(self):
         self._target._prefix = 'test-prefix'
-        del_obj = self._s3.return_value.Object.return_value
+        del_obj = self._res.return_value.Object.return_value
 
         self._target.delete('test-id')
 
-        self._s3.return_value.Object.assert_called_with('test-bucket', 'test-prefix/test-id.json')
+        self._res.return_value.Object.assert_called_with('test-bucket', 'test-prefix/test-id.json')
         del_obj.delete()
 
     def test_delete_with_slashed_prefix(self):
         self._target._prefix = 'test-prefix/'
-        del_obj = self._s3.return_value.Object.return_value
+        del_obj = self._res.return_value.Object.return_value
 
         self._target.delete('test-id')
 
-        self._s3.return_value.Object.assert_called_with('test-bucket', 'test-prefix/test-id.json')
+        self._res.return_value.Object.assert_called_with('test-bucket', 'test-prefix/test-id.json')
         del_obj.delete()
+
+
+class DynamoDBStoreTests(unittest.TestCase):
+    def setUp(self):
+        with patch('boto3.resource') as self._res, \
+                patch('boto3.client') as client:
+            tablename = 'test-table'
+            self._table = self._res.return_value.Table.return_value
+            self._table.name = tablename
+            self._dyn_client = client.return_value
+            self._target = DynamoDBStore(tablename)
+
+    def test_init(self):
+        self._res.return_value.Table.assert_called_with('test-table')
+        self._dyn_client.describe_table.assert_called_with(TableName='test-table')
+        self._dyn_client.create_table.assert_not_called()
+
+    @patch.object(logging.getLogger('ecs_scheduler.persistence'), 'warning')
+    def test_init_creates_bucket_if_not_found(self, warning):
+        # NOTE: this exception type can only be found on a client instance
+        ex_type = boto3.client('dynamodb').exceptions.ResourceNotFoundException
+        with patch('boto3.resource') as res, \
+                patch('boto3.client') as c:
+            dyn_c = c.return_value
+            dyn_c.exceptions.ResourceNotFoundException = ex_type
+            table = res.return_value.Table.return_value
+            table.name = 'test-table'
+            dyn_c.describe_table.side_effect = ex_type({'Error': {'Code': '404'}}, 'fake_operation')
+            target = DynamoDBStore('test-table')
+
+        dyn_c.create_table.assert_called_with(AttributeDefinitions=[{'AttributeName': 'job-id', 'AttributeType': 'S'}],
+                TableName=self._table.name,
+                KeySchema=[{'AttributeName': 'job-id', 'KeyType': 'HASH'}],
+                ProvisionedThroughput={'ReadCapacityUnits': 5, 'WriteCapacityUnits': 5})
+        table.wait_until_exists.assert_called_with()
+        warning.assert_called()
 
 
 class ElasticsearchStoreTests(unittest.TestCase):

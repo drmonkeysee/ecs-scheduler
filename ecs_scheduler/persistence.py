@@ -63,7 +63,12 @@ class S3Store:
     _ENCODING = 'utf-8'
 
     def __init__(self, bucket, prefix=None):
-        """Create store."""
+        """
+        Create store.
+
+        :param bucket: Name of the S3 bucket to use
+        :param prefix: Key prefix to use for job objects
+        """
         self._s3 = boto3.resource('s3')
         self._bucket = self._s3.Bucket(bucket)
         self._prefix = prefix or ''
@@ -121,9 +126,11 @@ class S3Store:
             self._bucket.load()
         except botocore.exceptions.ClientError as ex:
             if ex.response['Error']['Code'] == '404':
-                _logger.warning('S3 bucket not found; creating bucket "%s"', self._bucket)
+                _logger.warning('S3 bucket not found; creating bucket "%s"', self._bucket.name)
                 current_region = boto3.session.Session().region_name
                 self._bucket.create(CreateBucketConfiguration={'LocationConstraint': current_region})
+                _logger.info('Waiting for bucket to exist...')
+                self._bucket.wait_until_exists()
             else:
                 raise
 
@@ -157,7 +164,29 @@ class S3Store:
 
 class DynamoDBStore:
     """DynamoDB data store."""
-    pass
+    def __init__(self, table):
+        """
+        Create store.
+
+        :param table: Name of the dynamodb table to use
+        """
+        self._table = boto3.resource('dynamodb').Table(table)
+        self._ensure_table()
+
+    def _ensure_table(self):
+        dyn_client = boto3.client('dynamodb')
+        try:
+            dyn_client.describe_table(TableName=self._table.name)
+        except dyn_client.exceptions.ResourceNotFoundException:
+            _logger.warning('DynamoDB table not found; creating table "%s"', self._table.name)
+            key_name = 'job-id'
+            dyn_client.create_table(
+                AttributeDefinitions=[{'AttributeName': key_name, 'AttributeType': 'S'}],
+                TableName=self._table.name,
+                KeySchema=[{'AttributeName': key_name, 'KeyType': 'HASH'}],
+                ProvisionedThroughput={'ReadCapacityUnits': 5, 'WriteCapacityUnits': 5})
+            _logger.info('Waiting for table to exist...')
+            self._table.wait_until_exists()
 
 
 class ElasticsearchStore:
