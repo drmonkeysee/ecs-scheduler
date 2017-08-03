@@ -11,15 +11,26 @@ from .spec import Spec
 from .jobs import Jobs, Job
 
 
-def create(ops_queue, datacontext):
+def create():
     """
-    Create the web server.
+    Create the initial web server instance.
 
+    This instance has no application-specific behaviors registered.
+
+    :returns: An unadorned Flask instance
+    """
+    return flask.Flask(__name__)
+
+
+def setup(app, ops_queue, datacontext):
+    """
+    Set up the web server with application behaviors.
+
+    :param app: The flask app instance to set up
     :param ops_queue: Job ops queue for sending job operations to the scheduler daemon
     :param datacontext: The jobs data context for loading and saving jobs
     :returns: A flask application instance
     """
-    app = flask.Flask(__name__)
     # TODO: revisit this when nginx is added
     flask_cors.CORS(app, allow_headers='Content-Type')
     api = flask_restful.Api(app, catch_all_404s=True)
