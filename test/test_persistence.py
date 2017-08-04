@@ -1,6 +1,6 @@
 import unittest
 import logging
-from unittest.mock import patch, Mock
+from unittest.mock import patch, Mock, call
 from datetime import datetime
 from io import BytesIO
 
@@ -316,6 +316,60 @@ class DynamoDBStoreTests(unittest.TestCase):
                 ProvisionedThroughput={'ReadCapacityUnits': 5, 'WriteCapacityUnits': 5})
         table.wait_until_exists.assert_called_with()
         warning.assert_called()
+
+    def test_load_all_yields_nothing_if_empty(self):
+        self._table.scan.side_effect = ({'Items': []},)
+
+        results = list(self._target.load_all())
+
+        self.assertEqual([], results)
+        self._table.scan.assert_called_with()
+
+    def test_load_all_yields_one_batch(self):
+        self._table.scan.side_effect = (
+            {'Items': [
+                {'job-id': 'foo1', 'value': '{"a": 1}'},
+                {'job-id': 'foo2', 'value': '{"b": 2}'},
+                {'job-id': 'foo3', 'value': '{"c": 3}'}
+            ]},)
+
+        results = list(self._target.load_all())
+
+        expected_results = [
+            {'id': 'foo1', 'a': 1},
+            {'id': 'foo2', 'b': 2},
+            {'id': 'foo3', 'c': 3}
+        ]
+        self.assertEqual(expected_results, results)
+        self.assertEqual([call()], self._table.scan.call_args_list)
+
+    def test_load_all_yields_all_batches(self):
+        self._table.scan.side_effect = (
+            {'Items': [
+                {'job-id': 'foo1', 'value': '{"a": 1}'},
+                {'job-id': 'foo2', 'value': '{"b": 2}'},
+                {'job-id': 'foo3', 'value': '{"c": 3}'}
+            ], 'LastEvaluatedKey': 'foo'},
+            {'Items': [
+                {'job-id': 'bar1', 'value': '{"d": 4}'}
+            ], 'LastEvaluatedKey': 'bar'},
+            {'Items': [
+                {'job-id': 'baz1', 'value': '{"e": 5}'},
+                {'job-id': 'baz2', 'value': '{"f": 6}'}
+            ]},)
+
+        results = list(self._target.load_all())
+
+        expected_results = [
+            {'id': 'foo1', 'a': 1},
+            {'id': 'foo2', 'b': 2},
+            {'id': 'foo3', 'c': 3},
+            {'id': 'bar1', 'd': 4},
+            {'id': 'baz1', 'e': 5},
+            {'id': 'baz2', 'f': 6}
+        ]
+        self.assertEqual(expected_results, results)
+        self.assertEqual([call(), call(ExclusiveStartKey='foo'), call(ExclusiveStartKey='bar')], self._table.scan.call_args_list)
 
 
 class ElasticsearchStoreTests(unittest.TestCase):

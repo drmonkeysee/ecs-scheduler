@@ -80,7 +80,7 @@ class S3Store:
 
         :returns: Generator yielding job data dictionary for each job
         """
-        msg = f'Loading jobs from S3 bucket {self._bucket}'
+        msg = f'Loading jobs from S3 bucket {self._bucket.name}'
         if self._prefix:
             msg += f', prefix {self._prefix}'
         msg += '...'
@@ -164,6 +164,8 @@ class S3Store:
 
 class DynamoDBStore:
     """DynamoDB data store."""
+    _KEY_NAME = 'job-id'
+
     def __init__(self, table):
         """
         Create store.
@@ -173,17 +175,71 @@ class DynamoDBStore:
         self._table = boto3.resource('dynamodb').Table(table)
         self._ensure_table()
 
+    def load_all(self):
+        """
+        Get all job items from the DynamoDB table.
+
+        :returns: Generator yielding job data dictionary for each job
+        """
+        _logger.info('Loading jobs from DynamoDB table %s...', self._table.name)
+        batch = None
+        while True:
+            if batch:
+                if 'LastEvaluatedKey' in batch:
+                    batch = self._table.scan(ExclusiveStartKey=batch['LastEvaluatedKey'])
+                else:
+                    break
+            else:
+                batch = self._table.scan()
+            items = batch['Items']
+            for item in items:
+                job_id = item[self._KEY_NAME]
+                contents = item['value']
+                job_data = json.loads(contents)
+                yield {'id': job_id, **job_data}
+
+    # TODO: write these
+    def create(self, job_id, job_data):
+        """
+        Create a new job DynamoDB item.
+
+        :param job_id: Job item id
+        :param job_data: Job item contents
+        """
+        new_obj = self._make_object(job_id)
+        self._store_obj(new_obj, job_data)
+
+    def update(self, job_id, job_data):
+        """
+        Update existing job item.
+
+        :param job_id: Job item id
+        :param job_data: Job item body
+        """
+        updated_obj = self._make_object(job_id)
+        current_data = self._load_obj_contents(updated_obj)
+        current_data.update(job_data)
+        self._store_obj(updated_obj, current_data)
+
+    def delete(self, job_id):
+        """
+        Delete a job item.
+
+        :param job_id: Job item id
+        """
+        deleted_obj = self._make_object(job_id)
+        deleted_obj.delete()
+
     def _ensure_table(self):
         dyn_client = boto3.client('dynamodb')
         try:
             dyn_client.describe_table(TableName=self._table.name)
         except dyn_client.exceptions.ResourceNotFoundException:
             _logger.warning('DynamoDB table not found; creating table "%s"', self._table.name)
-            key_name = 'job-id'
             dyn_client.create_table(
-                AttributeDefinitions=[{'AttributeName': key_name, 'AttributeType': 'S'}],
+                AttributeDefinitions=[{'AttributeName': self._KEY_NAME, 'AttributeType': 'S'}],
                 TableName=self._table.name,
-                KeySchema=[{'AttributeName': key_name, 'KeyType': 'HASH'}],
+                KeySchema=[{'AttributeName': self._KEY_NAME, 'KeyType': 'HASH'}],
                 ProvisionedThroughput={'ReadCapacityUnits': 5, 'WriteCapacityUnits': 5})
             _logger.info('Waiting for table to exist...')
             self._table.wait_until_exists()
