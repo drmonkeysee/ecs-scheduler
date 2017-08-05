@@ -165,6 +165,7 @@ class S3Store:
 class DynamoDBStore:
     """DynamoDB data store."""
     _KEY_NAME = 'job-id'
+    _DATA_NAME = 'json-data'
 
     def __init__(self, table):
         """
@@ -194,8 +195,7 @@ class DynamoDBStore:
             items = batch['Items']
             for item in items:
                 job_id = item[self._KEY_NAME]
-                contents = item['value']
-                job_data = json.loads(contents)
+                job_data = self._parse_item(item)
                 yield {'id': job_id, **job_data}
 
     # TODO: write these
@@ -206,8 +206,7 @@ class DynamoDBStore:
         :param job_id: Job item id
         :param job_data: Job item contents
         """
-        new_obj = self._make_object(job_id)
-        self._store_obj(new_obj, job_data)
+        self._store_item(job_id, job_data)
 
     def update(self, job_id, job_data):
         """
@@ -216,10 +215,10 @@ class DynamoDBStore:
         :param job_id: Job item id
         :param job_data: Job item body
         """
-        updated_obj = self._make_object(job_id)
-        current_data = self._load_obj_contents(updated_obj)
+        item = self._table.get_item(Key={self._KEY_NAME: job_id})['Item']
+        current_data = self._parse_item(item)
         current_data.update(job_data)
-        self._store_obj(updated_obj, current_data)
+        self._store_item(job_id, current_data)
 
     def delete(self, job_id):
         """
@@ -227,8 +226,7 @@ class DynamoDBStore:
 
         :param job_id: Job item id
         """
-        deleted_obj = self._make_object(job_id)
-        deleted_obj.delete()
+        self._table.delete_item(Key={self._KEY_NAME: job_id})
 
     def _ensure_table(self):
         dyn_client = boto3.client('dynamodb')
@@ -243,6 +241,12 @@ class DynamoDBStore:
                 ProvisionedThroughput={'ReadCapacityUnits': 5, 'WriteCapacityUnits': 5})
             _logger.info('Waiting for table to exist...')
             self._table.wait_until_exists()
+
+    def _parse_item(self, item):
+        return json.loads(item[self._DATA_NAME])
+
+    def _store_item(self, key, data):
+        self._table.put_item(Item={self._KEY_NAME: key, self._DATA_NAME: json.dumps(data, sort_keys=True)})
 
 
 class ElasticsearchStore:

@@ -191,7 +191,7 @@ class S3StoreTests(unittest.TestCase):
         self._target.create('test-id', data)
 
         self._res.return_value.Object.assert_called_with('test-bucket', 'test-id.json')
-        new_obj.put(Body=b'{"a": 1, "id": "test-id"}')
+        new_obj.put.assert_called_with(Body=b'{"a": 1}')
 
     def test_create_with_prefix(self):
         self._target._prefix = 'test-prefix'
@@ -201,7 +201,7 @@ class S3StoreTests(unittest.TestCase):
         self._target.create('test-id', data)
 
         self._res.return_value.Object.assert_called_with('test-bucket', 'test-prefix/test-id.json')
-        new_obj.put(Body=b'{"a": 1, "id": "test-id"}')
+        new_obj.put.assert_called_with(Body=b'{"a": 1}')
 
     def test_create_with_slashed_prefix(self):
         self._target._prefix = 'test-prefix/'
@@ -211,7 +211,7 @@ class S3StoreTests(unittest.TestCase):
         self._target.create('test-id', data)
 
         self._res.return_value.Object.assert_called_with('test-bucket', 'test-prefix/test-id.json')
-        new_obj.put(Body=b'{"a": 1, "id": "test-id"}')
+        new_obj.put.assert_called_with(Body=b'{"a": 1}')
 
     def test_update_adds_fields(self):
         up_obj = self._res.return_value.Object.return_value
@@ -221,7 +221,7 @@ class S3StoreTests(unittest.TestCase):
         self._target.update('test-id', updated_data)
 
         self._res.return_value.Object.assert_called_with('test-bucket', 'test-id.json')
-        up_obj.put(Body=b'{"a": 1, "b": 2, "id": "test-id"}')
+        up_obj.put.assert_called_with(Body=b'{"a": 1, "b": 2}')
 
     def test_update_replace_fields(self):
         up_obj = self._res.return_value.Object.return_value
@@ -231,7 +231,7 @@ class S3StoreTests(unittest.TestCase):
         self._target.update('test-id', updated_data)
 
         self._res.return_value.Object.assert_called_with('test-bucket', 'test-id.json')
-        up_obj.put(Body=b'{"a": 3 "id": "test-id"}')
+        up_obj.put.assert_called_with(Body=b'{"a": 3}')
 
     def test_update_with_prefix(self):
         self._target._prefix = 'test-prefix'
@@ -242,7 +242,7 @@ class S3StoreTests(unittest.TestCase):
         self._target.update('test-id', updated_data)
 
         self._res.return_value.Object.assert_called_with('test-bucket', 'test-prefix/test-id.json')
-        up_obj.put(Body=b'{"a": 1, "b": 4, "id": "test-id", "w": "foo"}')
+        up_obj.put.assert_called_with(Body=b'{"a": 1, "b": 4, "w": "foo"}')
 
     def test_update_with_slashed_prefix(self):
         self._target._prefix = 'test-prefix/'
@@ -253,7 +253,7 @@ class S3StoreTests(unittest.TestCase):
         self._target.update('test-id', updated_data)
 
         self._res.return_value.Object.assert_called_with('test-bucket', 'test-prefix/test-id.json')
-        up_obj.put(Body=b'{"a": 1, "b": 4, "id": "test-id", "w": "foo"}')
+        up_obj.put.assert_called_with(Body=b'{"a": 1, "b": 4, "w": "foo"}')
 
     def test_delete(self):
         del_obj = self._res.return_value.Object.return_value
@@ -261,7 +261,7 @@ class S3StoreTests(unittest.TestCase):
         self._target.delete('test-id')
 
         self._res.return_value.Object.assert_called_with('test-bucket', 'test-id.json')
-        del_obj.delete()
+        del_obj.delete.assert_called_with()
 
     def test_delete_with_prefix(self):
         self._target._prefix = 'test-prefix'
@@ -270,7 +270,7 @@ class S3StoreTests(unittest.TestCase):
         self._target.delete('test-id')
 
         self._res.return_value.Object.assert_called_with('test-bucket', 'test-prefix/test-id.json')
-        del_obj.delete()
+        del_obj.delete.assert_called_with()
 
     def test_delete_with_slashed_prefix(self):
         self._target._prefix = 'test-prefix/'
@@ -279,7 +279,7 @@ class S3StoreTests(unittest.TestCase):
         self._target.delete('test-id')
 
         self._res.return_value.Object.assert_called_with('test-bucket', 'test-prefix/test-id.json')
-        del_obj.delete()
+        del_obj.delete.assert_called_with()
 
 
 class DynamoDBStoreTests(unittest.TestCase):
@@ -328,9 +328,9 @@ class DynamoDBStoreTests(unittest.TestCase):
     def test_load_all_yields_one_batch(self):
         self._table.scan.side_effect = (
             {'Items': [
-                {'job-id': 'foo1', 'value': '{"a": 1}'},
-                {'job-id': 'foo2', 'value': '{"b": 2}'},
-                {'job-id': 'foo3', 'value': '{"c": 3}'}
+                {'job-id': 'foo1', 'json-data': '{"a": 1}'},
+                {'job-id': 'foo2', 'json-data': '{"b": 2}'},
+                {'job-id': 'foo3', 'json-data': '{"c": 3}'}
             ]},)
 
         results = list(self._target.load_all())
@@ -346,16 +346,16 @@ class DynamoDBStoreTests(unittest.TestCase):
     def test_load_all_yields_all_batches(self):
         self._table.scan.side_effect = (
             {'Items': [
-                {'job-id': 'foo1', 'value': '{"a": 1}'},
-                {'job-id': 'foo2', 'value': '{"b": 2}'},
-                {'job-id': 'foo3', 'value': '{"c": 3}'}
+                {'job-id': 'foo1', 'json-data': '{"a": 1}'},
+                {'job-id': 'foo2', 'json-data': '{"b": 2}'},
+                {'job-id': 'foo3', 'json-data': '{"c": 3}'}
             ], 'LastEvaluatedKey': 'foo'},
             {'Items': [
-                {'job-id': 'bar1', 'value': '{"d": 4}'}
+                {'job-id': 'bar1', 'json-data': '{"d": 4}'}
             ], 'LastEvaluatedKey': 'bar'},
             {'Items': [
-                {'job-id': 'baz1', 'value': '{"e": 5}'},
-                {'job-id': 'baz2', 'value': '{"f": 6}'}
+                {'job-id': 'baz1', 'json-data': '{"e": 5}'},
+                {'job-id': 'baz2', 'json-data': '{"f": 6}'}
             ]},)
 
         results = list(self._target.load_all())
@@ -370,6 +370,36 @@ class DynamoDBStoreTests(unittest.TestCase):
         ]
         self.assertEqual(expected_results, results)
         self.assertEqual([call(), call(ExclusiveStartKey='foo'), call(ExclusiveStartKey='bar')], self._table.scan.call_args_list)
+
+    def test_create(self):
+        data = {'a': 1, 'b': 2}
+
+        self._target.create('test-id', data)
+
+        self._table.put_item.assert_called_with(Item={'job-id': 'test-id', 'json-data': '{"a": 1, "b": 2}'})
+
+    def test_update_adds_fields(self):
+        self._table.get_item.return_value = {'Item': {'job-id': 'test-id', 'json-data': '{"a": 1}'}}
+        new_data = {'b': 2}
+
+        self._target.update('test-id', new_data)
+
+        self._table.get_item.assert_called_with(Key={'job-id': 'test-id'})
+        self._table.put_item.assert_called_with(Item={'job-id': 'test-id', 'json-data': '{"a": 1, "b": 2}'})
+
+    def test_update_replaces_fields(self):
+        self._table.get_item.return_value = {'Item': {'job-id': 'test-id', 'json-data': '{"a": 1, "b": 2}'}}
+        new_data = {'a': 4}
+
+        self._target.update('test-id', new_data)
+
+        self._table.get_item.assert_called_with(Key={'job-id': 'test-id'})
+        self._table.put_item.assert_called_with(Item={'job-id': 'test-id', 'json-data': '{"a": 4, "b": 2}'})
+
+    def test_delete(self):
+        self._target.delete('test-id')
+
+        self._table.delete_item.assert_called_with(Key={'job-id': 'test-id'})
 
 
 class ElasticsearchStoreTests(unittest.TestCase):
