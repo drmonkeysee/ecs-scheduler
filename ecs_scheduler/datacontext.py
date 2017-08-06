@@ -52,7 +52,6 @@ class Jobs:
         # TODO: rework to pick data store based on config
         if not store:
             store = NullStore()
-            _logger.warning('!!! Warning !!!: No registered persistence layer found; falling back to null data store! Jobs will not be saved when the application terminates!')
         instance = cls(store)
         instance._fill()
         return instance
@@ -119,6 +118,7 @@ class Jobs:
         try:
             self._store.create(job.id, self._schema.dump(job.data).data)
         except Exception as ex:
+            # TODO: inner exception not printed in flask logs :(
             raise JobPersistenceError(job.id) from ex
         self._jobs[job.id] = job
         return job
