@@ -3,6 +3,7 @@ import logging
 import posixpath
 import collections
 import json
+import sqlite3
 from datetime import datetime
 
 import boto3
@@ -29,9 +30,13 @@ class NullStore:
     """
     Null data store.
 
+    Default data store if no other store is specified.
     This store loads nothing and saves nothing.
-    Effectively makes the JobStore an in-memory store.
+    Effectively implements an in-memory store.
     """
+    def __init__(self):
+        _logger.warning('!!! Warning !!!: No registered persistence layer found; using null data store! Jobs will not be saved when the application terminates!')
+
     def load_all(self):
         yield from {}.items()
 
@@ -47,13 +52,79 @@ class NullStore:
 
 class SQLiteStore:
     """SQLite data store."""
-    pass
-    # TODO:
-    # - multithreaded connection
-    # - create table ID JSON
-    # - write json adapter
-    # - replace NullStore with in-memory sqlite
-    # separate locks for Jobs and Job sufficient?
+    _TABLE = 'jobs'
+    _KEYCOL = 'id'
+    _DATACOL = 'data'
+    _DATATYPE = 'JSONTEXT'
+
+    def __init__(self, db_file):
+        self._db_file = db_file
+        sqlite3.register_adapter(dict, self._store_job_data)
+        sqlite3.register_converter(self._DATATYPE, self._load_job_data)
+        self._ensure_table()
+
+    def load_all(self):
+        """
+        Get all job rows from the database.
+
+        :returns: Generator yielding job data dictionary for each job
+        """
+        _logger.info('Loading jobs from SQLite database %s', self._db_file)
+        with self._connection() as conn:
+            for job_id, job_data in conn.execute(f"SELECT * FROM {self._TABLE}"):
+                yield {'id': job_id, **job_data}
+
+    def create(self, job_id, job_data):
+        """
+        Create a new job row.
+
+        :param job_id: Job row id
+        :param job_data: Job row contents
+        """
+        with self._connection() as conn:
+            conn.execute(f"INSERT INTO {self._TABLE} VALUES (?, ?)", (job_id, job_data))
+
+    def update(self, job_id, job_data):
+        """
+        Update existing job row.
+
+        :param job_id: Job row id
+        :param job_data: Job row body
+        """
+        with self._connection() as conn:
+            cur = conn.execute(
+                f"SELECT * FROM {self._TABLE} WHERE {self._KEYCOL} = ?",
+                (job_id,))
+            current_data = cur.fetchone()[1]
+            current_data.update(job_data)
+            conn.execute(
+                f"UPDATE {self._TABLE} SET {self._DATACOL} = ? WHERE {self._KEYCOL} = ?",
+                (current_data, job_id))
+
+    def delete(self, job_id):
+        """
+        Delete a job row.
+
+        :param job_id: Job row id
+        """
+        with self._connection() as conn:
+            conn.execute(f"DELETE FROM {self._TABLE} WHERE {self._KEYCOL} = ?", (job_id,))
+
+    def _connection(self):
+        return sqlite3.connect(self._db_file, isolation_level=None, detect_types=sqlite3.PARSE_DECLTYPES)
+
+    def _ensure_table(self):
+        with self._connection() as conn:
+            conn.execute(f"""
+                CREATE TABLE IF NOT EXISTS
+                {self._TABLE}({self._KEYCOL} TEXT PRIMARY KEY NOT NULL, {self._DATACOL} {self._DATATYPE} NOT NULL)
+            """)
+
+    def _store_job_data(self, job_data):
+        return json.dumps(job_data, sort_keys=True)
+
+    def _load_job_data(self, job_bytes):
+        return json.loads(job_bytes, encoding='utf-8')
 
 
 class S3Store:
@@ -198,7 +269,6 @@ class DynamoDBStore:
                 job_data = self._parse_item(item)
                 yield {'id': job_id, **job_data}
 
-    # TODO: write these
     def create(self, job_id, job_data):
         """
         Create a new job DynamoDB item.

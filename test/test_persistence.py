@@ -12,7 +12,11 @@ from ecs_scheduler.persistence import NullStore, SQLiteStore, S3Store, DynamoDBS
 
 class NullStoreTests(unittest.TestCase):
     def setUp(self):
-        self._target = NullStore()
+        with patch.object(logging.getLogger('ecs_scheduler.persistence'), 'warning') as self._log:
+            self._target = NullStore()
+
+    def test_init_logs_warning(self):
+        self._log.assert_called()
 
     def test_load_all_returns_empty(self):
         result = list(self._target.load_all())
@@ -29,6 +33,7 @@ class NullStoreTests(unittest.TestCase):
 
 
 class SQLiteStoreTests(unittest.TestCase):
+    # TODO: write these
     pass
 
 
