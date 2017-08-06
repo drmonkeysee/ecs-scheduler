@@ -20,12 +20,13 @@ class JobsTests(unittest.TestCase):
             self._lock = rp.return_value
             self._target = Jobs.load(self._store)
 
-    @patch.object(logging.getLogger('ecs_scheduler.datacontext'), 'warning')
-    def test_load_selects_null_source_if_not_specified(self, fake_log):
+    @patch('ecs_scheduler.datacontext.NullStore')
+    def test_load_selects_null_source_if_not_specified(self, null_store):
         result = Jobs.load()
 
-        self.assertEqual([], list(result.get_all()))
-        fake_log.assert_called()
+        self.assertIsNotNone(result)
+        null_store.assert_called()
+        null_store.return_value.load_all.assert_called_with()
 
     def test_get_all_returns_all(self):
         self._store.load_all.assert_called_with()
