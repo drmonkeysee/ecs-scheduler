@@ -16,6 +16,9 @@ from .configuration import config
 
 _logger = logging.getLogger(__name__)
 
+# TODO:
+# - split up modules to remove requirements
+# - set up docker to load dependencies
 
 def resolve():
     """
@@ -23,6 +26,7 @@ def resolve():
 
     :returns: A data store implementation
     """
+    # TODO: this
     pass
 
 
@@ -35,7 +39,8 @@ class NullStore:
     Effectively implements an in-memory store.
     """
     def __init__(self):
-        _logger.warning('!!! Warning !!!: No registered persistence layer found; using null data store! Jobs will not be saved when the application terminates!')
+        _logger.warning('!!! Warning !!!: No registered persistence layer found; using null data store! '
+                        'Jobs will not be saved when the application terminates!')
 
     def load_all(self):
         yield from {}.items()
