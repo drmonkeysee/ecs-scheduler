@@ -1,6 +1,7 @@
 import unittest
 import logging
-from unittest.mock import patch, Mock, call
+import sqlite3
+from unittest.mock import patch, Mock, call, ANY
 from datetime import datetime
 from io import BytesIO
 
@@ -33,8 +34,99 @@ class NullStoreTests(unittest.TestCase):
 
 
 class SQLiteStoreTests(unittest.TestCase):
-    # TODO: write these
-    pass
+    def setUp(self):
+        conn_patch = patch('sqlite3.connect')
+        self._connect = conn_patch.start()
+        self.addCleanup(conn_patch.stop)
+        self._conn = self._connect.return_value.__enter__.return_value
+        with patch('sqlite3.register_adapter') as self._adapt, \
+                patch('sqlite3.register_converter') as self._conv:
+            self._target = SQLiteStore('test-file')
+
+    def test_init_registers_handers(self):
+        self._adapt.assert_called_with(dict, ANY)
+        self._conv.assert_called_with('JSONTEXT', ANY)
+
+    def test_init_creates_table(self):
+        self._connect.assert_called_with('test-file', isolation_level=None, detect_types=sqlite3.PARSE_DECLTYPES)
+        args = self._conn.execute.call_args[0]
+        self.assertEqual(1, self._connect.call_count)
+        self.assertIn('CREATE TABLE IF NOT EXISTS', args[0])
+        self.assertIn('jobs(id TEXT PRIMARY KEY NOT NULL, data JSONTEXT NOT NULL', args[0])
+
+    def test_load_all_yields_nothing_if_empty(self):
+        self._conn.execute.return_value = []
+
+        results = list(self._target.load_all())
+
+        self.assertEqual([], results)
+        self.assertEqual(2, self._connect.call_count)
+        self._connect.assert_called_with('test-file', isolation_level=None, detect_types=sqlite3.PARSE_DECLTYPES)
+        self._conn.execute.assert_called_with('SELECT * FROM jobs')
+
+    def test_load_all_rows(self):
+        self._conn.execute.return_value = [
+            ('foo', {'a': 1}),
+            ('bar', {'b': 2}),
+            ('baz', {'c': 3})
+        ]
+
+        results = list(self._target.load_all())
+
+        self.assertEqual([
+            {'id': 'foo', 'a': 1},
+            {'id': 'bar', 'b': 2},
+            {'id': 'baz', 'c': 3}
+        ], results)
+        self.assertEqual(2, self._connect.call_count)
+        self._connect.assert_called_with('test-file', isolation_level=None, detect_types=sqlite3.PARSE_DECLTYPES)
+        self._conn.execute.assert_called_with('SELECT * FROM jobs')
+
+    def test_create(self):
+        data = {'a': 1}
+
+        self._target.create('test-id', data)
+
+        self.assertEqual(2, self._connect.call_count)
+        self._connect.assert_called_with('test-file', isolation_level=None, detect_types=sqlite3.PARSE_DECLTYPES)
+        self._conn.execute.assert_called_with('INSERT INTO jobs VALUES (?, ?)', ('test-id', data))
+
+    def test_update_adds_new_values(self):
+        self._conn.execute.return_value.fetchone.return_value = ('test-id', {'a': 1})
+        data = {'b': 2}
+
+        self._target.update('test-id', data)
+
+        self.assertEqual(2, self._connect.call_count)
+        self._connect.assert_called_with('test-file', isolation_level=None, detect_types=sqlite3.PARSE_DECLTYPES)
+        execute_calls = [
+            call('SELECT * FROM jobs WHERE id = ?', ('test-id',)),
+            call('UPDATE jobs SET data = ? WHERE id = ?', ({'a': 1, 'b': 2}, 'test-id'))
+        ]
+        # NOTE: skip asserting create table call from __init__
+        self.assertEqual(execute_calls, self._conn.execute.call_args_list[1:])
+
+    def test_update_replaces_values(self):
+        self._conn.execute.return_value.fetchone.return_value = ('test-id', {'a': 1, 'b': 2})
+        data = {'a': 4}
+
+        self._target.update('test-id', data)
+
+        self.assertEqual(2, self._connect.call_count)
+        self._connect.assert_called_with('test-file', isolation_level=None, detect_types=sqlite3.PARSE_DECLTYPES)
+        execute_calls = [
+            call('SELECT * FROM jobs WHERE id = ?', ('test-id',)),
+            call('UPDATE jobs SET data = ? WHERE id = ?', ({'a': 4, 'b': 2}, 'test-id'))
+        ]
+        # NOTE: skip asserting create table call from __init__
+        self.assertEqual(execute_calls, self._conn.execute.call_args_list[1:])
+
+    def test_delete(self):
+        self._target.delete('test-id')
+
+        self.assertEqual(2, self._connect.call_count)
+        self._connect.assert_called_with('test-file', isolation_level=None, detect_types=sqlite3.PARSE_DECLTYPES)
+        self._conn.execute.assert_called_with('DELETE FROM jobs WHERE id = ?', ('test-id',))
 
 
 class S3StoreTests(unittest.TestCase):

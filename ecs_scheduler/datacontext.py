@@ -50,9 +50,7 @@ class Jobs:
         :raises: JobPersistenceError if job loading fails
         """
         # TODO: rework to pick data store based on config
-        if not store:
-            store = NullStore()
-        instance = cls(store)
+        instance = cls(store or NullStore())
         instance._fill()
         return instance
 
