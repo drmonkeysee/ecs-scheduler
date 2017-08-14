@@ -12,7 +12,7 @@ import functools
 import collections.abc
 from threading import RLock
 
-from .persistence import NullStore
+from . import persistence
 from .serialization import JobSchema, JobCreateSchema
 
 
@@ -44,13 +44,12 @@ class Jobs:
         Create and load jobs from the given job store.
 
         :param store: The job store from which to load and store jobs;
-                        uses null store if not specified
+                        uses environment to choose an implementation if not specified
         :returns: A jobs storage resource attached to the given job data store
         :raises: InvalidJobData if job fields fail validation
         :raises: JobPersistenceError if job loading fails
         """
-        # TODO: rework to pick data store based on config
-        instance = cls(store or NullStore())
+        instance = cls(store or persistence.resolve())
         instance._fill()
         return instance
 
