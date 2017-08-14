@@ -4,30 +4,50 @@ import posixpath
 import collections
 import json
 import sqlite3
+import os
 from datetime import datetime
 
 import boto3
 import botocore.exceptions
 import elasticsearch
 import elasticsearch.helpers
-
-from .configuration import config
+import yaml
 
 
 _logger = logging.getLogger(__name__)
 
-# TODO:
-# - split up modules to remove requirements
-# - set up docker to load dependencies
 
 def resolve():
     """
-    Resolve a data store from the current execution environment.
+    Choose and create a data store from the current execution environment.
 
     :returns: A data store implementation
     """
-    # TODO: this
-    pass
+    env_factories = {
+        'ECSS_S3_BUCKET': lambda ev: S3Store(ev, prefix=os.getenv('ECSS_S3_PREFIX')),
+        'ECSS_DYNAMODB_TABLE': lambda ev: DynamoDBStore(ev),
+        'ECSS_SQLITE_FILE': lambda ev: SQLiteStore(ev),
+        'ECSS_ELASTICSEARCH_INDEX': lambda ev: ElasticsearchStore(ev, **{
+            'hosts': [h.strip() for h in os.getenv('ECSS_ELASTICSEARCH_HOSTS').split(',')]
+        })
+    }
+    for env_var, factory in env_factories.items():
+        env_value = os.getenv(env_var)
+        if env_value:
+            return factory(env_value)
+
+    conf_factories = {
+        'elasticsearch': lambda kwargs: ElasticsearchStore(kwargs['index'], **kwargs['client'])
+    }
+    config_file = os.getenv('ECSS_CONFIG_FILE')
+    if config_file:
+        conf = yaml.safe_load(config_file)
+        for key, factory in conf_factories.items():
+            kwargs = conf.get(key)
+            if kwargs:
+                return factory(kwargs)
+
+    return NullStore()
 
 
 class NullStore:
@@ -329,10 +349,15 @@ class ElasticsearchStore:
     _DOC_TYPE = 'job'
     _SCROLL_PERIOD = '1m'
 
-    def __init__(self):
-        """Create store."""
-        self._es = elasticsearch.Elasticsearch(**config['elasticsearch']['client'])
-        self._index = config['elasticsearch']['index']
+    def __init__(self, index, **client_args):
+        """
+        Create store.
+
+        :param index: Name of the elasticsearch index to use
+        :param **client_args: Arguments for the underlying elasticsearch client
+        """
+        self._es = elasticsearch.Elasticsearch(**client_args)
+        self._index = index
         self._ensure_index()
 
     def load_all(self):

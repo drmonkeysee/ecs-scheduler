@@ -1,6 +1,7 @@
 import unittest
 import logging
 import sqlite3
+import os
 from unittest.mock import patch, Mock, call, ANY
 from datetime import datetime
 from io import BytesIO
@@ -8,7 +9,69 @@ from io import BytesIO
 import boto3
 import botocore.exceptions
 
-from ecs_scheduler.persistence import NullStore, SQLiteStore, S3Store, DynamoDBStore, ElasticsearchStore
+from ecs_scheduler.persistence import resolve, NullStore, SQLiteStore, S3Store, DynamoDBStore, ElasticsearchStore
+
+
+class ResolveTests(unittest.TestCase):
+    @patch('ecs_scheduler.persistence.SQLiteStore')
+    @patch.dict(os.environ, {'ECSS_SQLITE_FILE': 'test.db'}, clear=True)
+    def test_resolve_sqlite(self, sqlite):
+        result = resolve()
+
+        self.assertIs(sqlite.return_value, result)
+        sqlite.assert_called_with('test.db')
+
+    @patch('ecs_scheduler.persistence.S3Store')
+    @patch.dict(os.environ, {'ECSS_S3_BUCKET': 'test-bucket'}, clear=True)
+    def test_resolve_s3(self, s3):
+        result = resolve()
+
+        self.assertIs(s3.return_value, result)
+        s3.assert_called_with('test-bucket', prefix=None)
+
+    @patch('ecs_scheduler.persistence.S3Store')
+    @patch.dict(os.environ, {'ECSS_S3_BUCKET': 'test-bucket', 'ECSS_S3_PREFIX': 'test/prefix'}, clear=True)
+    def test_resolve_s3_with_prefix(self, s3):
+        result = resolve()
+
+        self.assertIs(s3.return_value, result)
+        s3.assert_called_with('test-bucket', prefix='test/prefix')
+
+    @patch('ecs_scheduler.persistence.DynamoDBStore')
+    @patch.dict(os.environ, {'ECSS_DYNAMODB_TABLE': 'test-table'}, clear=True)
+    def test_resolve_dynamodb(self, dynamodb):
+        result = resolve()
+
+        self.assertIs(dynamodb.return_value, result)
+        dynamodb.assert_called_with('test-table')
+
+    @patch('ecs_scheduler.persistence.ElasticsearchStore')
+    @patch.dict(os.environ, {'ECSS_ELASTICSEARCH_INDEX': 'test-index', 'ECSS_ELASTICSEARCH_HOSTS': 'http://test-host:9200/'}, clear=True)
+    def test_resolve_elasticsearch(self, elasticsearch):
+        result = resolve()
+
+        self.assertIs(elasticsearch.return_value, result)
+        elasticsearch.assert_called_with('test-index', hosts=['http://test-host:9200/'])
+
+    @patch('ecs_scheduler.persistence.ElasticsearchStore')
+    @patch.dict(os.environ, {'ECSS_ELASTICSEARCH_INDEX': 'test-index', 'ECSS_ELASTICSEARCH_HOSTS': 'http://test-host1:9200/, http://test-host2:9200/,http://test-host3:8080/'}, clear=True)
+    def test_resolve_elasticsearch_with_multiple_hosts(self, elasticsearch):
+        result = resolve()
+
+        self.assertIs(elasticsearch.return_value, result)
+        elasticsearch.assert_called_with('test-index', hosts=['http://test-host1:9200/', 'http://test-host2:9200/', 'http://test-host3:8080/'])
+
+    @patch('ecs_scheduler.persistence.yaml')
+    @patch('ecs_scheduler.persistence.ElasticsearchStore')
+    @patch.dict(os.environ, {'ECSS_CONFIG_FILE': '/etc/opt/test.yaml'}, clear=True)
+    def test_resolve_elasticsearch_extended(self, elasticsearch, yaml):
+        yaml.safe_load.return_value = {'elasticsearch': {'index': 'test-index', 'client': {'foo': 'bar', 'a': 1}}}
+
+        result = resolve()
+
+        self.assertIs(elasticsearch.return_value, result)
+        yaml.safe_load.assert_called_with('/etc/opt/test.yaml')
+        elasticsearch.assert_called_with('test-index', foo='bar', a=1)
 
 
 class NullStoreTests(unittest.TestCase):
@@ -501,32 +564,28 @@ class DynamoDBStoreTests(unittest.TestCase):
 
 class ElasticsearchStoreTests(unittest.TestCase):
     def setUp(self):
-        with patch('elasticsearch.Elasticsearch') as es_cls, \
-                patch.dict('ecs_scheduler.configuration.config',
-                            {'elasticsearch': {'client': {'foo': 'bar'}, 'index': 'test_index'}}):
-            self._target = ElasticsearchStore()
+        with patch('elasticsearch.Elasticsearch') as es_cls:
+            self._target = ElasticsearchStore('test_index', foo='bar')
             self._es = es_cls.return_value
 
     @patch('elasticsearch.Elasticsearch')
-    @patch.dict('ecs_scheduler.configuration.config', {'elasticsearch': {'client': {'foo': 'bar'}, 'index': 'test_index'}})
     def test_init_does_not_create_index_if_present(self, es_cls):
         es = es_cls.return_value
         es.indices.exists.return_value = True
 
-        target = ElasticsearchStore()
+        target = ElasticsearchStore('test_index', foo='bar')
 
         es.indices.create.assert_not_called()
 
     @patch('ecs_scheduler.persistence.datetime')
     @patch('elasticsearch.Elasticsearch')
     @patch.object(logging.getLogger('ecs_scheduler.persistence'), 'warning')
-    @patch.dict('ecs_scheduler.configuration.config', {'elasticsearch': {'client': {'foo': 'bar'}, 'index': 'test_index'}})
     def test_init_does_creates_index_if_not_found(self, warning, es_cls, dt):
         es = es_cls.return_value
         es.indices.exists.return_value = False
         dt.now.return_value = datetime(year=2017, month=6, day=14, hour=13, minute=43, second=54)
 
-        target = ElasticsearchStore()
+        target = ElasticsearchStore('test_index', foo='bar')
 
         expected_body = {
             'settings': {
