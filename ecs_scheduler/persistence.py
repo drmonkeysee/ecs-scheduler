@@ -28,7 +28,7 @@ def resolve():
         'ECSS_DYNAMODB_TABLE': lambda ev: DynamoDBStore(ev),
         'ECSS_SQLITE_FILE': lambda ev: SQLiteStore(ev),
         'ECSS_ELASTICSEARCH_INDEX': lambda ev: ElasticsearchStore(ev, **{
-            'hosts': [h.strip() for h in os.getenv('ECSS_ELASTICSEARCH_HOSTS').split(',')]
+            'hosts': [h.strip() for h in os.environ['ECSS_ELASTICSEARCH_HOSTS'].split(',')]
         })
     }
     for env_var, factory in env_factories.items():

@@ -1,5 +1,6 @@
 import unittest
 import logging
+import os
 from unittest.mock import patch, Mock
 
 from ecs_scheduler.scheduld.execution import JobExecutor, JobResult
@@ -9,7 +10,7 @@ from ecs_scheduler.scheduld.execution import JobExecutor, JobResult
 class JobExecutorTests(unittest.TestCase):
     def setUp(self):
         with patch('boto3.client'), \
-                patch.dict('ecs_scheduler.configuration.config', {'aws': {'ecs_cluster_name': 'testCluster', 'ecs_scheduler_name': 'testName'}}):
+                patch.dict(os.environ, {'ECSS_ECS_CLUSTER': 'testCluster', 'ECSS_NAME': 'testName'}, clear=True):
             self._exec = JobExecutor()
 
     def test_call_does_nothing_if_zero_task_count(self, fake_get_trigger):
@@ -71,6 +72,23 @@ class JobExecutorTests(unittest.TestCase):
         self.assertEqual(JobExecutor.RETVAL_STARTED_TASKS, result.return_code)
         self.assertEqual([{'taskId': 'foo1', 'hostId': 'bar1'}, {'taskId': 'foo2', 'hostId': 'bar2'}], result.task_info)
         self._exec._ecs.run_task.assert_called_with(cluster='testCluster', taskDefinition='foo', count=3, startedBy='testName')
+        fake_get_trigger.assert_called_with(None)
+
+    def test_call_uses_default_name_if_not_specified(self, fake_get_trigger):
+        with patch('boto3.client'), \
+                patch.dict(os.environ, {'ECSS_ECS_CLUSTER': 'testCluster'}, clear=True):
+            executor = JobExecutor()
+        fake_trigger = Mock()
+        fake_trigger.determine_task_count.return_value = 3
+        fake_get_trigger.return_value = fake_trigger
+        executor._ecs.list_tasks.return_value = {'taskArns': []}
+        executor._ecs.run_task.return_value = {'tasks':[{'taskArn': 'foo1', 'containerInstanceArn': 'bar1'}, {'taskArn': 'foo2', 'containerInstanceArn': 'bar2'}], 'failures': []}
+
+        result = executor(id='foo')
+
+        self.assertEqual(JobExecutor.RETVAL_STARTED_TASKS, result.return_code)
+        self.assertEqual([{'taskId': 'foo1', 'hostId': 'bar1'}, {'taskId': 'foo2', 'hostId': 'bar2'}], result.task_info)
+        executor._ecs.run_task.assert_called_with(cluster='testCluster', taskDefinition='foo', count=3, startedBy='ecs-scheduler')
         fake_get_trigger.assert_called_with(None)
 
     @patch.object(logging.getLogger('ecs_scheduler.scheduld.execution'), 'warning')

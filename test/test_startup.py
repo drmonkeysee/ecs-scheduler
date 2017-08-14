@@ -3,18 +3,16 @@ import logging
 import logging.handlers
 from unittest.mock import patch
 
-from ecs_scheduler import startup, configuration
+from ecs_scheduler import startup
 
 
 class InitTests(unittest.TestCase):
     @patch('ecs_scheduler.startup.triggers')
-    @patch('ecs_scheduler.startup.init_config')
     @patch('ecs_scheduler.startup.init_env')
-    def test(self, env, config, triggers):
+    def test(self, env, triggers):
         startup.init()
 
         env.assert_called_with()
-        config.assert_called_with()
         triggers.init.assert_called_with()
 
 
@@ -64,50 +62,3 @@ class InitEnvTests(unittest.TestCase):
         expected_handlers = expected_args['handlers']
         self.assertEqual(2, len(expected_handlers))
         self.assertIsInstance(expected_handlers[1], logging.handlers.RotatingFileHandler)
-
-
-@patch.dict('ecs_scheduler.configuration.config', clear=True)
-class InitConfigTests(unittest.TestCase):
-    @patch('yaml.safe_load')
-    @patch('builtins.open')
-    @patch.dict('os.environ', clear=True)
-    def test_loads_default(self, fake_open, fake_yaml):
-        test_config = {}
-        fake_yaml.return_value = test_config
-
-        startup.init_config()
-
-        self.assertEqual(test_config, configuration.config)
-        fake_open.assert_called_with('config/config_default.yaml')
-
-    @patch('yaml.safe_load')
-    @patch('builtins.open')
-    @patch.dict('os.environ', {'RUN_ENV': 'dev'})
-    def test_loads_env(self, fake_open, fake_yaml):
-        test_config = {'foo': 4, 'bar': {'baz': 'bort', 'bart': 'boo'}, 'hoop': 10}
-        env_config = {'bar': {'baz': 'devbort', 'blort': 5}, 'foo': 20}
-        fake_yaml.side_effect = [test_config, env_config]
-
-        startup.init_config()
-        
-        self.assertEqual(20, configuration.config['foo'])
-        self.assertEqual(10, configuration.config['hoop'])
-        self.assertEqual('devbort', configuration.config['bar']['baz'])
-        self.assertEqual(5, configuration.config['bar']['blort'])
-        self.assertEqual('boo', configuration.config['bar']['bart'])
-        fake_open.assert_any_call('config/config_default.yaml')
-        fake_open.assert_called_with('config/config_dev.yaml')
-
-    @patch.object(logging.getLogger('ecs_scheduler.startup'), 'warning')
-    @patch('yaml.safe_load')
-    @patch('builtins.open', side_effect=[unittest.mock.DEFAULT, FileNotFoundError])
-    @patch.dict('os.environ', {'RUN_ENV': 'dev'})
-    def test_skips_envload_if_filenotfound(self, fake_open, fake_yaml, fake_log):
-        test_config = {}
-        fake_yaml.return_value = test_config
-
-        startup.init_config()
-
-        self.assertEqual(test_config, configuration.config)
-        fake_open.assert_any_call('config/config_default.yaml')
-        fake_open.assert_called_with('config/config_dev.yaml')

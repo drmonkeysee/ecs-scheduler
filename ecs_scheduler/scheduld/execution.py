@@ -1,10 +1,10 @@
 """Job execution classes."""
 import logging
 import copy
+import os
 
 import boto3
 
-from ..configuration import config
 from . import triggers
 
 
@@ -28,8 +28,8 @@ class JobExecutor:
     def __init__(self):
         """Create an executor."""
         self._ecs = boto3.client('ecs')
-        self._cluster_name = config['aws']['ecs_cluster_name']
-        self._my_name = config['aws']['ecs_scheduler_name']
+        self._cluster_name = os.environ['ECSS_ECS_CLUSTER']
+        self._my_name = os.getenv('ECSS_NAME', 'ecs-scheduler')
 
     def __call__(self, **job_data):
         """
