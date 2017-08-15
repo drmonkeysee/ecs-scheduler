@@ -4,7 +4,6 @@ import posixpath
 import collections
 import json
 import sqlite3
-import os
 from datetime import datetime
 
 import boto3
@@ -12,6 +11,8 @@ import botocore.exceptions
 import elasticsearch
 import elasticsearch.helpers
 import yaml
+
+from . import env
 
 
 _logger = logging.getLogger(__name__)
@@ -24,22 +25,22 @@ def resolve():
     :returns: A data store implementation
     """
     env_factories = {
-        'ECSS_S3_BUCKET': lambda ev: S3Store(ev, prefix=os.getenv('ECSS_S3_PREFIX')),
-        'ECSS_DYNAMODB_TABLE': lambda ev: DynamoDBStore(ev),
-        'ECSS_SQLITE_FILE': lambda ev: SQLiteStore(ev),
-        'ECSS_ELASTICSEARCH_INDEX': lambda ev: ElasticsearchStore(ev, **{
-            'hosts': [h.strip() for h in os.environ['ECSS_ELASTICSEARCH_HOSTS'].split(',')]
+        'S3_BUCKET': lambda ev: S3Store(ev, prefix=env.get_var('S3_PREFIX')),
+        'DYNAMODB_TABLE': lambda ev: DynamoDBStore(ev),
+        'SQLITE_FILE': lambda ev: SQLiteStore(ev),
+        'ELASTICSEARCH_INDEX': lambda ev: ElasticsearchStore(ev, **{
+            'hosts': [h.strip() for h in env.get_var('ELASTICSEARCH_HOSTS', required=True).split(',')]
         })
     }
     for env_var, factory in env_factories.items():
-        env_value = os.getenv(env_var)
+        env_value = env.get_var(env_var)
         if env_value:
             return factory(env_value)
 
     conf_factories = {
         'elasticsearch': lambda kwargs: ElasticsearchStore(kwargs['index'], **kwargs['client'])
     }
-    config_file = os.getenv('ECSS_CONFIG_FILE')
+    config_file = env.get_var('CONFIG_FILE')
     if config_file:
         conf = yaml.safe_load(config_file)
         for key, factory in conf_factories.items():

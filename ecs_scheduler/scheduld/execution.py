@@ -1,11 +1,11 @@
 """Job execution classes."""
 import logging
 import copy
-import os
 
 import boto3
 
 from . import triggers
+from .. import env
 
 
 # see http://docs.aws.amazon.com/AmazonECS/latest/APIReference/API_RunTask.html
@@ -28,8 +28,8 @@ class JobExecutor:
     def __init__(self):
         """Create an executor."""
         self._ecs = boto3.client('ecs')
-        self._cluster_name = os.environ['ECSS_ECS_CLUSTER']
-        self._my_name = os.getenv('ECSS_NAME', 'ecs-scheduler')
+        self._cluster_name = env.get_var('ECS_CLUSTER', required=True)
+        self._my_name = env.get_var('NAME', default='ecs-scheduler')
 
     def __call__(self, **job_data):
         """
