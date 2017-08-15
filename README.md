@@ -13,32 +13,120 @@ ECS Scheduler is organized as two components:
 
 The scheduld instance is hosted within the Flask application that makes up webapi.
 
-## Getting Started (PROVISIONAL)
+## Getting Started
 
-This particular version of ECS Scheduler is a modified adaptation from an internal [Openmail](https://github.com/Openmail) project and is designed to be run as a standalone application. Later releases of this project will expose it as a pip-installable package with greater flexibility in hosting and running the scheduler components. In the meantime this can be run as an application script directly from the repo contents. A Dockerfile is also provided that sets the repository up to host in docker.
+ECS Scheduler is an adaptation of an internal [Openmail](https://github.com/Openmail) project and is designed to be run as a standalone application. It can be run as an application script directly from the repo contents or as a docker container built from the provided Dockerfile. Later releases of this project will expose it as a pip-installable package with greater flexibility in hosting and running scheduler.
 
-ECS Scheduler startup is controlled through a combination of configuration files and environment variables. Primary configuration is controlled via the contents of YAML files in the **config/** directory. It begins by loading the contents of **config_default.yaml** and then overlaying the contents of one of the environment-specific config files based on the `RUN_ENV` environment variable. For example if `RUN_ENV=test` then **config_test.yaml** and **config_default.yaml** will be combined.
+ECS Scheduler configuration is controlled entirely through environment variables which control aspects behaviors like logging, choice of storage technology, and metadata such as the name to attribute on ECS tasks spun-up by the scheduler. All ECS Scheduler environment variables can contain formatting variables naming other environment variables which will be filled in at runtime. For example if the scheduler's server's HOSTNAME variable is `prod-server-1234` and you set ECSS_LOG_FOLDER to `/var/log/{HOSTNAME}/scheduler` then ECS Scheduler will log to the **/var/log/prod-server-1234/scheduler** folder.
 
 [boto3](https://github.com/boto/boto3) is the package used to communicate to AWS services. To set up credentials and default AWS configuration see the details in the [boto3 docs](https://boto3.readthedocs.io/en/latest/guide/configuration.html).
 
-For historical reasons [elasticsearch](https://www.elastic.co/products/elasticsearch) is used as the backing store for persisting job information so an elasticsearch cluster is also required to run ECS scheduler. An index will be created automatically the first time a job is added (as of 5.4 it looks like this is no longer the default so create the index manually using the expected index name in the ECS scheduler configuration yaml). If you want to use a more specific mapping consult the `JobSchema` and related classes in **serialization.py**. In a later release there will be a static file and a simple S3 storage option as well as hooks to implement your own persistence layer. When testing locally I would recommend using the [elasticsearch docker image](https://www.elastic.co/guide/en/elasticsearch/reference/current/docker.html).
+### General Application Environment Variables
 
-Finally the log level can be controlled via the `LOG_LEVEL` env variable, set to one of the values defined in the [`logging` Python module](https://docs.python.org/3/library/logging.html#logging-levels).
+The following environment variables are used to control general application behaviors:
 
-The make file provides a `debug` target that will launch ecs-scheduler for local testing, placing Flask in debug mode. To run ecs-scheduler in release mode use the **ecsscheduler.py** script. The example below will run ecs-scheduler using the test environment configuration and using a log level of info.
+| Name | Required | Example | Description |
+| ---- | -------- | ------- | ----------- |
+| ECSS_NAME | No | `my-scheduler` | Name to use in the `startedBy` field of an ECS task started by ECS Scheduler; uses a default name if not specified |
+| ECSS_ECS_CLUSTER | Yes | `prod-cluster` | Name of the ECS cluster in which to run tasks |
+| ECSS_LOG_LEVEL | No | `INFO` | Level of application logging; expected values documented [here](https://docs.python.org/3/library/logging.html#logging-levels); uses Python default level if not specified |
+| ECSS_LOG_FOLDER | No | `/var/log/{HOSTNAME}/ecs-scheduler` | Folder in which to write application logs; ECS Scheduler will also log to stdout whether this is set or not |
 
-```sh
-> LOG_LEVEL=INFO RUN_ENV=test python ecsscheduler.py
+### Persistent Storage
+
+ECS Scheduler supports several technologies for persisting scheduled jobs. Environment variables determine which persistent store to use. A word of warning: if you specify environment variables for more than one persistence technology at the same time it is implementation-defined which one will be chosen!
+
+If none of these enviroment variables are defined then ECS Scheduler will default to an in-memory store that will not persist anything when the application terminates. This can be useful for quick-and-dirty testing and development but ECS Scheduler will log a warning since it's unlikely to be the intended behavior outside of those scenarios.
+
+The supported persistence technologies are:
+
+- SQLite: local database file; useful to avoid network failures or additional AWS service charges for storage
+- S3: store jobs as individual JSON S3 objects; supports optional key prefix so you do not need a dedicated bucket for ECS Scheduler
+- DynamoDB: store jobs as key-value items in a DynamoDB table
+- Elasticsearch: store jobs in an Elasticsearch index
+
+All the persistent stores will attempt to create the expected artifact (e.g. file, bucket, table, index) with reasonable defaults if not found on startup. If specific settings for the storage artifacts are desired then create them before starting ECS Scheduler.
+
+| Name | Example | Description |
+| ---- | ------- | ----------- |
+| ECSS_SQLITE_FILE | `/var/opt/ecs-scheduler.db` | Use local SQLite database file; useful for avoiding extra AWS service charges or easy backup |
+| ECSS_S3_BUCKET | `my-company-ecs-scheduler` | Use S3 bucket to store jobs as individual JSON S3 objects |
+| ECSS_S3_PREFIX | `ecs-scheduler/test/jobs` | Optional key prefix |
+| ECSS_DYNAMODB_TABLE | `ecs-scheduler` | DynamoDB table to store jobs as key-value items |
+| ECSS_ELASTICSEARCH_INDEX | `ecs-scheduler` | Elasticsearch index to store jobs as JSON documents |
+| ECSS_ELASTICSEARCH_HOSTS | `http://my-node-1:9200/, http://my-node-2:9200/ http://my-node-3:9200/` | Required comma-delimited Elasticsearch hosts on which the given Elasticsearch index is stored |
+
+Note that Elasticsearch is the odd-one out; it requires two distinct environment variables in order to function properly. In fact, Elasticsearch potentially requires much more complicated initialization than an index and the hosts. Therefore there is one more environment variable that can used to provide extended initialization parameters to ECS Scheduler. Elasticsearch is currently the only component that takes advantage of extended configuration but future additions to ECS Scheduler may use it as well.
+
+#### Extended Storage Configuration
+
+A configuration file path can be given to ECS Scheduler which it can use to provide more complicated persistence initialization that would be awkward to express via simple environment variable strings. The configuration file must be a [YAML file](https://en.wikipedia.org/wiki/YAML) that specifies a top-level key specifying which persistence technology to use and then subkeys describing the initialization arguments for the persistent store.
+
+As with environment variables if the configuration file specifies multiple persistence technologies it is implementation-defined which one will be picked!
+
+| Name | Example | Description |
+| ---- | ------- | ----------- |
+| ECSS_CONFIG_FILE | `/etc/opt/ecs-scheduler.yaml` | YAML configuration file to provide extended persistence initialization |
+
+##### Elasticsearch Config Example
+
+```yaml
+---
+elasticsearch:
+  index: prod-ecs-scheduler
+  client:
+    hosts:
+      - host: prod-1.escluster.somedomain
+      - host: prod-2.escluster.somedomain
+    sniff_on_start: true
+    sniff_on_connection_fail: true
+    sniffer_timeout: 600
+    sniff_timeout: 10
+    timeout: 60
+    retry_on_timeout: true
+    max_retries: 10
 ```
 
-### Application Configuration
+`index` specifies the name of the index to use and `client` specifies all keyword arguments to be passed to the underlying [Elasticsearch client](http://elasticsearch-py.readthedocs.io/en/master/api.html#elasticsearch).
 
-ECS Scheduler looks for configuration files automatically in the **config/** directory. This repository comes with sample configuration files (both default and environment-specific) that contain sample values. Configuration controls the following aspects of the application:
+### Running the Application
 
-- elasticsearch cluster connectivity
-- elasticsearch index name in which to store jobs
-- ECS cluster name in which to start tasks
-- name used to tag tasks in ECS so they can be identified as being started by scheduld
+The make file provides a `debug` target that will launch ECS Scheduler for local testing, placing Flask in debug mode. To run ECS Scheduler in release mode use the **ecsscheduler.py** script. The example below will run ECS Scheduler using a test database and using a log level of info.
+
+```sh
+> ECSS_LOG_LEVEL=INFO ECSS_SQLITE_FILE=data/test.db python ecsscheduler.py
+```
+
+## Local Setup
+
+If you want to build or develop against ECS Scheduler then use the following instructions.
+
+### System Requirements
+
+- [Python 3](https://www.python.org)
+- [make](https://www.gnu.org/software/make/)
+
+Technically you can get by without make by just reading the Makefile and performing the individual build targets manually.
+
+### Development Environment
+
+Run `make test` and follow the displayed instructions. Once your development environment is set up `make test` will run the unit tests.
+
+Run `make` or `make debug` to launch ECS Scheduler in debug mode.
+
+### Docker
+
+If you want to run ECS Scheduler in docker use `make docker` to build the image. The following example runs an instance of the ECS Scheduler container using an on-image SQLite database as the persistent store and using an environment file containing your AWS credentials named **docker-env**:
+
+```sh
+> docker run --name ecs-scheduler -p 5000:5000 -e ECSS_LOG_LEVEL=INFO -e ECSS_SQLITE_FILE=/var/opt/ecs-scheduler.db --env-file ~/.aws/docker-env -d ecs-scheduler
+```
+
+`make docker-clean` will delete all stopped ECS Scheduler containers and remove the image.
+
+### Build Package (Unfinished)
+
+If you want to build the package yourself but do not need a development environment run `make build` to create the package wheel. Run `make check` to run the unit tests. Currently building the package will not get you much since ECS Scheduler is designed to run as an application script but in the future this will be the primary way to get and run the application.
 
 ## Webapi
 
@@ -408,37 +496,6 @@ HTTP/1.0 200 OK
 ```
 
 Here we limit the number of tasks processing our queue to 10.
-
-## Local Setup
-
-If you want to build or develop against ECS Scheduler then use the following instructions.
-
-### System Requirements
-
-- [Python 3](https://www.python.org)
-- [make](https://www.gnu.org/software/make/)
-
-Technically you can get by without make by just reading the Makefile and performing the individual build targets manually.
-
-### Build Package
-
-If you want to build the package yourself but do not need a development environment run `make` or `make build` to create the package wheel. Run `make check` to run the unit tests. Currently building the package will not get you much since ECS Scheduler is designed to run as an application script but in the future this will be the primary way to get and run the application.
-
-### Development Environment
-
-Run `make test` and follow the displayed instructions. Once your development environment is set up `make test` will run the unit tests.
-
-Run `make debug` to launch ecs-scheduler in debug mode.
-
-### Docker
-
-If you want to run ECS Scheduler in docker use `make docker` to build the image. Assuming you have an elasticsearch docker container running as `scheduler-es` and an environment file with your AWS credentials named **docker-env** then you can start ecs-scheduler as:
-
-```sh
-> docker run --name ecs-scheduler -p 5000:5000 -e LOG_LEVEL=INFO --env-file ~/.aws/docker-env --link=scheduler-es:es -d ecs-scheduler
-```
-
-`make docker-clean` will delete all stopped ecs-scheduler containers and remove the image.
 
 ## Credits
 

@@ -8,9 +8,6 @@ COPY requirements.txt $APP_DIR
 
 RUN pip install -r requirements.txt
 
-ENV LOG_LEVEL=WARNING
-ENV RUN_ENV=localdocker
-
 COPY . $APP_DIR
 
 EXPOSE 5000
