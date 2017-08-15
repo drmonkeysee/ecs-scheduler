@@ -17,7 +17,7 @@ The scheduld instance is hosted within the Flask application that makes up webap
 
 ECS Scheduler is an adaptation of an internal [Openmail](https://github.com/Openmail) project and is designed to be run as a standalone application. It can be run as an application script directly from the repo contents or as a docker container built from the provided Dockerfile. Later releases of this project will expose it as a pip-installable package with greater flexibility in hosting and running scheduler.
 
-ECS Scheduler configuration is controlled entirely through environment variables which control aspects behaviors like logging, choice of storage technology, and metadata such as the name to attribute on ECS tasks spun-up by the scheduler. All ECS Scheduler environment variables can contain formatting variables naming other environment variables which will be filled in at runtime. For example if the scheduler's server's HOSTNAME variable is `prod-server-1234` and you set ECSS_LOG_FOLDER to `/var/log/{HOSTNAME}/scheduler` then ECS Scheduler will log to the **/var/log/prod-server-1234/scheduler** folder.
+ECS Scheduler configuration is controlled entirely through environment variables which control aspects behaviors like logging, choice of storage technology, and metadata such as the name to attribute on ECS tasks spun-up by the scheduler. All ECS Scheduler environment variables can contain formatting parameters naming other environment variables which will be filled in at runtime. For example if your server's `HOSTNAME` env variable is `prod-server-1234` and you set `ECSS_LOG_FOLDER` to `/var/log/{HOSTNAME}/scheduler` then ECS Scheduler will log to **/var/log/prod-server-1234/scheduler**.
 
 [boto3](https://github.com/boto/boto3) is the package used to communicate to AWS services. To set up credentials and default AWS configuration see the details in the [boto3 docs](https://boto3.readthedocs.io/en/latest/guide/configuration.html).
 
@@ -30,7 +30,7 @@ The following environment variables are used to control general application beha
 | ECSS_NAME | No | `my-scheduler` | Name to use in the `startedBy` field of an ECS task started by ECS Scheduler; uses a default name if not specified |
 | ECSS_ECS_CLUSTER | Yes | `prod-cluster` | Name of the ECS cluster in which to run tasks |
 | ECSS_LOG_LEVEL | No | `INFO` | Level of application logging; expected values documented [here](https://docs.python.org/3/library/logging.html#logging-levels); uses Python default level if not specified |
-| ECSS_LOG_FOLDER | No | `/var/log/{HOSTNAME}/ecs-scheduler` | Folder in which to write application logs; ECS Scheduler will also log to stdout whether this is set or not |
+| ECSS_LOG_FOLDER | No | `/var/log/{HOSTNAME}/ecs-scheduler` | Folder in which to write application logs; ECS Scheduler will also log to the standard streams whether this is set or not |
 
 ### Persistent Storage
 
@@ -40,19 +40,19 @@ If none of these enviroment variables are defined then ECS Scheduler will defaul
 
 The supported persistence technologies are:
 
-- SQLite: local database file; useful to avoid network failures or additional AWS service charges for storage
-- S3: store jobs as individual JSON S3 objects; supports optional key prefix so you do not need a dedicated bucket for ECS Scheduler
-- DynamoDB: store jobs as key-value items in a DynamoDB table
-- Elasticsearch: store jobs in an Elasticsearch index
+- **SQLite**: local database file; useful to avoid network failures or additional AWS service charges for storage
+- **S3**: store jobs as individual JSON S3 objects; supports optional key prefix so you do not need a dedicated bucket for ECS Scheduler
+- **DynamoDB**: store jobs as key-value items in a DynamoDB table
+- **Elasticsearch**: store jobs in an Elasticsearch index
 
 All the persistent stores will attempt to create the expected artifact (e.g. file, bucket, table, index) with reasonable defaults if not found on startup. If specific settings for the storage artifacts are desired then create them before starting ECS Scheduler.
 
 | Name | Example | Description |
 | ---- | ------- | ----------- |
-| ECSS_SQLITE_FILE | `/var/opt/ecs-scheduler.db` | Use local SQLite database file; useful for avoiding extra AWS service charges or easy backup |
-| ECSS_S3_BUCKET | `my-company-ecs-scheduler` | Use S3 bucket to store jobs as individual JSON S3 objects |
-| ECSS_S3_PREFIX | `ecs-scheduler/test/jobs` | Optional key prefix |
-| ECSS_DYNAMODB_TABLE | `ecs-scheduler` | DynamoDB table to store jobs as key-value items |
+| ECSS_SQLITE_FILE | `/var/opt/ecs-scheduler.db` | Use local SQLite database file using a simple id, JSON data schema |
+| ECSS_S3_BUCKET | `my-company-ecs-scheduler` | Use S3 bucket to store jobs as individual serialized JSON S3 objects |
+| ECSS_S3_PREFIX | `ecs-scheduler/test/jobs` | Optional S3 key prefix |
+| ECSS_DYNAMODB_TABLE | `ecs-scheduler` | DynamoDB table to store jobs as key-value serialized JSON items |
 | ECSS_ELASTICSEARCH_INDEX | `ecs-scheduler` | Elasticsearch index to store jobs as JSON documents |
 | ECSS_ELASTICSEARCH_HOSTS | `http://my-node-1:9200/, http://my-node-2:9200/ http://my-node-3:9200/` | Required comma-delimited Elasticsearch hosts on which the given Elasticsearch index is stored |
 
