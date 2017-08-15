@@ -17,8 +17,11 @@ endef
 ifndef LOG_LEVEL
 LOG_LEVEL := INFO
 endif
+ifndef ECS_CLUSTER
+ECS_CLUSTER := test-cluster
+endif
 debug: venv
-	FLASK_DEBUG=1 FLASK_APP=ecsscheduler.py LOG_LEVEL=$(LOG_LEVEL) flask run
+	FLASK_DEBUG=1 FLASK_APP=ecsscheduler.py ECSS_LOG_LEVEL=$(LOG_LEVEL) ECSS_ECS_CLUSTER=$(ECS_CLUSTER) flask run
 
 test: venv
 	$(PY) -m unittest

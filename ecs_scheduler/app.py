@@ -6,7 +6,7 @@ import atexit
 from setuptools_scm import get_version
 import werkzeug.serving
 
-from . import webapi, scheduld, startup, operations, datacontext
+from . import webapi, scheduld, env, operations, datacontext
 
 
 _logger = logging.getLogger(__name__)
@@ -19,7 +19,7 @@ def create():
     :returns: The flask server instance
     """
     try:
-        startup.init()
+        env.init()
 
         _logger.info('ECS Scheduler v%s', get_version())
         app = webapi.create()
