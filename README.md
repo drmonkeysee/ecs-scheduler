@@ -40,8 +40,8 @@ If none of these enviroment variables are defined then ECS Scheduler will defaul
 
 The supported persistence technologies are:
 
-- **SQLite**: local database file; useful to avoid network failures or additional AWS service charges for storage
-- **S3**: store jobs as individual JSON S3 objects; supports optional key prefix so you do not need a dedicated bucket for ECS Scheduler
+- **SQLite**: local database file; useful to avoid network failures or additional AWS service charges for storage but if used in docker will be destroyed along with the container unless the file is part of a mounted volume
+- **S3**: store jobs as objects in an S3 bucket; supports optional key prefix if you do not want to dedicate a bucket to ECS Scheduler
 - **DynamoDB**: store jobs as key-value items in a DynamoDB table
 - **Elasticsearch**: store jobs in an Elasticsearch index
 
@@ -54,7 +54,7 @@ All the persistent stores will attempt to create the expected artifact (e.g. fil
 | ECSS_S3_PREFIX | `ecs-scheduler/test/jobs` | Optional S3 key prefix |
 | ECSS_DYNAMODB_TABLE | `ecs-scheduler` | DynamoDB table to store jobs as key-value serialized JSON items |
 | ECSS_ELASTICSEARCH_INDEX | `ecs-scheduler` | Elasticsearch index to store jobs as JSON documents |
-| ECSS_ELASTICSEARCH_HOSTS | `http://my-node-1:9200/, http://my-node-2:9200/ http://my-node-3:9200/` | Required comma-delimited Elasticsearch hosts on which the given Elasticsearch index is stored |
+| ECSS_ELASTICSEARCH_HOSTS | `http://my-node-1:9200/, http://my-node-2:9200/, http://my-node-3:9200/` | Comma-delimited Elasticsearch hosts on which the given Elasticsearch index is stored; required if ECSS_ELASTICSEARCH_INDEX is set |
 
 Note that Elasticsearch is the odd-one out; it requires two distinct environment variables in order to function properly. In fact, Elasticsearch potentially requires much more complicated initialization than an index and the hosts. Therefore there is one more environment variable that can used to provide extended initialization parameters to ECS Scheduler. Elasticsearch is currently the only component that takes advantage of extended configuration but future additions to ECS Scheduler may use it as well.
 
