@@ -3,7 +3,7 @@ import os
 import logging
 import logging.handlers
 
-from .scheduld import triggers
+from . import triggers
 
 
 _logger = logging.getLogger(__name__)

@@ -6,7 +6,7 @@ from unittest.mock import patch, Mock
 from ecs_scheduler.scheduld.execution import JobExecutor, JobResult
 
 
-@patch('ecs_scheduler.scheduld.triggers.get')
+@patch('ecs_scheduler.scheduld.execution.triggers.get')
 class JobExecutorTests(unittest.TestCase):
     def setUp(self):
         with patch('boto3.client'), \

@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import patch, Mock
 
-from ecs_scheduler.scheduld.triggers import NoOpTrigger, SqsTrigger, get, init, _triggers
+from ecs_scheduler.triggers import NoOpTrigger, SqsTrigger, get, init, _triggers
 
 
 class NoOpTriggerTests(unittest.TestCase):
@@ -118,7 +118,7 @@ class SqsTriggerTests(unittest.TestCase):
 
 
 @patch('boto3.resource')
-@patch.dict('ecs_scheduler.scheduld.triggers._triggers', {})
+@patch.dict('ecs_scheduler.triggers._triggers', {})
 class InitTests(unittest.TestCase):
     def test(self, fake_resource):
         init()
@@ -132,7 +132,7 @@ class TestTrigger():
     pass
 
 
-@patch.dict('ecs_scheduler.scheduld.triggers._triggers', {'test': TestTrigger(), 'noop': NoOpTrigger()})
+@patch.dict('ecs_scheduler.triggers._triggers', {'test': TestTrigger(), 'noop': NoOpTrigger()})
 class GetTests(unittest.TestCase):
     def test_get_named_trigger(self):
         trigger = get('test')

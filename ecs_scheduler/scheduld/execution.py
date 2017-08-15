@@ -4,8 +4,7 @@ import copy
 
 import boto3
 
-from . import triggers
-from .. import env
+from .. import env, triggers
 
 
 # see http://docs.aws.amazon.com/AmazonECS/latest/APIReference/API_RunTask.html
