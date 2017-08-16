@@ -33,7 +33,7 @@ def _init_logging():
     log_handlers = [logging.StreamHandler()]
     log_folder = get_var('LOG_FOLDER')
     if log_folder:
-        os.makedirs(log_folder, exist_ok=True)
+        os.makedirs(os.path.abspath(log_folder), exist_ok=True)
         log_file = os.path.join(log_folder, 'app.log')
         log_handlers.append(logging.handlers.RotatingFileHandler(log_file, maxBytes=5*1024*1024, backupCount=1))
     logging.basicConfig(level=log_level, handlers=log_handlers, format='%(levelname)s:%(name)s:%(asctime)s %(message)s')

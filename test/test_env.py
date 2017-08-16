@@ -34,12 +34,13 @@ class InitTests(unittest.TestCase):
         fake_log.assert_called_with(level=logging.INFO, handlers=unittest.mock.ANY, format='%(levelname)s:%(name)s:%(asctime)s %(message)s')
 
     @patch.object(logging, 'basicConfig')
+    @patch('os.path.abspath', side_effect=lambda p: '/abs/path/' + p)
     @patch('os.makedirs')
     @patch.dict('os.environ', {'ECSS_LOG_FOLDER': 'foo/bar/testlog'}, clear=True)
-    def test_sets_logfile(self, fake_makedirs, fake_log, triggers):
+    def test_sets_logfile(self, fake_makedirs, abspath, fake_log, triggers):
         with patch.object(logging.handlers, 'RotatingFileHandler', spec=logging.handlers.RotatingFileHandler) as fake_file_handler:
             env.init()
-            fake_makedirs.assert_called_with('foo/bar/testlog', exist_ok=True)
+            fake_makedirs.assert_called_with('/abs/path/foo/bar/testlog', exist_ok=True)
             fake_file_handler.assert_called_with('foo/bar/testlog/app.log', maxBytes=5*1024*1024, backupCount=1)
         
         pos_args, expected_args = fake_log.call_args
@@ -48,12 +49,13 @@ class InitTests(unittest.TestCase):
         self.assertIsInstance(expected_handlers[1], logging.handlers.RotatingFileHandler)
 
     @patch.object(logging, 'basicConfig')
+    @patch('os.path.abspath', side_effect=lambda p: '/abs/path/' + p)
     @patch('os.makedirs')
     @patch.dict('os.environ', {'ECSS_LOG_FOLDER': 'foo/bar/{HOSTNAME}/testlog', 'HOSTNAME': 'testhost'}, clear=True)
-    def test_sets_logfile_with_env_vars(self, fake_makedirs, fake_log, triggers):
+    def test_sets_logfile_with_env_vars(self, fake_makedirs, abspath, fake_log, triggers):
         with patch.object(logging.handlers, 'RotatingFileHandler', spec=logging.handlers.RotatingFileHandler) as fake_file_handler:
             env.init()
-            fake_makedirs.assert_called_with('foo/bar/testhost/testlog', exist_ok=True)
+            fake_makedirs.assert_called_with('/abs/path/foo/bar/testhost/testlog', exist_ok=True)
             fake_file_handler.assert_called_with('foo/bar/testhost/testlog/app.log', maxBytes=5*1024*1024, backupCount=1)
         
         pos_args, expected_args = fake_log.call_args
