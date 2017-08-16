@@ -19,10 +19,10 @@ ECS Scheduler is designed to be run as a standalone application. It can be run a
 
 ### Running the Application
 
-The make file provides a `debug` target that will launch ECS Scheduler for local testing, placing Flask in debug mode. To run ECS Scheduler in release mode use the **ecsscheduler.py** script. The example below will run ECS Scheduler using a test database, pointing at a test ECS cluster, and using a log level of info. The environment variables in this example are described in more detail in a later section.
+The make file provides a `debug` target that will launch ECS Scheduler for local testing, placing Flask in debug mode. To run ECS Scheduler in release mode use the **ecsscheduler.py** script. The example below will run ECS Scheduler using a test database, pointing at a test ECS cluster, and using a log level of info. The environment variables in this example are described in more detail in a [later section](#general-application-environment-variables).
 
 ```sh
-> ECSS_LOG_LEVEL=INFO ECSS_SQLITE_FILE=data/test.db ECSS_ECS_CLUSTER=test-cluster python ecsscheduler.py
+> ECSS_LOG_LEVEL=INFO ECSS_ECS_CLUSTER=test-cluster ECSS_SQLITE_FILE=data/test.db python ecsscheduler.py
 ```
 
 ### Local Setup
@@ -47,7 +47,7 @@ Run `make` or `make debug` to launch ECS Scheduler in debug mode.
 If you want to run ECS Scheduler in docker use `make docker` to build the image. The following example runs an instance of the ECS Scheduler container using an on-image SQLite database as the persistent store and using an environment file containing your AWS credentials named **docker-env**:
 
 ```sh
-> docker run --name ecs-scheduler -p 5000:5000 -e ECSS_LOG_LEVEL=INFO -e ECSS_SQLITE_FILE=/var/opt/ecs-scheduler.db --env-file ~/.aws/docker-env -d ecs-scheduler
+> docker run --name ecs-scheduler -p 5000:5000 -e ECSS_LOG_LEVEL=INFO -e ECSS_ECS_CLUSTER=test-cluster -e ECSS_SQLITE_FILE=/var/opt/ecs-scheduler.db --env-file ~/.aws/docker-env -d ecs-scheduler
 ```
 
 `make docker-clean` will delete all stopped ECS Scheduler containers and remove the image.
