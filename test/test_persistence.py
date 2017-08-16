@@ -103,12 +103,22 @@ class SQLiteStoreTests(unittest.TestCase):
         self.addCleanup(conn_patch.stop)
         self._conn = self._connect.return_value.__enter__.return_value
         with patch('sqlite3.register_adapter') as self._adapt, \
-                patch('sqlite3.register_converter') as self._conv:
+                patch('sqlite3.register_converter') as self._conv, \
+                patch('os.makedirs') as self._mkdirs, \
+                patch('os.path.abspath') as self._abspath:
             self._target = SQLiteStore('test-file')
 
     def test_init_registers_handers(self):
         self._adapt.assert_called_with(dict, ANY)
         self._conv.assert_called_with('JSONTEXT', ANY)
+
+    def test_init_creates_file_folder_if_present(self):
+        with patch('sqlite3.register_adapter'), \
+                patch('sqlite3.register_converter'), \
+                patch('os.makedirs') as mkdirs, \
+                patch('os.path.abspath', side_effect=lambda p: '/abs/path/' + p) as abspath:
+            target = SQLiteStore('foo/bar/test-file')
+        mkdirs.assert_called_with('/abs/path/foo/bar', exist_ok=True)
 
     def test_init_creates_table(self):
         self._connect.assert_called_with('test-file', isolation_level=None, detect_types=sqlite3.PARSE_DECLTYPES)
@@ -116,6 +126,8 @@ class SQLiteStoreTests(unittest.TestCase):
         self.assertEqual(1, self._connect.call_count)
         self.assertIn('CREATE TABLE IF NOT EXISTS', args[0])
         self.assertIn('jobs(id TEXT PRIMARY KEY NOT NULL, data JSONTEXT NOT NULL', args[0])
+        self._mkdirs.assert_not_called()
+        self._abspath.assert_not_called()
 
     def test_load_all_yields_nothing_if_empty(self):
         self._conn.execute.return_value = []

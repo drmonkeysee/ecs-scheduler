@@ -4,6 +4,7 @@ import posixpath
 import collections
 import json
 import sqlite3
+import os
 from datetime import datetime
 
 import boto3
@@ -140,6 +141,9 @@ class SQLiteStore:
         return sqlite3.connect(self._db_file, isolation_level=None, detect_types=sqlite3.PARSE_DECLTYPES)
 
     def _ensure_table(self):
+        db_folder = os.path.dirname(self._db_file)
+        if db_folder:
+            os.makedirs(os.path.abspath(db_folder), exist_ok=True)
         with self._connection() as conn:
             conn.execute(f"""
                 CREATE TABLE IF NOT EXISTS
