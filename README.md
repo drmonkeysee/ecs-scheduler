@@ -11,48 +11,46 @@ ECS Scheduler is organized as two components:
 - **webapi**: a REST web application providing the scheduler UI; used to create, modify, and remove scheduled jobs
 - **scheduld**: the scheduler daemon that runs scheduled jobs and talks to ECS to start tasks
 
-The scheduld instance is hosted within the Flask application that makes up webapi.
+The components are packaged together into a single [Flask](http://flask.pocoo.org) application.
 
 ## Getting Started
 
-ECS Scheduler is designed to be run as a standalone application. It can be run as an application script directly from the repo contents or as a docker container built from the provided Dockerfile. Later releases of this project will expose it as a pip-installable package with greater flexibility in hosting and running scheduler.
+ECS Scheduler is designed to be run as a standalone application. Docker is the preferred means to host it using the provided Dockerfile, though it can be launched directly as an application script. Later releases of this project will expose it as a pip-installable package as well.
 
-### Running the Application
+[boto3](https://github.com/boto/boto3) is the package used to communicate to AWS services. You will need AWS credentials to access, at a minimum, ECS. To learn how to pass your AWS credentials to an application using boto3 consult the [boto3 docs](https://boto3.readthedocs.io/en/latest/guide/configuration.html).
 
-The make file provides a `debug` target that will launch ECS Scheduler for local testing, placing Flask in debug mode. To run ECS Scheduler in release mode use the **ecsscheduler.py** script. The example below will run ECS Scheduler using a test database, pointing at a test ECS cluster, and using a log level of info. The environment variables in this example are described in more detail in a [later section](#general-application-environment-variables).
+The environment variables in the following examples are described in more detail in a [later section](#general-application-environment-variables).
 
-```sh
-> ECSS_LOG_LEVEL=INFO ECSS_ECS_CLUSTER=test-cluster ECSS_SQLITE_FILE=data/test.db python ecsscheduler.py
-```
+### System Requirements
 
-### Local Setup
-
-If you want to build or develop against ECS Scheduler then use the following instructions.
-
-#### System Requirements
-
-- [Python 3](https://www.python.org)
+- [Python 3.6+](https://www.python.org)
 - [make](https://www.gnu.org/software/make/)
 
-Technically you can get by without make by just reading the Makefile and performing the individual build targets manually.
-
-#### Development Environment
+### Development
 
 Run `make test` and follow the displayed instructions. Once your development environment is set up `make test` will run the unit tests.
 
 Run `make` or `make debug` to launch ECS Scheduler in debug mode.
 
-#### Docker
+### Docker
 
-If you want to run ECS Scheduler in docker use `make docker` to build the image. The following example runs an instance of the ECS Scheduler container using an on-image SQLite database as the persistent store and using an environment file containing your AWS credentials named **docker-env**:
+If you want to run ECS Scheduler in docker use `make docker` to build the image. The following example runs an instance of the ECS Scheduler container using an on-image SQLite database as the persistent store and passes your AWS credentials to the container via an environment file named **docker-env**:
 
 ```sh
-> docker run --name ecs-scheduler -p 5000:5000 -e ECSS_LOG_LEVEL=INFO -e ECSS_ECS_CLUSTER=test-cluster -e ECSS_SQLITE_FILE=/var/opt/ecs-scheduler.db --env-file ~/.aws/docker-env -d ecs-scheduler
+> docker run --name ecs-scheduler -p 5000:5000 -e ECSS_ECS_CLUSTER=test-cluster -e ECSS_SQLITE_FILE=/var/opt/ecs-scheduler.db --env-file ~/.aws/docker-env -d ecs-scheduler
 ```
 
 `make docker-clean` will delete all stopped ECS Scheduler containers and remove the image.
 
-#### Build Package (Unfinished)
+### Application Script
+
+To run ECS Scheduler in release mode directly use the **ecsscheduler.py** script. The example below will run ECS Scheduler using a test database log at the info level. 
+
+```sh
+> ECSS_LOG_LEVEL=INFO ECSS_ECS_CLUSTER=test-cluster ECSS_SQLITE_FILE=data/test.db python ecsscheduler.py
+```
+
+### Build Package (Unfinished)
 
 If you want to build the package yourself but do not need a development environment run `make build` to create the package wheel. Run `make check` to run the unit tests. Currently building the package will not get you much since ECS Scheduler is designed to run as an application script but in the future this will be the primary way to get and run the application.
 
@@ -66,8 +64,6 @@ ECS Scheduler configuration is controlled entirely through environment variables
 | ECSS_NAME | No | `my-scheduler` | Name to use in the `startedBy` field of an ECS task started by ECS Scheduler; uses a default name if not specified |
 | ECSS_LOG_LEVEL | No | `INFO` | Level of application logging; expected values documented [here](https://docs.python.org/3/library/logging.html#logging-levels); uses Python default level if not specified |
 | ECSS_LOG_FOLDER | No | `/var/log/ecs-scheduler` | Folder in which to write application logs; ECS Scheduler will also log to the standard streams whether this is set or not |
-
-Somewhat related to environment variables, [boto3](https://github.com/boto/boto3) is the package used to communicate to AWS services. To get boto3 using your credentials and AWS configuration see the details in the [boto3 docs](https://boto3.readthedocs.io/en/latest/guide/configuration.html).
 
 ### Persistent Storage
 
