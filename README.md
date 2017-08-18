@@ -6,13 +6,6 @@ A scheduler for executing Amazon ECS docker tasks, controlled via a JSON REST AP
 
 However there is a third execution model in between one-off and persistent tasks: tasks that execute on a scheduled interval or when a certain environmental condition is met. These container tasks may need to perform a few seconds or a few days of work, but they do not need to run indefinitely. Amazon ECS does not support this natively so ECS Scheduler was created to fill that gap. ECS Scheduler allows you to manage the execution schedules of such ephemeral containers turning ECS and docker into a high-octane version of AWS Lambda!
 
-ECS Scheduler is organized as two components:
-
-- **webapi**: a REST web application providing the scheduler UI; used to create, modify, and remove scheduled jobs
-- **scheduld**: the scheduler daemon that runs scheduled jobs and talks to ECS to start tasks
-
-The components are packaged together into a single [Flask](http://flask.pocoo.org) application.
-
 ## Getting Started
 
 ECS Scheduler is designed to be run as a standalone application. Docker is the preferred means to host it using the provided Dockerfile, though it can be launched directly as an application script. Later releases of this project will expose it as a pip-installable package as well.

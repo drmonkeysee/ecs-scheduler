@@ -1,6 +1,11 @@
 # Component Overview
 
-ECS Scheduler is logically organized as two components, combined in a single Flask application.
+ECS Scheduler is organized as two components:
+
+- **webapi**: a REST web application providing the scheduler UI; used to create, modify, and remove scheduled jobs
+- **scheduld**: the scheduler daemon that runs scheduled jobs and talks to ECS to start tasks
+
+The components are packaged together into a single [Flask](http://flask.pocoo.org) application.
 
 ## Webapi
 
