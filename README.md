@@ -54,7 +54,7 @@ To run ECS Scheduler in release mode directly use the **ecsscheduler.py** script
 
 If you want to build the package yourself but do not need a development environment run `make build` to create the package wheel. Run `make check` to run the unit tests. Currently building the package will not get you much since ECS Scheduler is designed to run as an application script but in the future this will be the primary way to get and run the application.
 
-[##](#environment-configuration) [Environment Configuration](doc/ENVIRONMENT.md)
+## [Environment Configuration](doc/ENVIRONMENT.md)
 
 ## [Component Overview](doc/COMPONENTS.md)
 

@@ -1,6 +1,6 @@
 # Component Overview
 
-ECS Scheduler is logically organized as two components, combined as a single Flask application.
+ECS Scheduler is logically organized as two components, combined in a single Flask application.
 
 ## Webapi
 
