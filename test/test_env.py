@@ -3,7 +3,7 @@ import logging
 import logging.handlers
 from unittest.mock import patch
 
-from ecs_scheduler import env
+from ecs_scheduler import env, __version__
 
 
 @patch('ecs_scheduler.env.triggers')
@@ -105,3 +105,18 @@ class GetVarTests(unittest.TestCase):
         value = env.get_var('FOO', required=True)
 
         self.assertEqual('foo12bar', value)
+
+
+@patch('setuptools_scm.get_version')
+class GetVersionTests(unittest.TestCase):
+    def test_get_from_setuptools(self, scm):
+        result = env.get_version()
+
+        self.assertIs(scm.return_value, result)
+
+    def test_get_fallsback_to_hardcoded_if_scm_fails(self, scm):
+        scm.side_effect = LookupError
+
+        result = env.get_version()
+
+        self.assertEqual(__version__, result)
