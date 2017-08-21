@@ -3,7 +3,9 @@ import os
 import logging
 import logging.handlers
 
-from . import triggers
+import setuptools_scm
+
+from . import triggers, __version__
 
 
 _logger = logging.getLogger(__name__)
@@ -26,6 +28,17 @@ def get_var(name, required=False, default=None):
     name = f'ECSS_{name}'
     val = os.environ[name] if required else os.getenv(name, default)
     return val.format(**os.environ) if val else val
+
+
+def get_version():
+    """
+    Get the current application version.
+    """
+    # TODO: remove hardcoded version once package can be built for docker
+    try:
+        return setuptools_scm.get_version()
+    except LookupError:
+        return __version__
 
 
 def _init_logging():

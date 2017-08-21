@@ -3,7 +3,6 @@ import os
 import logging
 import atexit
 
-from setuptools_scm import get_version
 import werkzeug.serving
 
 from . import webapi, scheduld, env, operations, datacontext
@@ -21,7 +20,7 @@ def create():
     try:
         env.init()
 
-        _logger.info('ECS Scheduler v%s', get_version())
+        _logger.info('ECS Scheduler v%s', env.get_version())
         app = webapi.create()
 
         # NOTE: Flask in debug mode will restart after initial startup
