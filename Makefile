@@ -31,6 +31,13 @@ ifneq ($(CURRENT_PY), $(VENV_PY))
 	$(error $(VENV_ERROR))
 endif
 
+docker: test
+	docker build -t $(CONTAINER_NAME) .
+
+docker-clean:
+	docker ps -a | awk '/$(CONTAINER_NAME)/ { print $$1 }' | xargs docker rm
+	docker rmi $(CONTAINER_NAME)
+
 # TODO: revisit when packagifying application
 #build:
 #	$(PY) setup.py bdist_wheel
@@ -40,10 +47,3 @@ endif
 #
 #clean:
 #	rm -rf .eggs build dist ecs_scheduler.egg-info
-
-#docker: #build
-#	docker build -t $(CONTAINER_NAME) .
-#
-#docker-clean:
-#	docker ps -a | awk '/$(CONTAINER_NAME)/ { print $$1 }' | xargs docker rm
-#	docker rmi $(CONTAINER_NAME)
