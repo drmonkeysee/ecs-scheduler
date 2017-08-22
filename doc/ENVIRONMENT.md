@@ -53,8 +53,8 @@ elasticsearch:
   index: prod-ecs-scheduler
   client:
     hosts:
-      - host: prod-1.escluster.somedomain
-      - host: prod-2.escluster.somedomain
+      - prod-1.escluster.somedomain
+      - prod-2.escluster.somedomain
     sniff_on_start: true
     sniff_on_connection_fail: true
     sniffer_timeout: 600
