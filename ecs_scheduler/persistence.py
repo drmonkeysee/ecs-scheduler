@@ -223,8 +223,9 @@ class S3Store:
         deleted_obj.delete()
 
     def _ensure_bucket(self):
+        s3_client = boto3.client('s3')
         try:
-            self._bucket.load()
+            s3_client.head_bucket(Bucket=self._bucket.name)
         except botocore.exceptions.ClientError as ex:
             if ex.response['Error']['Code'] == '404':
                 _logger.warning('S3 bucket not found; creating bucket "%s"', self._bucket.name)

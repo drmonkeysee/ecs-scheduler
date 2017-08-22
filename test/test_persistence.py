@@ -206,23 +206,25 @@ class SQLiteStoreTests(unittest.TestCase):
 
 class S3StoreTests(unittest.TestCase):
     def setUp(self):
-        with patch('boto3.resource') as self._res:
+        with patch('boto3.resource') as self._res, \
+            patch('boto3.client') as self._client:
             bn = 'test-bucket'
-            self._target = S3Store(bn)
             self._bucket = self._res.return_value.Bucket.return_value
             self._bucket.name = bn
+            self._target = S3Store(bn)
 
     def test_init(self):
         self._res.return_value.Bucket.assert_called_with('test-bucket')
-        self._bucket.load.assert_called_with()
+        self._client.return_value.head_bucket.assert_called_with(Bucket='test-bucket')
         self._bucket.create.assert_not_called()
 
     @patch.object(logging.getLogger('ecs_scheduler.persistence'), 'warning')
     def test_init_creates_bucket_if_not_found(self, warning):
         with patch('boto3.resource') as res, \
+                patch('boto3.client') as c, \
                 patch('boto3.session.Session') as s:
             bucket = res.return_value.Bucket.return_value
-            bucket.load.side_effect = botocore.exceptions.ClientError({'Error': {'Code': '404'}}, 'fake_operation')
+            c.return_value.head_bucket.side_effect = botocore.exceptions.ClientError({'Error': {'Code': '404'}}, 'fake_operation')
             session = s.return_value
             session.region_name = 'test-region'
             target = S3Store('test-bucket', 'test-prefix')
@@ -233,9 +235,10 @@ class S3StoreTests(unittest.TestCase):
 
     @patch.object(logging.getLogger('ecs_scheduler.persistence'), 'warning')
     def test_init_raises_unknown_errors(self, warning):
-        with patch('boto3.resource') as res:
+        with patch('boto3.resource') as res, \
+                patch('boto3.client') as c:
             bucket = res.return_value.Bucket.return_value
-            bucket.load.side_effect = botocore.exceptions.ClientError({'Error': {'Code': '500'}}, 'fake_operation')
+            c.return_value.head_bucket.side_effect = botocore.exceptions.ClientError({'Error': {'Code': '500'}}, 'fake_operation')
             with self.assertRaises(botocore.exceptions.ClientError):
                 target = S3Store('test-bucket', 'test-prefix')
 
