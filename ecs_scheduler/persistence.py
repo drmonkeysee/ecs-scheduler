@@ -43,11 +43,12 @@ def resolve():
     }
     config_file = env.get_var('CONFIG_FILE')
     if config_file:
-        conf = yaml.safe_load(config_file)
-        for key, factory in conf_factories.items():
-            kwargs = conf.get(key)
-            if kwargs:
-                return factory(kwargs)
+        with open(config_file) as f:
+            conf = yaml.safe_load(f)
+            for key, factory in conf_factories.items():
+                kwargs = conf.get(key)
+                if kwargs:
+                    return factory(kwargs)
 
     return NullStore()
 

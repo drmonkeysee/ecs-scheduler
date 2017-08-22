@@ -61,16 +61,17 @@ class ResolveTests(unittest.TestCase):
         self.assertIs(elasticsearch.return_value, result)
         elasticsearch.assert_called_with('test-index', hosts=['http://test-host1:9200/', 'http://test-host2:9200/', 'http://test-host3:8080/'])
 
+    @patch('builtins.open')
     @patch('ecs_scheduler.persistence.yaml')
     @patch('ecs_scheduler.persistence.ElasticsearchStore')
     @patch.dict(os.environ, {'ECSS_CONFIG_FILE': '/etc/opt/test.yaml'}, clear=True)
-    def test_resolve_elasticsearch_extended(self, elasticsearch, yaml):
+    def test_resolve_elasticsearch_extended(self, elasticsearch, yaml, f_open):
         yaml.safe_load.return_value = {'elasticsearch': {'index': 'test-index', 'client': {'foo': 'bar', 'a': 1}}}
 
         result = resolve()
 
         self.assertIs(elasticsearch.return_value, result)
-        yaml.safe_load.assert_called_with('/etc/opt/test.yaml')
+        f_open.assert_called_with('/etc/opt/test.yaml')
         elasticsearch.assert_called_with('test-index', foo='bar', a=1)
 
 
