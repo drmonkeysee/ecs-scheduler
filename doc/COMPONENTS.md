@@ -42,6 +42,7 @@ schedule - required field; CRON-style schedule describing when this job fires (a
 id - id of the job; set to taskDefinition if not specified explicitly
 scheduleStart - start date for when the job should begin its schedule; if not set schedule begins immediately
 scheduleEnd - end date for when the job should end its schedule; if not set schedule never ends
+timezone - timezone to use for the job's schedule
 taskCount - the minimum number of tasks to start when the job fires
 maxCount - the maximum number of tasks to start when the job fires; ECS Scheduler also has a hard-coded limit of 50 tasks per job
 trigger - additional conditions for whether the job should start any tasks when its schedule fires
