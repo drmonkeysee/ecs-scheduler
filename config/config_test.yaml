@@ -1,7 +1,0 @@
----
-elasticsearch:
-  client:
-    hosts:
-      - host: test-1.escluster.somedomain
-      - host: test-2.escluster.somedomain
-      - host: test-3.escluster.somedomain

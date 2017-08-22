@@ -1,9 +1,0 @@
----
-elasticsearch:
-  index: ecs-scheduler
-  client:
-    hosts:
-      - http://elastic:changeme@localhost:9200/
-aws:
-  ecs_cluster_name: dev-cluster
-  ecs_scheduler_name: dev-ecs-scheduler
