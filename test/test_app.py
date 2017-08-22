@@ -1,6 +1,5 @@
 import unittest
 import logging
-import os
 from unittest.mock import patch, ANY
 
 from ecs_scheduler.app import create

@@ -1,5 +1,4 @@
 """Main entry for the ECS Scheduler application."""
-import os
 import logging
 import atexit
 

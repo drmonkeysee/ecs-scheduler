@@ -1,7 +1,5 @@
 import unittest
-from unittest.mock import patch, Mock
-
-import marshmallow.exceptions
+from unittest.mock import Mock
 
 from ecs_scheduler.operations import DirectQueue
 
