@@ -13,11 +13,11 @@ ECS Scheduler configuration is controlled entirely through environment variables
 
 ECS Scheduler supports several technologies for persisting scheduled jobs, chosen by setting environment variables. A word of warning: if you specify environment variables for more than one persistence technology at the same time it is implementation-defined which one will be chosen!
 
-If none of these enviroment variables are defined then ECS Scheduler will default to an in-memory store that will not persist anything when the application terminates. This can be useful for quick-and-dirty testing and development but since it's unlikely to be the intended behavior outside of those scenarios ECS Scheduler will always log a warning if the in-memory store is created.
+If none of these enviroment variables are defined then ECS Scheduler will default to an in-memory store that will not persist anything when the application terminates. This can be useful for quick-and-dirty testing and development but since it's unlikely to be the intended behavior outside of those scenarios ECS Scheduler will always log a warning when the in-memory store is created.
 
 The supported persistence technologies are:
 
-- **SQLite**: local database file; useful to avoid network failures or additional AWS service charges for storage but if used in docker will be destroyed along with the container unless the file is part of a mounted volume
+- **SQLite**: local database file; useful to avoid network calls or additional AWS service charges but if used in docker will have the same lifetime as the container unless the file is part of a mounted volume
 - **S3**: store jobs as objects in an S3 bucket; supports optional key prefix if you do not want to dedicate a bucket to ECS Scheduler
 - **DynamoDB**: store jobs as key-value items in a DynamoDB table
 - **Elasticsearch**: store jobs in an Elasticsearch index

@@ -13,7 +13,7 @@ The webapi component is used to interact with ECS scheduler. It provides a REST 
 
 The home url `/` returns the list of available endpoints.
 
-webapi runs as a self-hosted Flask server. The usage pattern of webapi makes it unlikely you will need a more sophisticated application server container but if necessary [uWSGI](https://uwsgi-docs.readthedocs.org/en/latest/) can provide multi-process/multi-threading request dispatching and more robust web server hosting.
+webapi runs as a self-hosted Flask server. The usage pattern of webapi makes it unlikely you will need a more sophisticated application server container but if necessary [uWSGI](https://uwsgi-docs.readthedocs.org/en/latest/) can provide more robust web server hosting. A word of warning: ECS Scheduler is a stateful application designed to drive Amazon ECS! If ECS Scheduler is run as a multi-process/multi-threaded application then each process will have its own scheduler reading from the same persistent store and launching tasks in the same ECS cluster! If you want to host ECS Scheduler within uWSGI make sure it is configured to run within a single process.
 
 webapi provides a swagger spec at `/spec`. This spec can be read by [Swagger UI](https://github.com/swagger-api/swagger-ui). You can either build [Swagger UI](https://github.com/swagger-api/swagger-ui) yourself or point the official [Swagger test site](http://petstore.swagger.io/) at it. For full documentation of the webapi interface consult the swagger spec.
 
@@ -81,3 +81,5 @@ The second, minute, and hour elements of the schedule expression support a speci
 ## Scheduld
 
 As mentioned previously Scheduld uses the APScheduler package to do all the real work of managing job schedules. Since webapi is the primary interface to ECS Scheduler there is not much to say about scheduld; APScheduler docs and the ECS API documentation cover most of what it does.
+
+Although mentioned in the Webapi section above it is worth reiterating here. There is a major runtime constraint placed on ECS Scheduler for using APScheduler: scheduled jobs are stateful and their purpose is to generate side-effects in Amazon ECS. If ECS Scheduler is launched in a multi-process environment (e.g. by hosting in uWSGI and using the standard configuration), each process will load and start an APScheduler instance and you will very quickly have a swarm of competing ECS tasks! When hosting ECS Scheduler in a multi-process-capable web server make sure to configure the web server to run ECS Scheduler as a single process.

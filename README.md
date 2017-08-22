@@ -37,7 +37,7 @@ If you want to run ECS Scheduler in docker use `make docker` to build the image.
 
 ### Application Script
 
-To run ECS Scheduler in release mode directly use the **ecsscheduler.py** script. The example below will run ECS Scheduler using a test database log at the info level. 
+To run ECS Scheduler in release mode directly use the **ecsscheduler.py** script. The example below will run ECS Scheduler using a local database and logging at the info level.
 
 ```sh
 > ECSS_LOG_LEVEL=INFO ECSS_ECS_CLUSTER=test-cluster ECSS_SQLITE_FILE=data/test.db python ecsscheduler.py
