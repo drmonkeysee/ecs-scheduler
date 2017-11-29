@@ -99,8 +99,7 @@ class SQLiteStore:
         """
         _logger.info('Loading jobs from SQLite database %s', self._db_file)
         with self._connection() as conn:
-            for job_id, job_data in conn.execute(f"SELECT * FROM {self._TABLE}"):
-                yield {'id': job_id, **job_data}
+            yield from ({'id': job_id, **job_data} for job_id, job_data in conn.execute(f"SELECT * FROM {self._TABLE}"))
 
     def create(self, job_id, job_data):
         """
@@ -188,9 +187,7 @@ class S3Store:
         msg += '...'
         _logger.info(msg)
         job_objects = self._get_objects()
-        for jo in job_objects:
-            job_data = self._load_obj_contents(jo.summary)
-            yield {'id': jo.job_id, **job_data}
+        yield from ({'id': jo.job_id, **self._load_obj_contents(jo.summary)} for jo in job_objects)
 
     def create(self, job_id, job_data):
         """
@@ -296,10 +293,7 @@ class DynamoDBStore:
             else:
                 batch = self._table.scan()
             items = batch['Items']
-            for item in items:
-                job_id = item[self._KEY_NAME]
-                job_data = self._parse_item(item)
-                yield {'id': job_id, **job_data}
+            yield from ({'id': item[self._KEY_NAME], **self._parse_item(item)} for item in items)
 
     def create(self, job_id, job_data):
         """
@@ -378,8 +372,7 @@ class ElasticsearchStore:
             index=self._index,
             doc_type=self._DOC_TYPE,
             scroll=self._SCROLL_PERIOD)
-        for hit in hits:
-            yield {'id': hit['_id'], **hit['_source']}
+        yield from ({'id': hit['_id'], **hit['_source']} for hit in hits)
 
     def create(self, job_id, job_data):
         """
