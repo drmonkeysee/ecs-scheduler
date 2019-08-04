@@ -1,9 +1,9 @@
 APScheduler>=3.3
-boto3>=1.4
-elasticsearch>=2.0.0
+boto3>=1.9
+elasticsearch>=6.0.0
 Flask-Cors>=3.0
 Flask-RESTful>=0.3
 flask-swagger>=0.2
 marshmallow>=2.13
-PyYAML>=3.12
-setuptools-scm>=1.15
+PyYAML>=5.0
+setuptools-scm>=3.0
