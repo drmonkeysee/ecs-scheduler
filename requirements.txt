@@ -7,3 +7,4 @@ flask-swagger>=0.2
 marshmallow>=2.13
 PyYAML>=5.0
 setuptools-scm>=3.0
+uwsgitop
