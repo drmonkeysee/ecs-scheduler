@@ -623,7 +623,7 @@ class ElasticsearchStoreTests(unittest.TestCase):
 
         self.assertEqual([], results)
         info.assert_called()
-        scan.assert_called_with(client=self._es, index='test_index', doc_type='job', scroll='1m')
+        scan.assert_called_with(client=self._es, index='test_index', scroll='1m')
 
     @patch('elasticsearch.helpers.scan')
     @patch.object(logging.getLogger('ecs_scheduler.persistence'), 'info')
@@ -661,23 +661,23 @@ class ElasticsearchStoreTests(unittest.TestCase):
         ]
         self.assertCountEqual(expected, results)
         info.assert_called()
-        scan.assert_called_with(client=self._es, index='test_index', doc_type='job', scroll='1m')
+        scan.assert_called_with(client=self._es, index='test_index', scroll='1m')
 
     def test_create(self):
         data = {'a': 1, 'b': 2}
 
         self._target.create(12, data)
 
-        self._es.create.assert_called_with(index='test_index', doc_type='job', id=12, body=data)
+        self._es.create.assert_called_with(index='test_index', id=12, body=data)
 
     def test_update(self):
         data = {'a': 1, 'b': 2}
 
         self._target.update(12, data)
 
-        self._es.update.assert_called_with(index='test_index', doc_type='job', id=12, body={'doc': data}, retry_on_conflict=3)
+        self._es.update.assert_called_with(index='test_index', id=12, body={'doc': data}, retry_on_conflict=3)
 
     def test_delete(self):
         self._target.delete(12)
 
-        self._es.delete.assert_called_with(index='test_index', doc_type='job', id=12)
+        self._es.delete.assert_called_with(index='test_index', id=12)

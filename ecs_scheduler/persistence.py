@@ -347,7 +347,6 @@ class DynamoDBStore:
 
 class ElasticsearchStore:
     """Elasticsearch data store."""
-    _DOC_TYPE = 'job'
     _SCROLL_PERIOD = '1m'
 
     def __init__(self, index, **client_args):
@@ -370,7 +369,6 @@ class ElasticsearchStore:
         _logger.info('Loading jobs from elasticsearch index %s...', self._index)
         hits = elasticsearch.helpers.scan(client=self._es,
             index=self._index,
-            doc_type=self._DOC_TYPE,
             scroll=self._SCROLL_PERIOD)
         yield from ({'id': hit['_id'], **hit['_source']} for hit in hits)
 
@@ -381,7 +379,7 @@ class ElasticsearchStore:
         :param job_id: Job document id
         :param job_data: Job document body
         """
-        self._es.create(index=self._index, doc_type=self._DOC_TYPE, id=job_id, body=job_data)
+        self._es.create(index=self._index, id=job_id, body=job_data)
 
     def update(self, job_id, job_data):
         """
@@ -390,7 +388,7 @@ class ElasticsearchStore:
         :param job_id: Job document id
         :param job_data: Job document body
         """
-        self._es.update(index=self._index, doc_type=self._DOC_TYPE, id=job_id, body={'doc': job_data}, retry_on_conflict=3)
+        self._es.update(index=self._index, id=job_id, body={'doc': job_data}, retry_on_conflict=3)
 
     def delete(self, job_id):
         """
@@ -398,7 +396,7 @@ class ElasticsearchStore:
 
         :param job_id: Job document id
         """
-        self._es.delete(index=self._index, doc_type=self._DOC_TYPE, id=job_id)
+        self._es.delete(index=self._index, id=job_id)
 
     def _ensure_index(self):
         if self._es.indices.exists(self._index):
