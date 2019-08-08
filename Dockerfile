@@ -1,7 +1,7 @@
 FROM nginx:alpine
 MAINTAINER drmonkeysee <brandonrstansbury@gmail.com>
 
-ENV TZ=UTC
+ENV TZ=Etc/UTC
 ENV APP_DIR=/opt/ecs-scheduler
 WORKDIR $APP_DIR
 
