@@ -39,4 +39,5 @@ docker-clean:
 	docker rmi $(CONTAINER_NAME)
 
 clean:
-	rm -rf .eggs build dist ecs_scheduler.egg-info __pycache__ **/__pycache__/
+	rm -rf .eggs build dist ecs_scheduler.egg-info
+	find . -type d -path ./venv -prune -o -name __pycache__ -exec rm -rf {} \+
