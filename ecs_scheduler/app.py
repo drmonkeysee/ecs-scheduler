@@ -1,6 +1,7 @@
 """Main entry for the ECS Scheduler application."""
-import logging
 import atexit
+import functools
+import logging
 
 import werkzeug.serving
 
@@ -22,12 +23,16 @@ def create():
         _logger.info('ECS Scheduler v%s', env.get_version())
         app = webapi.create()
 
-        # NOTE: Flask in debug mode will restart after initial startup
-        # so only setup application state in the main Flask process
-        # to avoid duplicate daemons and other side-effects
-        # see: https://github.com/pallets/werkzeug/blob/master/werkzeug/_reloader.py
-        if werkzeug.serving.is_running_from_reloader() or not app.debug:
-            _setup_application(app)
+        try:
+            from uwsgidecorators import postfork
+            postfork(functools.partial(_setup_application, app))
+        except ImportError:
+            # NOTE: Flask in debug mode will restart after initial startup
+            # so only setup application state in the main Flask process
+            # to avoid duplicate daemons and other side-effects
+            # see: https://github.com/pallets/werkzeug/blob/master/werkzeug/_reloader.py
+            if werkzeug.serving.is_running_from_reloader() or not app.debug:
+                _setup_application(app)
 
         return app
     except Exception:
@@ -41,7 +46,7 @@ def _setup_application(app):
 
     _logger.info('Starting scheduld...')
     _launch_scheduld(ops_queue, jobs_dc)
-    
+
     _logger.info('Setting up webapi...')
     webapi.setup(app, ops_queue, jobs_dc)
 

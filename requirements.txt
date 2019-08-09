@@ -7,4 +7,5 @@ flask-swagger
 marshmallow
 PyYAML
 setuptools-scm
+uwsgidecorators
 uwsgitop
