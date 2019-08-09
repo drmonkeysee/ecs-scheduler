@@ -5,7 +5,7 @@ ECS Scheduler is organized as two components:
 - **webapi**: a REST web application providing the scheduler UI; used to create, modify, and remove scheduled jobs
 - **scheduld**: the scheduler daemon that runs scheduled jobs and talks to ECS to start tasks
 
-The components are packaged together into a single [Flask](http://flask.pocoo.org) application.
+The components are packaged together into a single [Flask](https://flask.palletsprojects.com/) application.
 
 ## Webapi
 
@@ -13,7 +13,7 @@ The webapi component is used to interact with ECS scheduler. It provides a REST 
 
 The home url `/` returns the list of available endpoints.
 
-webapi runs as a self-hosted Flask server. The usage pattern of webapi makes it unlikely you will need a more sophisticated application server container but if necessary [uWSGI](https://uwsgi-docs.readthedocs.org/en/latest/) can provide more robust web server hosting. A word of warning: ECS Scheduler is a stateful application designed to drive Amazon ECS! If ECS Scheduler is run as a multi-process/multi-threaded application then each process will have its own scheduler reading from the same persistent store and launching tasks in the same ECS cluster! If you want to host ECS Scheduler within uWSGI make sure it is configured to run within a single process.
+webapi is a Flask application. The Flask application can be run directly within a development environment, but for a true deployment use the provided Dockerfile which uses [uWSGI](https://uwsgi-docs.readthedocs.org/en/latest/) and [nginx](http://nginx.org) to provide a more robust web server experience. A word of warning: ECS Scheduler is a stateful application designed to drive Amazon ECS! If ECS Scheduler is run as a multi-process/multi-threaded application then each process will have its own scheduler reading from the same persistent store and launching tasks in the same ECS cluster! If you want to host ECS Scheduler within uWSGI make sure it is configured to run within a single process.
 
 webapi provides a swagger spec at `/spec`. This spec can be read by [Swagger UI](https://github.com/swagger-api/swagger-ui). You can either build [Swagger UI](https://github.com/swagger-api/swagger-ui) yourself or point the official [Swagger test site](http://petstore.swagger.io/) at it. For full documentation of the webapi interface consult the swagger spec.
 

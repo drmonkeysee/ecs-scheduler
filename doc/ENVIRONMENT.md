@@ -26,7 +26,7 @@ All the persistent stores will attempt to create the expected artifact (e.g. fil
 
 | Name | Example | Description |
 | ---- | ------- | ----------- |
-| ECSS_SQLITE_FILE | `/var/opt/ecs-scheduler.db` | Use local SQLite database file using a simple id, JSON data schema |
+| ECSS_SQLITE_FILE | `/var/opt/ecss/ecs-scheduler.db` | Use local SQLite database file using a simple id, JSON data schema |
 | ECSS_S3_BUCKET | `my-company-ecs-scheduler` | Use S3 bucket to store jobs as individual serialized JSON S3 objects |
 | ECSS_S3_PREFIX | `ecs-scheduler/test/jobs` | Optional S3 key prefix |
 | ECSS_DYNAMODB_TABLE | `ecs-scheduler` | DynamoDB table to store jobs as key-value serialized JSON items |

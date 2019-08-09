@@ -8,9 +8,9 @@ However there is a third execution model in between one-off and persistent tasks
 
 ## Getting Started
 
-ECS Scheduler is designed to be run as a standalone application. Docker is the preferred means to host it using the provided Dockerfile, though it can be launched directly as an application script. Later releases of this project will expose it as a pip-installable package as well.
+ECS Scheduler is designed to be run as a standalone application rather than an installable Python package. Docker is the preferred means to host it using the provided Dockerfile. It is written in [Flask](https://flask.palletsprojects.com/) and uses the [APScheduler](https://apscheduler.readthedocs.io/en/latest/) package for job scheduling.
 
-[boto3](https://github.com/boto/boto3) is the package used to communicate to AWS services. You will need AWS credentials to access, at a minimum, ECS. To learn how to pass your AWS credentials to an application using boto3 consult the [boto3 docs](https://boto3.readthedocs.io/en/latest/guide/configuration.html).
+[boto3](https://github.com/boto/boto3) is the package used to communicate to AWS services. You will need AWS credentials to access, at a minimum, ECS. To learn how to pass your AWS credentials to an application using boto3 consult the [boto3 docs](https://boto3.amazonaws.com/v1/documentation/api/latest/index.html).
 
 The environment variables in the following examples are described in more detail in a [later section](#environment-configuration).
 
@@ -25,27 +25,17 @@ Run `make test` and follow the displayed instructions. Once your development env
 
 Run `make` or `make debug` to launch ECS Scheduler in debug mode.
 
-### Docker
+### Docker and Deployment
 
-If you want to run ECS Scheduler in docker use `make docker` to build the image. The following example runs an instance of the ECS Scheduler container using an on-image SQLite database as the persistent store and passes your AWS credentials to the container via an environment file named **docker-env**:
+If you want to run ECS Scheduler in docker use `make docker` to build the image. The docker image is the recommended way to deploy and run ECS Scheduler outside of a local development environment. The docker container hosts ECS Scheduler within [uWSGI](https://uwsgi-docs.readthedocs.io/en/latest/) behind an [nginx](http://nginx.org) server, making it more robust than a standalone Flask application.
+
+The following example runs an instance of the ECS Scheduler container using an on-image SQLite database as the persistent store and passes your AWS credentials to the container via an environment file named **docker-env**:
 
 ```sh
-> docker run --name ecs-scheduler -p 5000:5000 -e ECSS_ECS_CLUSTER=test-cluster -e ECSS_SQLITE_FILE=/var/opt/ecs-scheduler.db --env-file ~/.aws/docker-env -d ecs-scheduler
+> docker run --name ecs-scheduler -p 8080:80 -e ECSS_ECS_CLUSTER=test-cluster -e ECSS_SQLITE_FILE=/var/opt/ecss/ecs-scheduler.db --env-file ~/.aws/docker-env -d ecs-scheduler
 ```
 
 `make docker-clean` will delete all stopped ECS Scheduler containers and remove the image.
-
-### Application Script
-
-To run ECS Scheduler in release mode directly use the **ecsscheduler.py** script. The example below will run ECS Scheduler using a local database and logging at the info level.
-
-```sh
-> ECSS_LOG_LEVEL=INFO ECSS_ECS_CLUSTER=test-cluster ECSS_SQLITE_FILE=data/test.db python ecsscheduler.py
-```
-
-### Build Package (Unfinished)
-
-If you want to build the package yourself but do not need a development environment run `make build` to create the package wheel. Run `make check` to run the unit tests. Currently building the package will not get you much since ECS Scheduler is designed to run as an application script but in the future this will be the primary way to get and run the application.
 
 ## [Environment Configuration](doc/ENVIRONMENT.md)
 
