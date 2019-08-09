@@ -17,8 +17,9 @@ COPY config/nginx.conf /etc/nginx/conf.d/ecss.conf
 COPY config/uwsgi.ini /etc/uwsgi/ecss.ini
 COPY . $APP_DIR
 
-# Set world-writable to allow use of SQLite database files
-RUN chmod a+w /var/opt
+# Set up folder for optional SQLite use
+RUN mkdir /var/opt/ecss \
+	&& chown nginx:nginx /var/opt/ecss
 RUN chmod u+x docker-run.sh
 
 CMD ["./docker-run.sh"]
