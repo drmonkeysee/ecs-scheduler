@@ -12,7 +12,7 @@ Must activate virtual environment:
 Execute the above if virtual env is not set up
 endef
 
-.PHONY: build check clean docker docker-clean venv test debug
+.PHONY: check clean docker docker-clean venv debug
 
 ifndef LOG_LEVEL
 LOG_LEVEL := INFO
@@ -23,7 +23,7 @@ endif
 debug: venv
 	FLASK_DEBUG=1 FLASK_APP=ecsscheduler.py ECSS_LOG_LEVEL=$(LOG_LEVEL) ECSS_ECS_CLUSTER=$(ECS_CLUSTER) flask run
 
-test: venv
+check: venv
 	$(PY) -m unittest
 
 venv:
@@ -38,12 +38,5 @@ docker-clean:
 	docker ps -a | awk '/$(CONTAINER_NAME)/ { print $$1 }' | xargs docker rm
 	docker rmi $(CONTAINER_NAME)
 
-# TODO: revisit when packagifying application
-#build:
-#	$(PY) setup.py bdist_wheel
-#
-#check: build
-#	$(PY) setup.py test
-#
-#clean:
-#	rm -rf .eggs build dist ecs_scheduler.egg-info
+clean:
+	rm -rf .eggs build dist ecs_scheduler.egg-info __pycache__ **/__pycache__/
