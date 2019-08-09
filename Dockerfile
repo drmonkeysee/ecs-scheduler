@@ -15,8 +15,10 @@ RUN pip3 install -r requirements.txt
 
 COPY config/nginx.conf /etc/nginx/conf.d/ecss.conf
 COPY config/uwsgi.ini /etc/uwsgi/ecss.ini
-
 COPY . $APP_DIR
+
+# Set world-writable to allow use of SQLite database files
+RUN chmod a+w /var/opt
 RUN chmod u+x docker-run.sh
 
 CMD ["./docker-run.sh"]
