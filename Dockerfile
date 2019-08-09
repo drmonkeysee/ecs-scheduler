@@ -19,5 +19,4 @@ COPY config/uwsgi.ini /etc/uwsgi/ecss.ini
 COPY . $APP_DIR
 RUN chmod u+x docker-run.sh
 
-# TODO: use uwsgi and nginx
 CMD ["./docker-run.sh"]
