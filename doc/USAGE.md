@@ -9,7 +9,7 @@ Before creating jobs for ECS Scheduler you will need an existing Amazon ECS clus
 Assume we have an existing ECS task named `sleeper-task` that sleeps for 3 seconds then prints that it is done and exits. We want it to run every 5 minutes and will use ECS Scheduler to make that happen. We add a scheduled job to scheduler like so:
 
 ```sh
-> curl -i http://localhost:5000/jobs -d '{"taskDefinition": "sleeper-task", "schedule": "* */5"}' -H 'Content-Type: application/json'
+> curl -i http://localhost:5000/jobs -d '{"taskDefinition": "sleeper-task", "schedule": "25 */5"}' -H 'Content-Type: application/json'
 HTTP/1.0 201 CREATED
 Content-Type: application/json
 Content-Length: 142
@@ -51,7 +51,7 @@ Date: Mon, 03 Apr 2017 01:22:33 GMT
 }
 ```
 
-These are the entire details of the scheduled job. It has an id that matches the task definition name, a link describing how to access this resource, the number of tasks that will be launched when this job fires (currently set to 1), and a schedule that will fire every second of every 5 minutes. Uh... what? Whoops the wildcard `*` doesn't mean _any_ value, it means _every_ value. Clearly we only want to fire once every 5 minutes, not 60 times every 5th minute. Let's fix that:
+These are the entire details of the scheduled job. It has an id that matches the task definition name, a link describing how to access this resource, the number of tasks that will be launched when this job fires (currently set to 1), and a schedule that will fire on the 25th second of every 5th minute. Why 25? Well we had to pick something for the second field so we picked that. If we had used the wildcard `* */5` we would quickly find that our job executes _every_ second of every 5th minute which is clearly wrong. Is there a way to do this without picking an arbitrary second? Yes! Let's adjust our job's schedule without hard-coding an arbitrary second.
 
 ```sh
 > curl -i http://localhost:5000/jobs/sleeper-task -XPUT -d '{"schedule": "? */5"}' -H 'Content-Type: application/json'
@@ -96,7 +96,7 @@ Date: Mon, 03 Apr 2017 01:30:31 GMT
 }
 ```
 
-Now the schedule makes a bit more sense. In this particular case the server decided to run the job on the 9th second of every 5th minute.
+In this particular case the server decided to run the job on the 9th second of every 5th minute. Note that this is a stable choice; the `?` resolves to a concrete value at the time the job is created or updated and that value is stored in the job's schedule. It will not change until a user chooses to modify the schedule again.
 
 ## Multiple Jobs per Task
 
