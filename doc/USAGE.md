@@ -45,7 +45,7 @@ Date: Mon, 03 Apr 2017 01:22:33 GMT
         "rel": "item",
         "title": "Job for sleeper-task"
     },
-    "schedule": "* */5",
+    "schedule": "25 */5",
     "taskCount": 1,
     "taskDefinition": "sleeper-task"
 }
