@@ -21,7 +21,7 @@ The environment variables in the following examples are described in more detail
 
 ### Development
 
-Run `make test` and follow the displayed instructions. Once your development environment is set up `make test` will run the unit tests.
+Run `make check` and follow the displayed instructions. Once your development environment is set up `make check` will run the unit tests.
 
 Run `make` or `make debug` to launch ECS Scheduler in debug mode.
 
