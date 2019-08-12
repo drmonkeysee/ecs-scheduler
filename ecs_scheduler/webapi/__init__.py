@@ -43,6 +43,8 @@ def setup(app, ops_queue, datacontext):
     api.add_resource(Jobs, '/jobs', resource_class_args=(ops_queue, datacontext))
     api.add_resource(Job, '/jobs/<job_id>', resource_class_args=(ops_queue, datacontext))
 
+    app.after_request(_add_etag)
+
     _update_logger(app)
 
     return app
@@ -55,3 +57,8 @@ def _update_logger(app):
         pass
     else:
         app.logger.addHandler(file_handler)
+
+
+def _add_etag(response):
+    response.add_etag()
+    return response

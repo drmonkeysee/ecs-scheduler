@@ -4,7 +4,7 @@ from unittest.mock import patch, Mock
 
 import ecs_scheduler.webapi.home
 import ecs_scheduler.webapi.jobs
-from ecs_scheduler.webapi import create, setup
+from ecs_scheduler.webapi import create, setup, _add_etag
 
 
 @patch('flask.Flask')
@@ -31,6 +31,7 @@ class SetupTests(unittest.TestCase):
         flask_restful.return_value.add_resource.assert_any_call(ecs_scheduler.webapi.jobs.Jobs, '/jobs', resource_class_args=(self._queue, self._dc))
         flask_restful.return_value.add_resource.assert_any_call(ecs_scheduler.webapi.jobs.Job, '/jobs/<job_id>', resource_class_args=(self._queue, self._dc))
         cors.assert_called_with(self._flask, allow_headers='Content-Type')
+        self._flask.after_request.assert_called_with(_add_etag)
         self._flask.logger.addHandler.assert_not_called()
         self.assertFalse(self._flask.config['ERROR_404_HELP'])
 
