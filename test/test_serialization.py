@@ -210,7 +210,8 @@ class JobSchemaTests(unittest.TestCase):
     def test_deserialize_ignores_extra_schedule_stuff(self):
         schema = JobSchema()
         data = {
-            'schedule': '10 12 22-23 sun 34 last 2 2012-2015 barf bort blow-up',
+            'schedule': '10 12 22-23 sun 34 last 2 2012-2015'
+                        ' barf bort blow-up',
         }
 
         job, errors = schema.load(data)
@@ -412,7 +413,9 @@ class JobSchemaTests(unittest.TestCase):
 
         self.assertEqual({'taskDefinition'}, errors.keys())
 
-    def test_deserialize_fails_if_task_definition_includes_malformed_revision(self):
+    def test_deserialize_fails_if_task_definition_includes_malformed_revision(
+        self
+    ):
         schema = JobSchema()
         data = {'taskDefinition': 'foo:', 'schedule': '*'}
 
@@ -420,7 +423,9 @@ class JobSchemaTests(unittest.TestCase):
 
         self.assertEqual({'taskDefinition'}, errors.keys())
 
-    def test_deserialize_fails_if_task_definition_includes_invalid_characters(self):
+    def test_deserialize_fails_if_task_definition_includes_invalid_characters(
+        self
+    ):
         schema = JobSchema()
         data = {'taskDefinition': 'foo/bar.baz', 'schedule': '*'}
 

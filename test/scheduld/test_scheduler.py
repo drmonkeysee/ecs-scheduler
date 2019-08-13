@@ -403,7 +403,9 @@ class ScheduleEventHandlerTests(unittest.TestCase):
     @patch.object(
         logging.getLogger('ecs_scheduler.scheduld.scheduler'), 'warning'
     )
-    def test_checked_tasks_logs_warning_if_scheduled_job_not_found(self, fake_log):
+    def test_checked_tasks_logs_warning_if_scheduled_job_not_found(
+        self, fake_log
+    ):
         event = apscheduler.events.JobExecutionEvent(
             apscheduler.events.EVENT_JOB_EXECUTED,
             'test_id',
@@ -421,7 +423,9 @@ class ScheduleEventHandlerTests(unittest.TestCase):
     @patch.object(
         logging.getLogger('ecs_scheduler.scheduld.scheduler'), 'warning'
     )
-    def test_checked_tasks_logs_warning_if_stored_job_not_found(self, fake_log):
+    def test_checked_tasks_logs_warning_if_stored_job_not_found(
+        self, fake_log
+    ):
         event = apscheduler.events.JobExecutionEvent(
             apscheduler.events.EVENT_JOB_EXECUTED,
             'test_id',
@@ -515,7 +519,9 @@ class ScheduleEventHandlerTests(unittest.TestCase):
     @patch.object(
         logging.getLogger('ecs_scheduler.scheduld.scheduler'), 'warning'
     )
-    def test_started_tasks_logs_warning_if_scheduled_job_not_found(self, fake_log):
+    def test_started_tasks_logs_warning_if_scheduled_job_not_found(
+        self, fake_log
+    ):
         expected_last_run_time = datetime.datetime(2013, 11, 11)
         event = apscheduler.events.JobExecutionEvent(
             apscheduler.events.EVENT_JOB_EXECUTED,
@@ -534,7 +540,9 @@ class ScheduleEventHandlerTests(unittest.TestCase):
     @patch.object(
         logging.getLogger('ecs_scheduler.scheduld.scheduler'), 'warning'
     )
-    def test_started_tasks_logs_warning_if_stored_job_not_found(self, fake_log):
+    def test_started_tasks_logs_warning_if_stored_job_not_found(
+        self, fake_log
+    ):
         expected_last_run_time = datetime.datetime(2013, 11, 11)
         event = apscheduler.events.JobExecutionEvent(
             apscheduler.events.EVENT_JOB_EXECUTED,
@@ -733,7 +741,9 @@ class ScheduleEventHandlerTests(unittest.TestCase):
     @patch.object(
         logging.getLogger('ecs_scheduler.scheduld.scheduler'), 'warning'
     )
-    def test_modify_job_logs_warning_if_scheduled_job_not_found(self, fake_log):
+    def test_modify_job_logs_warning_if_scheduled_job_not_found(
+        self, fake_log
+    ):
         event = apscheduler.events.JobExecutionEvent(
             apscheduler.events.EVENT_JOB_MODIFIED,
             'test_id',

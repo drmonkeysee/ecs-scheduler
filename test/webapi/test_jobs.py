@@ -41,7 +41,8 @@ class RequireJsonContentTypeTests(unittest.TestCase):
 
         self.assertEqual(
             (
-                {'message': 'Header Content-Type: application/json required to send a request body.'},
+                {'message': 'Header Content-Type: application/json required'
+                            ' to send a request body.'},
                 415,
             ),
             result
@@ -56,7 +57,8 @@ class RequireJsonContentTypeTests(unittest.TestCase):
 
         self.assertEqual(
             (
-                {'message': 'Header Content-Type: application/json required to send a request body.'},
+                {'message': 'Header Content-Type: application/json required'
+                            ' to send a request body.'},
                 415,
             ),
             result
@@ -65,7 +67,11 @@ class RequireJsonContentTypeTests(unittest.TestCase):
 
 @patch(
     'flask.url_for',
-    side_effect=lambda *args, **kwargs: 'foo/' + args[0] + '/' + kwargs['job_id'] if 'job_id' in kwargs else 'pageLink'
+    side_effect=lambda *args, **kwargs: (
+        'foo/' + args[0] + '/' + kwargs['job_id']
+        if 'job_id' in kwargs
+        else 'pageLink'
+    )
 )
 @patch('flask.request')
 class JobsTests(unittest.TestCase):
@@ -162,13 +168,17 @@ class JobsTests(unittest.TestCase):
 
         self.assertEqual({'jobs': []}, response)
 
-    def test_get_returns_bad_request_if_invalid_pagination(self, fake_request, fake_url):
+    def test_get_returns_bad_request_if_invalid_pagination(
+        self, fake_request, fake_url
+    ):
         fake_request.values = {'skip': 'blah', 'count': 12}
 
         with self.assertRaises(werkzeug.exceptions.BadRequest):
             self._jobs.get()
 
-    def test_post_returns_committed_response_if_success(self, fake_request, fake_url):
+    def test_post_returns_committed_response_if_success(
+        self, fake_request, fake_url
+    ):
         fake_request.json = {'taskDefinition': 'foobar', 'schedule': '*'}
         self._dc.create.return_value = Mock(id='foobar', data={'id': 'foobar'})
 
@@ -195,7 +205,9 @@ class JobsTests(unittest.TestCase):
 
     @patch.object(logging.getLogger('ecs_scheduler.webapi.jobs'), 'exception')
     @patch('flask_restful.abort')
-    def test_post_returns_committed_response_error_if_queue_throws(self, fake_abort, fake_log, fake_request, fake_url):
+    def test_post_returns_committed_response_error_if_queue_throws(
+        self, fake_abort, fake_log, fake_request, fake_url
+    ):
         fake_request.json = {'taskDefinition': 'foobar', 'schedule': '*'}
         self._dc.create.return_value = Mock(id='foobar', data={'id': 'foobar'})
         self._queue.post.side_effect = Exception
@@ -215,17 +227,22 @@ class JobsTests(unittest.TestCase):
                     'title': 'Job for foobar',
                 },
             },
-            message='Job update was saved correctly but failed to post update message to scheduler.'
+            message='Job update was saved correctly but failed to post update'
+                    ' message to scheduler.'
         )
 
-    def test_post_returns_conflict_response_if_failure(self, fake_request, fake_url):
+    def test_post_returns_conflict_response_if_failure(
+        self, fake_request, fake_url
+    ):
         fake_request.json = {'taskDefinition': 'foobar', 'schedule': '*'}
         self._dc.create.side_effect = JobAlreadyExists('foobar')
 
         with self.assertRaises(werkzeug.exceptions.Conflict):
             self._jobs.post.__wrapped__(self._jobs)
 
-    def test_post_returns_bad_request_if_body_malformed(self, fake_request, fake_url):
+    def test_post_returns_bad_request_if_body_malformed(
+        self, fake_request, fake_url
+    ):
         fake_request.json = {'taskDefinition': 'foobar'}
         self._dc.create.side_effect = InvalidJobData('foobar', {})
 
@@ -235,7 +252,9 @@ class JobsTests(unittest.TestCase):
 
 @patch(
     'flask.url_for',
-    side_effect=lambda *args, **kwargs: 'foo/' + args[0] + '/' + kwargs['job_id']
+    side_effect=lambda *args, **kwargs: (
+        'foo/' + args[0] + '/' + kwargs['job_id']
+    )
 )
 class JobTests(unittest.TestCase):
     def setUp(self):
@@ -272,7 +291,9 @@ class JobTests(unittest.TestCase):
         self._dc.get.assert_called_with('foobar')
 
     @patch('flask.request')
-    def test_put_returns_committed_response_if_success(self, fake_request, fake_url):
+    def test_put_returns_committed_response_if_success(
+        self, fake_request, fake_url
+    ):
         fake_request.json = {'taskCount': 30}
         update_job = Mock(id='foobar')
         self._dc.get.return_value = update_job
@@ -299,7 +320,9 @@ class JobTests(unittest.TestCase):
     @patch.object(logging.getLogger('ecs_scheduler.webapi.jobs'), 'exception')
     @patch('flask_restful.abort')
     @patch('flask.request')
-    def test_put_returns_committed_response_error_if_queue_throws(self, fake_request, fake_abort, fake_url, fake_log):
+    def test_put_returns_committed_response_error_if_queue_throws(
+        self, fake_request, fake_abort, fake_url, fake_log
+    ):
         fake_request.json = {'taskCount': 30}
         update_job = Mock(id='foobar')
         self._dc.get.return_value = update_job
@@ -318,7 +341,8 @@ class JobTests(unittest.TestCase):
                     'title': 'Job for foobar',
                 },
             },
-            message='Job update was saved correctly but failed to post update message to scheduler.'
+            message='Job update was saved correctly but failed to post update'
+                    ' message to scheduler.'
         )
 
     @patch('flask.request')
@@ -330,7 +354,9 @@ class JobTests(unittest.TestCase):
             self._job.put.__wrapped__(self._job, 'foobar')
 
     @patch('flask.request')
-    def test_put_returns_bad_request_if_invalid_data(self, fake_request, fake_url):
+    def test_put_returns_bad_request_if_invalid_data(
+        self, fake_request, fake_url
+    ):
         fake_request.json = {'taskCount': 'broken'}
         update_job = Mock(id='foobar')
         self._dc.get.return_value = update_job
@@ -355,7 +381,9 @@ class JobTests(unittest.TestCase):
     @patch.object(logging.getLogger('ecs_scheduler.webapi.jobs'), 'exception')
     @patch('flask_restful.abort')
     @patch('flask.request')
-    def test_delete_returns_committed_response_error_if_queue_throws(self, fake_request, fake_abort, fake_url, fake_log):
+    def test_delete_returns_committed_response_error_if_queue_throws(
+        self, fake_request, fake_abort, fake_url, fake_log
+    ):
         self._queue.post.side_effect = Exception
 
         self._job.delete('foobar')
@@ -366,7 +394,8 @@ class JobTests(unittest.TestCase):
             item={
                 'id': 'foobar',
             },
-            message='Job update was saved correctly but failed to post update message to scheduler.'
+            message='Job update was saved correctly but failed to post update'
+                    ' message to scheduler.'
         )
 
     def test_delete_returns_notfound(self, fake_url):

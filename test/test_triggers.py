@@ -45,7 +45,9 @@ class SqsTriggerTests(unittest.TestCase):
 
         self.assertEqual(0, count)
 
-    def test_determine_task_count_returns_task_count_if_no_scaling_factor(self):
+    def test_determine_task_count_returns_task_count_if_no_scaling_factor(
+        self
+    ):
         test_data = {'taskCount': 10, 'trigger': {'queueName': 'testQueue'}}
         fake_queue = Mock(attributes={'ApproximateNumberOfMessages': 1})
         self._trigger._sqs.get_queue_by_name.return_value = fake_queue
@@ -54,7 +56,9 @@ class SqsTriggerTests(unittest.TestCase):
 
         self.assertEqual(10, count)
 
-    def test_determine_task_count_returns_max_count_if_no_scaling_factor_and_task_greater_than_max(self):
+    def test_determine_task_count_returns_max_count_if_no_scaling_factor_and_task_greater_than_max(
+        self
+    ):
         test_data = {
             'taskCount': 10,
             'trigger': {'queueName': 'testQueue'},
@@ -67,7 +71,9 @@ class SqsTriggerTests(unittest.TestCase):
 
         self.assertEqual(7, count)
 
-    def test_determine_task_count_returns_calculated_count_based_on_factor(self):
+    def test_determine_task_count_returns_calculated_count_based_on_factor(
+        self
+    ):
         test_data = {
             'taskCount': 1,
             'trigger': {'queueName': 'testQueue', 'messagesPerTask': 10},
@@ -79,7 +85,9 @@ class SqsTriggerTests(unittest.TestCase):
 
         self.assertEqual(4, count)
 
-    def test_determine_task_count_returns_max_count_if_calculated_count_greater_than_max(self):
+    def test_determine_task_count_returns_max_count_if_calculated_count_greater_than_max(
+        self
+    ):
         test_data = {
             'taskCount': 1,
             'trigger': {'queueName': 'testQueue', 'messagesPerTask': 10},
@@ -92,7 +100,9 @@ class SqsTriggerTests(unittest.TestCase):
 
         self.assertEqual(2, count)
 
-    def test_determine_task_count_returns_calculated_count_with_remainder_based_on_factor(self):
+    def test_determine_task_count_returns_calculated_count_with_remainder_based_on_factor(
+        self
+    ):
         test_data = {
             'taskCount': 1,
             'trigger': {'queueName': 'testQueue', 'messagesPerTask': 10},
@@ -104,7 +114,9 @@ class SqsTriggerTests(unittest.TestCase):
 
         self.assertEqual(5, count)
 
-    def test_determine_task_count_returns_calculated_count_if_equal_messages_to_factor(self):
+    def test_determine_task_count_returns_calculated_count_if_equal_messages_to_factor(
+        self
+    ):
         test_data = {
             'taskCount': 1,
             'trigger': {'queueName': 'testQueue', 'messagesPerTask': 10},
@@ -116,7 +128,9 @@ class SqsTriggerTests(unittest.TestCase):
 
         self.assertEqual(1, count)
 
-    def test_determine_task_count_returns_calculated_count_if_less_messages_than_factor(self):
+    def test_determine_task_count_returns_calculated_count_if_less_messages_than_factor(
+        self
+    ):
         test_data = {
             'taskCount': 1,
             'trigger': {'queueName': 'testQueue', 'messagesPerTask': 10},
@@ -128,7 +142,9 @@ class SqsTriggerTests(unittest.TestCase):
 
         self.assertEqual(1, count)
 
-    def test_determine_task_count_returns_task_count_if_calculated_value_lower(self):
+    def test_determine_task_count_returns_task_count_if_calculated_value_lower(
+        self
+    ):
         test_data = {
             'taskCount': 3,
             'trigger': {'queueName': 'testQueue', 'messagesPerTask': 10},

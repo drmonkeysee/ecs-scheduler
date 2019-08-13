@@ -73,7 +73,9 @@ class ResolveTests(unittest.TestCase):
         os.environ,
         {
             'ECSS_ELASTICSEARCH_INDEX': 'test-index',
-            'ECSS_ELASTICSEARCH_HOSTS': 'http://test-host1:9200/, http://test-host2:9200/,http://test-host3:8080/',
+            'ECSS_ELASTICSEARCH_HOSTS': 'http://test-host1:9200/,'
+                                        ' http://test-host2:9200/,'
+                                        'http://test-host3:8080/',
         },
         clear=True
     )

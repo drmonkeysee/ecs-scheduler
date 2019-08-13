@@ -43,7 +43,9 @@ class JobExecutorTests(unittest.TestCase):
         self.assertEqual(JobExecutor.RETVAL_CHECKED_TASKS, result.return_code)
         fake_get_trigger.assert_called_with('bar')
 
-    def test_call_does_nothing_if_at_expected_task_count(self, fake_get_trigger):
+    def test_call_does_nothing_if_at_expected_task_count(
+        self, fake_get_trigger
+    ):
         fake_trigger = Mock()
         fake_trigger.determine_task_count.return_value = 3
         fake_get_trigger.return_value = fake_trigger
@@ -55,7 +57,9 @@ class JobExecutorTests(unittest.TestCase):
         self._exec._ecs.run_task.assert_not_called()
         fake_get_trigger.assert_called_with(None)
 
-    def test_call_does_nothing_if_more_than_expected_task_count(self, fake_get_trigger):
+    def test_call_does_nothing_if_more_than_expected_task_count(
+        self, fake_get_trigger
+    ):
         fake_trigger = Mock()
         fake_trigger.determine_task_count.return_value = 3
         fake_get_trigger.return_value = fake_trigger
@@ -135,7 +139,9 @@ class JobExecutorTests(unittest.TestCase):
     @patch.object(
         logging.getLogger('ecs_scheduler.scheduld.execution'), 'warning'
     )
-    def test_call_logs_warning_if_some_tasks_fail(self, fake_log, fake_get_trigger):
+    def test_call_logs_warning_if_some_tasks_fail(
+        self, fake_log, fake_get_trigger
+    ):
         fake_trigger = Mock()
         fake_trigger.determine_task_count.return_value = 3
         fake_get_trigger.return_value = fake_trigger
@@ -167,7 +173,9 @@ class JobExecutorTests(unittest.TestCase):
     @patch.object(
         logging.getLogger('ecs_scheduler.scheduld.execution'), 'warning'
     )
-    def test_call_logs_warning_if_all_tasks_fail(self, fake_log, fake_get_trigger):
+    def test_call_logs_warning_if_all_tasks_fail(
+        self, fake_log, fake_get_trigger
+    ):
         fake_trigger = Mock()
         fake_trigger.determine_task_count.return_value = 3
         fake_get_trigger.return_value = fake_trigger
@@ -295,7 +303,9 @@ class JobExecutorTests(unittest.TestCase):
         )
         self.assertEqual(2, self._exec._ecs.run_task.call_count)
 
-    def test_call_launches_single_batch_if_running_count_reduces_expected_count_to_one_batch(self, fake_get_trigger):
+    def test_call_launches_single_batch_if_running_count_reduces_expected_count_to_one_batch(
+        self, fake_get_trigger
+    ):
         fake_trigger = Mock()
         fake_trigger.determine_task_count.return_value = 13
         fake_get_trigger.return_value = fake_trigger
@@ -316,7 +326,9 @@ class JobExecutorTests(unittest.TestCase):
         )
         self.assertEqual(1, self._exec._ecs.run_task.call_count)
 
-    def test_call_launches_override_tasks_if_none_running(self, fake_get_trigger):
+    def test_call_launches_override_tasks_if_none_running(
+        self, fake_get_trigger
+    ):
         fake_trigger = Mock()
         fake_trigger.determine_task_count.return_value = 3
         fake_get_trigger.return_value = fake_trigger
@@ -353,7 +365,9 @@ class JobExecutorTests(unittest.TestCase):
         )
         fake_get_trigger.assert_called_with(None)
 
-    def test_call_checks_override_tags_for_running_count(self, fake_get_trigger):
+    def test_call_checks_override_tags_for_running_count(
+        self, fake_get_trigger
+    ):
         fake_trigger = Mock()
         fake_trigger.determine_task_count.return_value = 5
         fake_get_trigger.return_value = fake_trigger
@@ -421,7 +435,9 @@ class JobExecutorTests(unittest.TestCase):
         )
         fake_get_trigger.assert_called_with(None)
 
-    def test_call_checks_override_tags_with_unrelated_values(self, fake_get_trigger):
+    def test_call_checks_override_tags_with_unrelated_values(
+        self, fake_get_trigger
+    ):
         fake_trigger = Mock()
         fake_trigger.determine_task_count.return_value = 5
         fake_get_trigger.return_value = fake_trigger
@@ -490,7 +506,9 @@ class JobExecutorTests(unittest.TestCase):
         )
         fake_get_trigger.assert_called_with(None)
 
-    def test_call_checks_override_tags_with_over_container_sections(self, fake_get_trigger):
+    def test_call_checks_override_tags_with_over_container_sections(
+        self, fake_get_trigger
+    ):
         fake_trigger = Mock()
         fake_trigger.determine_task_count.return_value = 5
         fake_get_trigger.return_value = fake_trigger
@@ -573,7 +591,9 @@ class JobExecutorTests(unittest.TestCase):
         )
         fake_get_trigger.assert_called_with(None)
 
-    def test_call_does_not_match_other_id_in_override_tag(self, fake_get_trigger):
+    def test_call_does_not_match_other_id_in_override_tag(
+        self, fake_get_trigger
+    ):
         fake_trigger = Mock()
         fake_trigger.determine_task_count.return_value = 5
         fake_get_trigger.return_value = fake_trigger
@@ -645,7 +665,9 @@ class JobExecutorTests(unittest.TestCase):
         )
         fake_get_trigger.assert_called_with(None)
 
-    def test_call_uses_task_description_instead_of_id_if_present(self, fake_get_trigger):
+    def test_call_uses_task_description_instead_of_id_if_present(
+        self, fake_get_trigger
+    ):
         fake_trigger = Mock()
         fake_trigger.determine_task_count.return_value = 3
         fake_get_trigger.return_value = fake_trigger
@@ -700,7 +722,9 @@ class JobExecutorTests(unittest.TestCase):
         )
         fake_get_trigger.assert_called_with(None)
 
-    def test_call_uses_passes_overrides_with_multiple_entries_to_ecs(self, fake_get_trigger):
+    def test_call_uses_passes_overrides_with_multiple_entries_to_ecs(
+        self, fake_get_trigger
+    ):
         fake_trigger = Mock()
         fake_trigger.determine_task_count.return_value = 3
         fake_get_trigger.return_value = fake_trigger

@@ -79,7 +79,9 @@ class InitTests(unittest.TestCase):
         },
         clear=True
     )
-    def test_sets_logfile_with_env_vars(self, fake_makedirs, abspath, fake_log, triggers):
+    def test_sets_logfile_with_env_vars(
+        self, fake_makedirs, abspath, fake_log, triggers
+    ):
         with patch.object(
             logging.handlers,
             'RotatingFileHandler',

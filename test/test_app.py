@@ -13,7 +13,10 @@ from ecs_scheduler.app import create
 @patch('ecs_scheduler.app.operations.DirectQueue')
 @patch('ecs_scheduler.app.env')
 class CreateTests(unittest.TestCase):
-    def test_runs_setup_in_prod_mode(self, env, queue_class, datacontext, webapi, create_scheduld, reloader, exit_register):
+    def test_runs_setup_in_prod_mode(
+        self, env, queue_class, datacontext,
+        webapi, create_scheduld, reloader, exit_register
+    ):
         reloader.return_value = False
         webapi.create.return_value.debug = False
 
@@ -33,7 +36,10 @@ class CreateTests(unittest.TestCase):
         exit_register.assert_called_with(ANY, create_scheduld.return_value)
         self.assertIs(webapi.create.return_value, result)
 
-    def test_runs_setup_in_reloader(self, env, queue_class, datacontext, webapi, create_scheduld, reloader, exit_register):
+    def test_runs_setup_in_reloader(
+        self, env, queue_class, datacontext,
+        webapi, create_scheduld, reloader, exit_register
+    ):
         reloader.return_value = True
         webapi.create.return_value.debug = True
 
@@ -54,7 +60,10 @@ class CreateTests(unittest.TestCase):
         exit_register.assert_called_with(ANY, create_scheduld.return_value)
         self.assertIs(webapi.create.return_value, result)
 
-    def test_skips_setup_if_debug_and_not_reloader(self, env, queue_class, datacontext, webapi, create_scheduld, reloader, exit_register):
+    def test_skips_setup_if_debug_and_not_reloader(
+        self, env, queue_class, datacontext,
+        webapi, create_scheduld, reloader, exit_register
+    ):
         reloader.return_value = False
         webapi.create.return_value.debug = True
 
@@ -70,7 +79,10 @@ class CreateTests(unittest.TestCase):
         self.assertIs(webapi.create.return_value, result)
 
     @patch.object(logging.getLogger('ecs_scheduler.app'), 'critical')
-    def test_logs_exceptions(self, fake_log, env, queue_class, datacontext, webapi, create_scheduld, reloader, exit_register):
+    def test_logs_exceptions(
+        self, fake_log, env, queue_class, datacontext,
+        webapi, create_scheduld, reloader, exit_register
+    ):
         env.init.side_effect = RuntimeError
 
         with self.assertRaises(RuntimeError):
