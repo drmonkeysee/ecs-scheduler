@@ -3,10 +3,11 @@ from datetime import datetime, timezone, timedelta
 
 import dateutil
 
-from ecs_scheduler.serialization import TriggerSchema, JobSchema, \
-                                            JobCreateSchema, JobResponseSchema, \
-                                            PaginationSchema, OverrideSchema, TaskInfoSchema
 from ecs_scheduler.models import Pagination
+from ecs_scheduler.serialization import (TriggerSchema, JobSchema,
+                                         JobCreateSchema, JobResponseSchema,
+                                         PaginationSchema, OverrideSchema,
+                                         TaskInfoSchema)
 
 
 class TriggerSchemaTests(unittest.TestCase):
@@ -56,7 +57,10 @@ class TriggerSchemaTests(unittest.TestCase):
 class OverrideSchemaTests(unittest.TestCase):
     def test_deserialize(self):
         schema = OverrideSchema()
-        data = {'containerName': 'test-container', 'environment': {'foo': 'bar', 'baz': 'bort'}}
+        data = {
+            'containerName': 'test-container',
+            'environment': {'foo': 'bar', 'baz': 'bort'},
+        }
 
         override, errors = schema.load(data)
 
@@ -132,21 +136,25 @@ class JobSchemaTests(unittest.TestCase):
             'maxCount': 20,
             'suspended': True,
             'trigger': {
-                'type': 'test-type'
+                'type': 'test-type',
             },
             'overrides': [{
                 'containerName': 'test-container',
-                'environment': {'foo': 'foo_value', 'bar': 'bar_value', 'baz': 'baz_value'}
-            }]
+                'environment': {
+                    'foo': 'foo_value',
+                    'bar': 'bar_value',
+                    'baz': 'baz_value',
+                },
+            }],
         }
 
         job, errors = schema.load(data)
 
         self.assertEqual(0, len(errors))
-        
+
         expected_data = data.copy()
         _parse_datetime_fields(expected_data, 'scheduleStart', 'scheduleEnd')
-        
+
         self.assertEqual(expected_data, job)
 
     def test_deserialize_supports_timezone_offsets(self):
@@ -154,23 +162,23 @@ class JobSchemaTests(unittest.TestCase):
         data = {
             'scheduleStart': '2015-10-07T13:44:53.123456+10:00',
             'scheduleEnd': '2015-10-10T04:10:03.654321-06:00',
-            'timezone': 'US/Pacific'
+            'timezone': 'US/Pacific',
         }
 
         job, errors = schema.load(data)
 
         self.assertEqual(0, len(errors))
-        
+
         expected_data = data.copy()
         _parse_datetime_fields(expected_data, 'scheduleStart', 'scheduleEnd')
-        
+
         self.assertEqual(expected_data, job)
 
     def test_deserialize_ignores_parsed_schedule_on_input(self):
         schema = JobSchema()
         data = {
             'schedule': '*',
-            'parsedSchedule': 'foobar'
+            'parsedSchedule': 'foobar',
         }
 
         job, errors = schema.load(data)
@@ -181,7 +189,7 @@ class JobSchemaTests(unittest.TestCase):
     def test_deserialize_parses_full_schedule(self):
         schema = JobSchema()
         data = {
-            'schedule': '10 12 22-23 sun 34 last 2 2012-2015'
+            'schedule': '10 12 22-23 sun 34 last 2 2012-2015',
         }
 
         job, errors = schema.load(data)
@@ -195,14 +203,14 @@ class JobSchemaTests(unittest.TestCase):
             'week': '34',
             'day': 'last',
             'month': '2',
-            'year': '2012-2015'
+            'year': '2012-2015',
         }
         self.assertEqual(expected_data, job['parsedSchedule'])
 
     def test_deserialize_ignores_extra_schedule_stuff(self):
         schema = JobSchema()
         data = {
-            'schedule': '10 12 22-23 sun 34 last 2 2012-2015 barf bort blow-up'
+            'schedule': '10 12 22-23 sun 34 last 2 2012-2015 barf bort blow-up',
         }
 
         job, errors = schema.load(data)
@@ -216,7 +224,7 @@ class JobSchemaTests(unittest.TestCase):
             'week': '34',
             'day': 'last',
             'month': '2',
-            'year': '2012-2015'
+            'year': '2012-2015',
         }
         self.assertEqual(expected_data, job['parsedSchedule'])
 
@@ -235,44 +243,71 @@ class JobSchemaTests(unittest.TestCase):
             'hour': '0',
             'day_of_week': '*',
             'week': '*',
-            'day': '2nd wed'
+            'day': '2nd wed',
         }
         self.assertEqual(expected_data, job['parsedSchedule'])
 
     def test_deserialize_supports_wildcards_for_secminhour(self):
         schema = JobSchema()
         data = {
-            'schedule': '? ? ?'
+            'schedule': '? ? ?',
         }
 
         job, errors = schema.load(data)
 
         self.assertEqual(0, len(errors))
-        self.assertTrue(0 <= int(job['parsedSchedule']['second']) < 60, 'wildcard second not in expected range')
-        self.assertTrue(0 <= int(job['parsedSchedule']['minute']) < 60, 'wildcard minute not in expected range')
-        self.assertTrue(0 <= int(job['parsedSchedule']['hour']) < 24, 'wildcard hour not in expected range')
-        expected_expression = ' '.join((job['parsedSchedule']['second'], job['parsedSchedule']['minute'], job['parsedSchedule']['hour']))
+        self.assertTrue(
+            0 <= int(job['parsedSchedule']['second']) < 60,
+            'wildcard second not in expected range'
+        )
+        self.assertTrue(
+            0 <= int(job['parsedSchedule']['minute']) < 60,
+            'wildcard minute not in expected range'
+        )
+        self.assertTrue(
+            0 <= int(job['parsedSchedule']['hour']) < 24,
+            'wildcard hour not in expected range'
+        )
+        expected_expression = ' '.join((
+            job['parsedSchedule']['second'],
+            job['parsedSchedule']['minute'],
+            job['parsedSchedule']['hour'],
+        ))
         self.assertEqual(expected_expression, job['schedule'])
 
     def test_deserialize_supports_wildcards_combined_with_other_fields(self):
         schema = JobSchema()
         data = {
-            'schedule': '? ? ? sun 34 last 2 2012-2015'
+            'schedule': '? ? ? sun 34 last 2 2012-2015',
         }
 
         job, errors = schema.load(data)
 
         self.assertEqual(0, len(errors))
-        self.assertTrue(0 <= int(job['parsedSchedule']['second']) < 60, 'wildcard second not in expected range')
-        self.assertTrue(0 <= int(job['parsedSchedule']['minute']) < 60, 'wildcard minute not in expected range')
-        self.assertTrue(0 <= int(job['parsedSchedule']['hour']) < 24, 'wildcard hour not in expected range')
-        expected_expression = ' '.join((job['parsedSchedule']['second'], job['parsedSchedule']['minute'], job['parsedSchedule']['hour'], 'sun 34 last 2 2012-2015'))
+        self.assertTrue(
+            0 <= int(job['parsedSchedule']['second']) < 60,
+            'wildcard second not in expected range'
+        )
+        self.assertTrue(
+            0 <= int(job['parsedSchedule']['minute']) < 60,
+            'wildcard minute not in expected range'
+        )
+        self.assertTrue(
+            0 <= int(job['parsedSchedule']['hour']) < 24,
+            'wildcard hour not in expected range'
+        )
+        expected_expression = ' '.join((
+            job['parsedSchedule']['second'],
+            job['parsedSchedule']['minute'],
+            job['parsedSchedule']['hour'],
+            'sun 34 last 2 2012-2015',
+        ))
         self.assertEqual(expected_expression, job['schedule'])
 
     def test_deserialize_does_not_support_wildcards_for_other_fields(self):
         schema = JobSchema()
         data = {
-            'schedule': '0 0 0 ? ? ? ? ?'
+            'schedule': '0 0 0 ? ? ? ? ?',
         }
 
         job, errors = schema.load(data)
@@ -289,12 +324,16 @@ class JobSchemaTests(unittest.TestCase):
             'taskCount': 12,
             'suspended': True,
             'trigger': {
-                'type': 'test-type'
+                'type': 'test-type',
             },
             'overrides': [{
                 'containerName': 'test-container',
-                'environment': {'foo': 'foo_value', 'bar': 'bar_value', 'baz': 'baz_value'}
-            }]
+                'environment': {
+                    'foo': 'foo_value',
+                    'bar': 'bar_value',
+                    'baz': 'baz_value',
+                },
+            }],
         }
 
         job, errors = schema.load(data)
@@ -305,7 +344,7 @@ class JobSchemaTests(unittest.TestCase):
         schema = JobSchema()
         data = {
             'schedule': '*',
-            'trigger': {}
+            'trigger': {},
         }
 
         job, errors = schema.load(data)
@@ -403,18 +442,26 @@ class JobSchemaTests(unittest.TestCase):
             'id': 'idIsIgnored',
             'taskDefinition': 'test-task',
             'schedule': 'test-schedule',
-            'scheduleStart': datetime(2015, 10, 7, 13, 44, 53, 123456, timezone.utc),
-            'scheduleEnd': datetime(2015, 10, 10, 4, 10, 3, 654321, timezone.utc),
+            'scheduleStart': datetime(
+                2015, 10, 7, 13, 44, 53, 123456, timezone.utc
+            ),
+            'scheduleEnd': datetime(
+                2015, 10, 10, 4, 10, 3, 654321, timezone.utc
+            ),
             'timezone': 'UTC',
             'taskCount': 12,
             'suspended': True,
             'trigger': {
-                'type': 'test-type'
+                'type': 'test-type',
             },
             'overrides': [{
                 'containerName': 'test-container',
-                'environment': {'foo': 'foo_value', 'bar': 'bar_value', 'baz': 'baz_value'}
-            }]
+                'environment': {
+                    'foo': 'foo_value',
+                    'bar': 'bar_value',
+                    'baz': 'baz_value',
+                },
+            }],
         }
 
         doc, errors = schema.dump(job_data)
@@ -429,12 +476,16 @@ class JobSchemaTests(unittest.TestCase):
             'taskCount': 12,
             'suspended': True,
             'trigger': {
-                'type': 'test-type'
+                'type': 'test-type',
             },
             'overrides': [{
                 'containerName': 'test-container',
-                'environment': {'foo': 'foo_value', 'bar': 'bar_value', 'baz': 'baz_value'}
-            }]
+                'environment': {
+                    'foo': 'foo_value',
+                    'bar': 'bar_value',
+                    'baz': 'baz_value',
+                },
+            }],
         }
         self.assertEqual(expected_data, doc)
 
@@ -450,9 +501,13 @@ class JobSchemaTests(unittest.TestCase):
     def test_serialize_timezone_offsets(self):
         schema = JobSchema()
         job_data = {
-            'scheduleStart': datetime(2015, 10, 7, 13, 44, 53, 123456, timezone(timedelta(hours=10))),
-            'scheduleEnd': datetime(2015, 10, 10, 4, 10, 3, 654321, timezone(timedelta(hours=-6))),
-            'timezone': 'US/Eastern'
+            'scheduleStart': datetime(
+                2015, 10, 7, 13, 44, 53, 123456, timezone(timedelta(hours=10))
+            ),
+            'scheduleEnd': datetime(
+                2015, 10, 10, 4, 10, 3, 654321, timezone(timedelta(hours=-6))
+            ),
+            'timezone': 'US/Eastern',
         }
 
         doc, errors = schema.dump(job_data)
@@ -461,7 +516,7 @@ class JobSchemaTests(unittest.TestCase):
         expected_data = {
             'scheduleStart': '2015-10-07T13:44:53.123456+10:00',
             'scheduleEnd': '2015-10-10T04:10:03.654321-06:00',
-            'timezone': 'US/Eastern'
+            'timezone': 'US/Eastern',
         }
         self.assertEqual(expected_data, doc)
 
@@ -469,7 +524,7 @@ class JobSchemaTests(unittest.TestCase):
         schema = JobSchema()
         job_data = {
             'scheduleStart': datetime(2015, 10, 7, 13, 44, 53, 123456),
-            'scheduleEnd': datetime(2015, 10, 10, 4, 10, 3, 654321)
+            'scheduleEnd': datetime(2015, 10, 10, 4, 10, 3, 654321),
         }
 
         doc, errors = schema.dump(job_data)
@@ -477,7 +532,7 @@ class JobSchemaTests(unittest.TestCase):
         self.assertEqual(0, len(errors))
         expected_data = {
             'scheduleStart': '2015-10-07T13:44:53.123456+00:00',
-            'scheduleEnd': '2015-10-10T04:10:03.654321+00:00'
+            'scheduleEnd': '2015-10-10T04:10:03.654321+00:00',
         }
         self.assertEqual(expected_data, doc)
 
@@ -495,7 +550,7 @@ class JobCreateSchemaTests(unittest.TestCase):
             'taskDefinition': data['taskDefinition'],
             'taskCount': 1,
             'schedule': '*',
-            'parsedSchedule': {'second': '*'}
+            'parsedSchedule': {'second': '*'},
         }
         self.assertEqual(expected_data, job)
 
@@ -567,7 +622,12 @@ class JobCreateSchemaTests(unittest.TestCase):
 
     def test_deserialize_sets_id_and_task_definition(self):
         schema = JobCreateSchema()
-        data = {'id': 'foo', 'taskDefinition': 'bar', 'schedule': '*', 'taskCount': 1}
+        data = {
+            'id': 'foo',
+            'taskDefinition': 'bar',
+            'schedule': '*',
+            'taskCount': 1,
+        }
 
         job, errors = schema.load(data)
 
@@ -586,29 +646,49 @@ class JobCreateSchemaTests(unittest.TestCase):
 class JobResponseSchemaTests(unittest.TestCase):
     def test_serialize(self):
         def link_gen(job_id):
-            return {'rel': 'foo', 'href': 'link/' + job_id, 'title': 'test-title'}
+            return {
+                'rel': 'foo',
+                'href': 'link/' + job_id,
+                'title': 'test-title',
+            }
 
         schema = JobResponseSchema(link_gen)
-        job_data = {'id': 'testid',
+        job_data = {
+            'id': 'testid',
             'taskDefinition': 'test-task',
             'schedule': '*',
             'parsedSchedule': {'second': '*'},
-            'scheduleStart': datetime(2015, 10, 7, 13, 44, 53, 123456, timezone.utc),
-            'scheduleEnd': datetime(2015, 10, 10, 4, 10, 3, 654321, timezone.utc),
-            'lastRun': datetime(2015, 10, 8, 4, 2, 56, 777777, timezone.utc),
-            'lastRunTasks': [{'taskId': 'foo1', 'hostId': 'bar1'}, {'taskId': 'foo2', 'hostId': 'bar2'}],
-            'estimatedNextRun': datetime(2015, 10, 12, 6, 12, 44, 980027, timezone.utc),
+            'scheduleStart': datetime(
+                2015, 10, 7, 13, 44, 53, 123456, timezone.utc
+            ),
+            'scheduleEnd': datetime(
+                2015, 10, 10, 4, 10, 3, 654321, timezone.utc
+            ),
+            'lastRun': datetime(
+                2015, 10, 8, 4, 2, 56, 777777, timezone.utc
+            ),
+            'lastRunTasks': [
+                {'taskId': 'foo1', 'hostId': 'bar1'},
+                {'taskId': 'foo2', 'hostId': 'bar2'},
+            ],
+            'estimatedNextRun': datetime(
+                2015, 10, 12, 6, 12, 44, 980027, timezone.utc
+            ),
             'taskCount': 5,
             'suspended': True,
             'trigger': {
-                'type': 'test-type'
+                'type': 'test-type',
             },
             'overrides': [{
                 'containerName': 'test-container',
-                'environment': {'foo': 'foo_value', 'bar': 'bar_value', 'baz': 'baz_value'}
-            }]
+                'environment': {
+                    'foo': 'foo_value',
+                    'bar': 'bar_value',
+                    'baz': 'baz_value',
+                },
+            }],
         }
-        
+
         data, errors = schema.dump(job_data)
 
         self.assertEqual(0, len(errors))
@@ -618,20 +698,32 @@ class JobResponseSchemaTests(unittest.TestCase):
         expected_data['scheduleEnd'] = '2015-10-10T04:10:03.654321+00:00'
         expected_data['lastRun'] = '2015-10-08T04:02:56.777777+00:00'
         expected_data['estimatedNextRun'] = '2015-10-12T06:12:44.980027+00:00'
-        expected_data['link'] = {'rel': 'foo', 'href': 'link/testid', 'title': 'test-title'}
+        expected_data['link'] = {
+            'rel': 'foo',
+            'href': 'link/testid',
+            'title': 'test-title',
+        }
         self.assertEqual(expected_data, data)
 
     def test_serialize_supports_timezone_offsets(self):
         def link_gen(job_id):
-            return {'rel': 'foo', 'href': 'link/' + job_id, 'title': 'test-title'}
+            return {
+                'rel': 'foo',
+                'href': 'link/' + job_id,
+                'title': 'test-title',
+            }
 
         schema = JobResponseSchema(link_gen)
         job_data = {
             'id': 'testid',
-            'lastRun': datetime(2015, 10, 8, 4, 2, 56, 777777, timezone(timedelta(hours=12))),
-            'estimatedNextRun': datetime(2015, 10, 12, 6, 12, 44, 980027, timezone(timedelta(hours=-4)))
+            'lastRun': datetime(
+                2015, 10, 8, 4, 2, 56, 777777, timezone(timedelta(hours=12))
+            ),
+            'estimatedNextRun': datetime(
+                2015, 10, 12, 6, 12, 44, 980027, timezone(timedelta(hours=-4))
+            ),
         }
-        
+
         data, errors = schema.dump(job_data)
 
         self.assertEqual(0, len(errors))
@@ -639,7 +731,11 @@ class JobResponseSchemaTests(unittest.TestCase):
             'id': 'testid',
             'lastRun': '2015-10-08T04:02:56.777777+12:00',
             'estimatedNextRun': '2015-10-12T06:12:44.980027-04:00',
-            'link': {'rel': 'foo', 'href': 'link/testid', 'title': 'test-title'}
+            'link': {
+                'rel': 'foo',
+                'href': 'link/testid',
+                'title': 'test-title',
+            },
         }
         self.assertEqual(expected_data, data)
 

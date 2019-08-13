@@ -1,10 +1,11 @@
 import unittest
 from unittest.mock import Mock, patch
 
-from ecs_scheduler.datacontext import Jobs, Job, JobDataMapping, \
-                                        JobNotFound, InvalidJobData, \
-                                        JobAlreadyExists, JobPersistenceError, \
-                                        JobFieldsRequirePersistence, ImmutableJobFields
+from ecs_scheduler.datacontext import (Jobs, Job, JobDataMapping, JobNotFound,
+                                       InvalidJobData, JobAlreadyExists,
+                                       JobPersistenceError,
+                                       JobFieldsRequirePersistence,
+                                       ImmutableJobFields)
 
 
 class JobsTests(unittest.TestCase):
@@ -15,7 +16,8 @@ class JobsTests(unittest.TestCase):
                 patch('ecs_scheduler.datacontext.RLock') as rp:
             self._schema = sp.return_value
             self._schema.load.side_effect = lambda d: (d, {})
-            self._schema.dump.side_effect = lambda d: Mock(data={'validated': True, **d})
+            self._schema.dump.side_effect = \
+                lambda d: Mock(data={'validated': True, **d})
             self._lock = rp.return_value
             self._target = Jobs.load(self._store)
 
@@ -48,7 +50,7 @@ class JobsTests(unittest.TestCase):
 
     def test_get_raises_error(self):
         with self.assertRaises(JobNotFound) as cm:
-            result = self._target.get(3)
+            self._target.get(3)
 
         self.assertEqual(3, cm.exception.job_id)
         self._lock.__enter__.assert_called()
@@ -162,7 +164,8 @@ class JobTests(unittest.TestCase):
             self._lock = rp.return_value
             self._target = Job(self._job_data, self._store)
         self._schema.load.side_effect = lambda d: (d, {})
-        self._schema.dump.side_effect = lambda d: Mock(data={'validated': True, **d})
+        self._schema.dump.side_effect = \
+            lambda d: Mock(data={'validated': True, **d})
 
     def test_data_returns_all_data(self):
         self.assertEqual(self._job_data, self._target.data)
@@ -194,7 +197,9 @@ class JobTests(unittest.TestCase):
 
         self.assertEqual(1, self._target.data['a'])
         self.assertEqual(2, self._target.data['b'])
-        self._store.update.assert_called_with(32, {'validated': True, **new_data})
+        self._store.update.assert_called_with(
+            32, {'validated': True, **new_data}
+        )
         self._lock.__enter__.assert_called()
         self._lock.__exit__.assert_called()
 
@@ -205,14 +210,16 @@ class JobTests(unittest.TestCase):
 
         self.assertEqual(1, self._target.data['a'])
         self.assertEqual('baz', self._target.data['foo'])
-        self._store.update.assert_called_with(32, {'validated': True, **new_data})
+        self._store.update.assert_called_with(
+            32, {'validated': True, **new_data}
+        )
         self._lock.__enter__.assert_called()
         self._lock.__exit__.assert_called()
 
     def test_update_does_not_allow_id_override(self):
         job_with_real_schema = Job({'id': 44, 'foo': 'bar'}, self._store)
         new_data = {'id': 77, 'taskCount': 4}
-        
+
         job_with_real_schema.update(new_data)
 
         self.assertEqual(44, job_with_real_schema.id)
@@ -243,7 +250,9 @@ class JobTests(unittest.TestCase):
         self.assertEqual(32, cm.exception.job_id)
         self.assertNotIn('a', self._target.data)
         self.assertNotIn('b', self._target.data)
-        self._store.update.assert_called_with(32, {'validated': True, **new_data})
+        self._store.update.assert_called_with(
+            32, {'validated': True, **new_data}
+        )
         self._lock.__enter__.assert_called()
         self._lock.__exit__.assert_called()
 
@@ -279,7 +288,9 @@ class JobTests(unittest.TestCase):
             job_with_real_schema.annotate(new_data)
 
         self.assertEqual(44, cm.exception.job_id)
-        self.assertCountEqual({'taskCount', 'schedule', 'parsedSchedule'}, cm.exception.fields)
+        self.assertCountEqual(
+            {'taskCount', 'schedule', 'parsedSchedule'}, cm.exception.fields
+        )
         self.assertNotIn('taskCount', job_with_real_schema.data)
         self.assertNotIn('schedule', job_with_real_schema.data)
         self.assertNotIn('b', job_with_real_schema.data)

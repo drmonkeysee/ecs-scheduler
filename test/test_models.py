@@ -7,7 +7,7 @@ class JobOperationTests(unittest.TestCase):
     def test_ctor(self):
         operation = 5
         job_id = 'foo'
-        
+
         op = JobOperation(operation, job_id)
 
         self.assertEqual(operation, op.operation)
@@ -45,11 +45,10 @@ class PaginationTests(unittest.TestCase):
         self.assertEqual(12, page.skip)
         self.assertEqual(42, page.count)
         self.assertEqual(0, page.total)
-    
+
     def test_ctor_sets_all_attributes(self):
         page = Pagination(33, 44, 55)
 
         self.assertEqual(33, page.skip)
         self.assertEqual(44, page.count)
         self.assertEqual(55, page.total)
-        

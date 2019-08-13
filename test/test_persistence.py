@@ -1,15 +1,17 @@
-import unittest
 import logging
-import sqlite3
 import os
-from unittest.mock import patch, Mock, call, ANY
+import sqlite3
+import unittest
 from datetime import datetime
 from io import BytesIO
+from unittest.mock import patch, Mock, call, ANY
 
 import boto3
 import botocore.exceptions
 
-from ecs_scheduler.persistence import resolve, NullStore, SQLiteStore, S3Store, DynamoDBStore, ElasticsearchStore
+from ecs_scheduler.persistence import (resolve, NullStore, SQLiteStore,
+                                       S3Store, DynamoDBStore,
+                                       ElasticsearchStore)
 
 
 class ResolveTests(unittest.TestCase):
@@ -30,7 +32,11 @@ class ResolveTests(unittest.TestCase):
         s3.assert_called_with('test-bucket', prefix=None)
 
     @patch('ecs_scheduler.persistence.S3Store')
-    @patch.dict(os.environ, {'ECSS_S3_BUCKET': 'test-bucket', 'ECSS_S3_PREFIX': 'test/prefix'}, clear=True)
+    @patch.dict(
+        os.environ,
+        {'ECSS_S3_BUCKET': 'test-bucket', 'ECSS_S3_PREFIX': 'test/prefix'},
+        clear=True
+    )
     def test_resolve_s3_with_prefix(self, s3):
         result = resolve()
 
@@ -46,27 +52,56 @@ class ResolveTests(unittest.TestCase):
         dynamodb.assert_called_with('test-table')
 
     @patch('ecs_scheduler.persistence.ElasticsearchStore')
-    @patch.dict(os.environ, {'ECSS_ELASTICSEARCH_INDEX': 'test-index', 'ECSS_ELASTICSEARCH_HOSTS': 'http://test-host:9200/'}, clear=True)
+    @patch.dict(
+        os.environ,
+        {
+            'ECSS_ELASTICSEARCH_INDEX': 'test-index',
+            'ECSS_ELASTICSEARCH_HOSTS': 'http://test-host:9200/',
+        },
+        clear=True
+    )
     def test_resolve_elasticsearch(self, elasticsearch):
         result = resolve()
 
         self.assertIs(elasticsearch.return_value, result)
-        elasticsearch.assert_called_with('test-index', hosts=['http://test-host:9200/'])
+        elasticsearch.assert_called_with(
+            'test-index', hosts=['http://test-host:9200/']
+        )
 
     @patch('ecs_scheduler.persistence.ElasticsearchStore')
-    @patch.dict(os.environ, {'ECSS_ELASTICSEARCH_INDEX': 'test-index', 'ECSS_ELASTICSEARCH_HOSTS': 'http://test-host1:9200/, http://test-host2:9200/,http://test-host3:8080/'}, clear=True)
+    @patch.dict(
+        os.environ,
+        {
+            'ECSS_ELASTICSEARCH_INDEX': 'test-index',
+            'ECSS_ELASTICSEARCH_HOSTS': 'http://test-host1:9200/, http://test-host2:9200/,http://test-host3:8080/',
+        },
+        clear=True
+    )
     def test_resolve_elasticsearch_with_multiple_hosts(self, elasticsearch):
         result = resolve()
 
         self.assertIs(elasticsearch.return_value, result)
-        elasticsearch.assert_called_with('test-index', hosts=['http://test-host1:9200/', 'http://test-host2:9200/', 'http://test-host3:8080/'])
+        elasticsearch.assert_called_with(
+            'test-index',
+            hosts=[
+                'http://test-host1:9200/',
+                'http://test-host2:9200/',
+                'http://test-host3:8080/',
+            ]
+        )
 
     @patch('builtins.open')
     @patch('ecs_scheduler.persistence.yaml')
     @patch('ecs_scheduler.persistence.ElasticsearchStore')
-    @patch.dict(os.environ, {'ECSS_CONFIG_FILE': '/etc/opt/test.yaml'}, clear=True)
+    @patch.dict(
+        os.environ, {'ECSS_CONFIG_FILE': '/etc/opt/test.yaml'}, clear=True
+    )
     def test_resolve_elasticsearch_extended(self, elasticsearch, yaml, f_open):
-        yaml.safe_load.return_value = {'elasticsearch': {'index': 'test-index', 'client': {'foo': 'bar', 'a': 1}}}
+        yaml.safe_load.return_value = {
+            'elasticsearch': {
+                'index': 'test-index', 'client': {'foo': 'bar', 'a': 1},
+            },
+        }
 
         result = resolve()
 
@@ -77,7 +112,8 @@ class ResolveTests(unittest.TestCase):
 
 class NullStoreTests(unittest.TestCase):
     def setUp(self):
-        with patch.object(logging.getLogger('ecs_scheduler.persistence'), 'warning') as self._log:
+        logger = logging.getLogger('ecs_scheduler.persistence')
+        with patch.object(logger, 'warning') as self._log:
             self._target = NullStore()
 
     def test_init_logs_warning(self):
@@ -117,16 +153,25 @@ class SQLiteStoreTests(unittest.TestCase):
         with patch('sqlite3.register_adapter'), \
                 patch('sqlite3.register_converter'), \
                 patch('os.makedirs') as mkdirs, \
-                patch('os.path.abspath', side_effect=lambda p: '/abs/path/' + p) as abspath:
-            target = SQLiteStore('foo/bar/test-file')
+                patch(
+                    'os.path.abspath', side_effect=lambda p: '/abs/path/' + p
+        ):
+            SQLiteStore('foo/bar/test-file')
         mkdirs.assert_called_with('/abs/path/foo/bar', exist_ok=True)
 
     def test_init_creates_table(self):
-        self._connect.assert_called_with('test-file', isolation_level=None, detect_types=sqlite3.PARSE_DECLTYPES)
+        self._connect.assert_called_with(
+            'test-file',
+            isolation_level=None,
+            detect_types=sqlite3.PARSE_DECLTYPES
+        )
         args = self._conn.execute.call_args[0]
         self.assertEqual(1, self._connect.call_count)
         self.assertIn('CREATE TABLE IF NOT EXISTS', args[0])
-        self.assertIn('jobs(id TEXT PRIMARY KEY NOT NULL, data JSONTEXT NOT NULL', args[0])
+        self.assertIn(
+            'jobs(id TEXT PRIMARY KEY NOT NULL, data JSONTEXT NOT NULL',
+            args[0]
+        )
         self._mkdirs.assert_not_called()
         self._abspath.assert_not_called()
 
@@ -137,14 +182,18 @@ class SQLiteStoreTests(unittest.TestCase):
 
         self.assertEqual([], results)
         self.assertEqual(2, self._connect.call_count)
-        self._connect.assert_called_with('test-file', isolation_level=None, detect_types=sqlite3.PARSE_DECLTYPES)
+        self._connect.assert_called_with(
+            'test-file',
+            isolation_level=None,
+            detect_types=sqlite3.PARSE_DECLTYPES
+        )
         self._conn.execute.assert_called_with('SELECT * FROM jobs')
 
     def test_load_all_rows(self):
         self._conn.execute.return_value = [
             ('foo', {'a': 1}),
             ('bar', {'b': 2}),
-            ('baz', {'c': 3})
+            ('baz', {'c': 3}),
         ]
 
         results = list(self._target.load_all())
@@ -152,10 +201,14 @@ class SQLiteStoreTests(unittest.TestCase):
         self.assertEqual([
             {'id': 'foo', 'a': 1},
             {'id': 'bar', 'b': 2},
-            {'id': 'baz', 'c': 3}
+            {'id': 'baz', 'c': 3},
         ], results)
         self.assertEqual(2, self._connect.call_count)
-        self._connect.assert_called_with('test-file', isolation_level=None, detect_types=sqlite3.PARSE_DECLTYPES)
+        self._connect.assert_called_with(
+            'test-file',
+            isolation_level=None,
+            detect_types=sqlite3.PARSE_DECLTYPES
+        )
         self._conn.execute.assert_called_with('SELECT * FROM jobs')
 
     def test_create(self):
@@ -164,35 +217,61 @@ class SQLiteStoreTests(unittest.TestCase):
         self._target.create('test-id', data)
 
         self.assertEqual(2, self._connect.call_count)
-        self._connect.assert_called_with('test-file', isolation_level=None, detect_types=sqlite3.PARSE_DECLTYPES)
-        self._conn.execute.assert_called_with('INSERT INTO jobs VALUES (?, ?)', ('test-id', data))
+        self._connect.assert_called_with(
+            'test-file',
+            isolation_level=None,
+            detect_types=sqlite3.PARSE_DECLTYPES
+        )
+        self._conn.execute.assert_called_with(
+            'INSERT INTO jobs VALUES (?, ?)', ('test-id', data)
+        )
 
     def test_update_adds_new_values(self):
-        self._conn.execute.return_value.fetchone.return_value = ('test-id', {'a': 1})
+        self._conn.execute.return_value.fetchone.return_value = (
+            'test-id',
+            {'a': 1},
+        )
         data = {'b': 2}
 
         self._target.update('test-id', data)
 
         self.assertEqual(2, self._connect.call_count)
-        self._connect.assert_called_with('test-file', isolation_level=None, detect_types=sqlite3.PARSE_DECLTYPES)
+        self._connect.assert_called_with(
+            'test-file',
+            isolation_level=None,
+            detect_types=sqlite3.PARSE_DECLTYPES
+        )
         execute_calls = [
             call('SELECT * FROM jobs WHERE id = ?', ('test-id',)),
-            call('UPDATE jobs SET data = ? WHERE id = ?', ({'a': 1, 'b': 2}, 'test-id'))
+            call(
+                'UPDATE jobs SET data = ? WHERE id = ?',
+                ({'a': 1, 'b': 2}, 'test-id')
+            ),
         ]
         # NOTE: skip asserting create table call from __init__
         self.assertEqual(execute_calls, self._conn.execute.call_args_list[1:])
 
     def test_update_replaces_values(self):
-        self._conn.execute.return_value.fetchone.return_value = ('test-id', {'a': 1, 'b': 2})
+        self._conn.execute.return_value.fetchone.return_value = (
+            'test-id',
+            {'a': 1, 'b': 2},
+        )
         data = {'a': 4}
 
         self._target.update('test-id', data)
 
         self.assertEqual(2, self._connect.call_count)
-        self._connect.assert_called_with('test-file', isolation_level=None, detect_types=sqlite3.PARSE_DECLTYPES)
+        self._connect.assert_called_with(
+            'test-file',
+            isolation_level=None,
+            detect_types=sqlite3.PARSE_DECLTYPES
+        )
         execute_calls = [
             call('SELECT * FROM jobs WHERE id = ?', ('test-id',)),
-            call('UPDATE jobs SET data = ? WHERE id = ?', ({'a': 4, 'b': 2}, 'test-id'))
+            call(
+                'UPDATE jobs SET data = ? WHERE id = ?',
+                ({'a': 4, 'b': 2}, 'test-id')
+            ),
         ]
         # NOTE: skip asserting create table call from __init__
         self.assertEqual(execute_calls, self._conn.execute.call_args_list[1:])
@@ -201,14 +280,20 @@ class SQLiteStoreTests(unittest.TestCase):
         self._target.delete('test-id')
 
         self.assertEqual(2, self._connect.call_count)
-        self._connect.assert_called_with('test-file', isolation_level=None, detect_types=sqlite3.PARSE_DECLTYPES)
-        self._conn.execute.assert_called_with('DELETE FROM jobs WHERE id = ?', ('test-id',))
+        self._connect.assert_called_with(
+            'test-file',
+            isolation_level=None,
+            detect_types=sqlite3.PARSE_DECLTYPES
+        )
+        self._conn.execute.assert_called_with(
+            'DELETE FROM jobs WHERE id = ?', ('test-id',)
+        )
 
 
 class S3StoreTests(unittest.TestCase):
     def setUp(self):
         with patch('boto3.resource') as self._res, \
-            patch('boto3.client') as self._client:
+                patch('boto3.client') as self._client:
             bn = 'test-bucket'
             self._bucket = self._res.return_value.Bucket.return_value
             self._bucket.name = bn
@@ -216,7 +301,9 @@ class S3StoreTests(unittest.TestCase):
 
     def test_init(self):
         self._res.return_value.Bucket.assert_called_with('test-bucket')
-        self._client.return_value.head_bucket.assert_called_with(Bucket='test-bucket')
+        self._client.return_value.head_bucket.assert_called_with(
+            Bucket='test-bucket'
+        )
         self._bucket.create.assert_not_called()
 
     @patch.object(logging.getLogger('ecs_scheduler.persistence'), 'warning')
@@ -225,12 +312,17 @@ class S3StoreTests(unittest.TestCase):
                 patch('boto3.client') as c, \
                 patch('boto3.session.Session') as s:
             bucket = res.return_value.Bucket.return_value
-            c.return_value.head_bucket.side_effect = botocore.exceptions.ClientError({'Error': {'Code': '404'}}, 'fake_operation')
+            c.return_value.head_bucket.side_effect = \
+                botocore.exceptions.ClientError(
+                    {'Error': {'Code': '404'}}, 'fake_operation'
+                )
             session = s.return_value
             session.region_name = 'test-region'
-            target = S3Store('test-bucket', 'test-prefix')
+            S3Store('test-bucket', 'test-prefix')
 
-        bucket.create.assert_called_with(CreateBucketConfiguration={'LocationConstraint': 'test-region'})
+        bucket.create.assert_called_with(
+            CreateBucketConfiguration={'LocationConstraint': 'test-region'}
+        )
         bucket.wait_until_exists.assert_called_with()
         warning.assert_called()
 
@@ -239,9 +331,12 @@ class S3StoreTests(unittest.TestCase):
         with patch('boto3.resource') as res, \
                 patch('boto3.client') as c:
             bucket = res.return_value.Bucket.return_value
-            c.return_value.head_bucket.side_effect = botocore.exceptions.ClientError({'Error': {'Code': '500'}}, 'fake_operation')
+            c.return_value.head_bucket.side_effect = \
+                botocore.exceptions.ClientError(
+                    {'Error': {'Code': '500'}}, 'fake_operation'
+                )
             with self.assertRaises(botocore.exceptions.ClientError):
-                target = S3Store('test-bucket', 'test-prefix')
+                S3Store('test-bucket', 'test-prefix')
 
         bucket.create.assert_not_called()
         warning.assert_not_called()
@@ -258,7 +353,7 @@ class S3StoreTests(unittest.TestCase):
         self._bucket.objects.filter.return_value = [
             Mock(key='foo.json', get=lambda: {'Body': BytesIO(b'{"a": 1}')}),
             Mock(key='bar.json', get=lambda: {'Body': BytesIO(b'{"b": 2}')}),
-            Mock(key='baz.json', get=lambda: {'Body': BytesIO(b'{"c": 3}')})
+            Mock(key='baz.json', get=lambda: {'Body': BytesIO(b'{"c": 3}')}),
         ]
 
         results = list(self._target.load_all())
@@ -266,7 +361,7 @@ class S3StoreTests(unittest.TestCase):
         expected = [
             {'id': 'foo', 'a': 1},
             {'id': 'bar', 'b': 2},
-            {'id': 'baz', 'c': 3}
+            {'id': 'baz', 'c': 3},
         ]
         self.assertCountEqual(expected, results)
         self._bucket.objects.filter.assert_called_with(Prefix='')
@@ -288,7 +383,7 @@ class S3StoreTests(unittest.TestCase):
         expected = [
             {'id': 'foo', 'a': 1},
             {'id': 'bar', 'b': 2},
-            {'id': 'baz', 'c': 3}
+            {'id': 'baz', 'c': 3},
         ]
         self.assertCountEqual(expected, results)
         self._bucket.objects.filter.assert_called_with(Prefix='')
@@ -304,9 +399,18 @@ class S3StoreTests(unittest.TestCase):
     def test_load_all_prefix_yields_json_objects(self):
         self._target._prefix = 'test-prefix'
         self._bucket.objects.filter.return_value = [
-            Mock(key='test-prefix/foo.json', get=lambda: {'Body': BytesIO(b'{"a": 1}')}),
-            Mock(key='test-prefix/bar.json', get=lambda: {'Body': BytesIO(b'{"b": 2}')}),
-            Mock(key='test-prefix/baz.json', get=lambda: {'Body': BytesIO(b'{"c": 3}')})
+            Mock(
+                key='test-prefix/foo.json',
+                get=lambda: {'Body': BytesIO(b'{"a": 1}')}
+            ),
+            Mock(
+                key='test-prefix/bar.json',
+                get=lambda: {'Body': BytesIO(b'{"b": 2}')}
+            ),
+            Mock(
+                key='test-prefix/baz.json',
+                get=lambda: {'Body': BytesIO(b'{"c": 3}')}
+            ),
         ]
 
         results = list(self._target.load_all())
@@ -314,7 +418,7 @@ class S3StoreTests(unittest.TestCase):
         expected = [
             {'id': 'foo', 'a': 1},
             {'id': 'bar', 'b': 2},
-            {'id': 'baz', 'c': 3}
+            {'id': 'baz', 'c': 3},
         ]
         self.assertCountEqual(expected, results)
         self._bucket.objects.filter.assert_called_with(Prefix='test-prefix')
@@ -322,9 +426,18 @@ class S3StoreTests(unittest.TestCase):
     def test_load_all_prefix_works_if_prefix_contains_slash(self):
         self._target._prefix = 'test-prefix/'
         self._bucket.objects.filter.return_value = [
-            Mock(key='test-prefix/foo.json', get=lambda: {'Body': BytesIO(b'{"a": 1}')}),
-            Mock(key='test-prefix/bar.json', get=lambda: {'Body': BytesIO(b'{"b": 2}')}),
-            Mock(key='test-prefix/baz.json', get=lambda: {'Body': BytesIO(b'{"c": 3}')})
+            Mock(
+                key='test-prefix/foo.json',
+                get=lambda: {'Body': BytesIO(b'{"a": 1}')}
+            ),
+            Mock(
+                key='test-prefix/bar.json',
+                get=lambda: {'Body': BytesIO(b'{"b": 2}')}
+            ),
+            Mock(
+                key='test-prefix/baz.json',
+                get=lambda: {'Body': BytesIO(b'{"c": 3}')}
+            ),
         ]
 
         results = list(self._target.load_all())
@@ -332,7 +445,7 @@ class S3StoreTests(unittest.TestCase):
         expected = [
             {'id': 'foo', 'a': 1},
             {'id': 'bar', 'b': 2},
-            {'id': 'baz', 'c': 3}
+            {'id': 'baz', 'c': 3},
         ]
         self.assertCountEqual(expected, results)
         self._bucket.objects.filter.assert_called_with(Prefix='test-prefix/')
@@ -340,11 +453,20 @@ class S3StoreTests(unittest.TestCase):
     def test_load_all_prefix_ignores_subfolders(self):
         self._target._prefix = 'test-prefix'
         self._bucket.objects.filter.return_value = [
-            Mock(key='test-prefix/foo.json', get=lambda: {'Body': BytesIO(b'{"a": 1}')}),
+            Mock(
+                key='test-prefix/foo.json',
+                get=lambda: {'Body': BytesIO(b'{"a": 1}')}
+            ),
             Mock(key='a-prefix/'),
-            Mock(key='test-prefix/bar.json', get=lambda: {'Body': BytesIO(b'{"b": 2}')}),
+            Mock(
+                key='test-prefix/bar.json',
+                get=lambda: {'Body': BytesIO(b'{"b": 2}')}
+            ),
             Mock(key='another-prefix/'),
-            Mock(key='test-prefix/baz.json', get=lambda: {'Body': BytesIO(b'{"c": 3}')}),
+            Mock(
+                key='test-prefix/baz.json',
+                get=lambda: {'Body': BytesIO(b'{"c": 3}')}
+            ),
             Mock(key='another-prefix/foo.json'),
             Mock(key='bort.txt'),
             Mock(key='a-file'),
@@ -355,7 +477,7 @@ class S3StoreTests(unittest.TestCase):
         expected = [
             {'id': 'foo', 'a': 1},
             {'id': 'bar', 'b': 2},
-            {'id': 'baz', 'c': 3}
+            {'id': 'baz', 'c': 3},
         ]
         self.assertCountEqual(expected, results)
         self._bucket.objects.filter.assert_called_with(Prefix='test-prefix')
@@ -366,7 +488,9 @@ class S3StoreTests(unittest.TestCase):
 
         self._target.create('test-id', data)
 
-        self._res.return_value.Object.assert_called_with('test-bucket', 'test-id.json')
+        self._res.return_value.Object.assert_called_with(
+            'test-bucket', 'test-id.json'
+        )
         new_obj.put.assert_called_with(Body=b'{"a": 1}')
 
     def test_create_with_prefix(self):
@@ -376,7 +500,9 @@ class S3StoreTests(unittest.TestCase):
 
         self._target.create('test-id', data)
 
-        self._res.return_value.Object.assert_called_with('test-bucket', 'test-prefix/test-id.json')
+        self._res.return_value.Object.assert_called_with(
+            'test-bucket', 'test-prefix/test-id.json'
+        )
         new_obj.put.assert_called_with(Body=b'{"a": 1}')
 
     def test_create_with_slashed_prefix(self):
@@ -386,7 +512,9 @@ class S3StoreTests(unittest.TestCase):
 
         self._target.create('test-id', data)
 
-        self._res.return_value.Object.assert_called_with('test-bucket', 'test-prefix/test-id.json')
+        self._res.return_value.Object.assert_called_with(
+            'test-bucket', 'test-prefix/test-id.json'
+        )
         new_obj.put.assert_called_with(Body=b'{"a": 1}')
 
     def test_update_adds_fields(self):
@@ -396,7 +524,9 @@ class S3StoreTests(unittest.TestCase):
 
         self._target.update('test-id', updated_data)
 
-        self._res.return_value.Object.assert_called_with('test-bucket', 'test-id.json')
+        self._res.return_value.Object.assert_called_with(
+            'test-bucket', 'test-id.json'
+        )
         up_obj.put.assert_called_with(Body=b'{"a": 1, "b": 2}')
 
     def test_update_replace_fields(self):
@@ -406,7 +536,9 @@ class S3StoreTests(unittest.TestCase):
 
         self._target.update('test-id', updated_data)
 
-        self._res.return_value.Object.assert_called_with('test-bucket', 'test-id.json')
+        self._res.return_value.Object.assert_called_with(
+            'test-bucket', 'test-id.json'
+        )
         up_obj.put.assert_called_with(Body=b'{"a": 3}')
 
     def test_update_with_prefix(self):
@@ -417,7 +549,9 @@ class S3StoreTests(unittest.TestCase):
 
         self._target.update('test-id', updated_data)
 
-        self._res.return_value.Object.assert_called_with('test-bucket', 'test-prefix/test-id.json')
+        self._res.return_value.Object.assert_called_with(
+            'test-bucket', 'test-prefix/test-id.json'
+        )
         up_obj.put.assert_called_with(Body=b'{"a": 1, "b": 4, "w": "foo"}')
 
     def test_update_with_slashed_prefix(self):
@@ -428,7 +562,9 @@ class S3StoreTests(unittest.TestCase):
 
         self._target.update('test-id', updated_data)
 
-        self._res.return_value.Object.assert_called_with('test-bucket', 'test-prefix/test-id.json')
+        self._res.return_value.Object.assert_called_with(
+            'test-bucket', 'test-prefix/test-id.json'
+        )
         up_obj.put.assert_called_with(Body=b'{"a": 1, "b": 4, "w": "foo"}')
 
     def test_delete(self):
@@ -436,7 +572,9 @@ class S3StoreTests(unittest.TestCase):
 
         self._target.delete('test-id')
 
-        self._res.return_value.Object.assert_called_with('test-bucket', 'test-id.json')
+        self._res.return_value.Object.assert_called_with(
+            'test-bucket', 'test-id.json'
+        )
         del_obj.delete.assert_called_with()
 
     def test_delete_with_prefix(self):
@@ -445,7 +583,9 @@ class S3StoreTests(unittest.TestCase):
 
         self._target.delete('test-id')
 
-        self._res.return_value.Object.assert_called_with('test-bucket', 'test-prefix/test-id.json')
+        self._res.return_value.Object.assert_called_with(
+            'test-bucket', 'test-prefix/test-id.json'
+        )
         del_obj.delete.assert_called_with()
 
     def test_delete_with_slashed_prefix(self):
@@ -454,7 +594,9 @@ class S3StoreTests(unittest.TestCase):
 
         self._target.delete('test-id')
 
-        self._res.return_value.Object.assert_called_with('test-bucket', 'test-prefix/test-id.json')
+        self._res.return_value.Object.assert_called_with(
+            'test-bucket', 'test-prefix/test-id.json'
+        )
         del_obj.delete.assert_called_with()
 
 
@@ -470,7 +612,9 @@ class DynamoDBStoreTests(unittest.TestCase):
 
     def test_init(self):
         self._res.return_value.Table.assert_called_with('test-table')
-        self._dyn_client.describe_table.assert_called_with(TableName='test-table')
+        self._dyn_client.describe_table.assert_called_with(
+            TableName='test-table'
+        )
         self._dyn_client.create_table.assert_not_called()
 
     @patch.object(logging.getLogger('ecs_scheduler.persistence'), 'warning')
@@ -483,13 +627,22 @@ class DynamoDBStoreTests(unittest.TestCase):
             dyn_c.exceptions.ResourceNotFoundException = ex_type
             table = res.return_value.Table.return_value
             table.name = 'test-table'
-            dyn_c.describe_table.side_effect = ex_type({'Error': {'Code': '404'}}, 'fake_operation')
-            target = DynamoDBStore('test-table')
+            dyn_c.describe_table.side_effect = ex_type(
+                {'Error': {'Code': '404'}}, 'fake_operation'
+            )
+            DynamoDBStore('test-table')
 
-        dyn_c.create_table.assert_called_with(AttributeDefinitions=[{'AttributeName': 'job-id', 'AttributeType': 'S'}],
-                TableName=self._table.name,
-                KeySchema=[{'AttributeName': 'job-id', 'KeyType': 'HASH'}],
-                ProvisionedThroughput={'ReadCapacityUnits': 5, 'WriteCapacityUnits': 5})
+        dyn_c.create_table.assert_called_with(
+            AttributeDefinitions=[
+                {'AttributeName': 'job-id', 'AttributeType': 'S'},
+            ],
+            TableName=self._table.name,
+            KeySchema=[{'AttributeName': 'job-id', 'KeyType': 'HASH'}],
+            ProvisionedThroughput={
+                'ReadCapacityUnits': 5,
+                'WriteCapacityUnits': 5,
+            }
+        )
         table.wait_until_exists.assert_called_with()
         warning.assert_called()
 
@@ -506,7 +659,7 @@ class DynamoDBStoreTests(unittest.TestCase):
             {'Items': [
                 {'job-id': 'foo1', 'json-data': '{"a": 1}'},
                 {'job-id': 'foo2', 'json-data': '{"b": 2}'},
-                {'job-id': 'foo3', 'json-data': '{"c": 3}'}
+                {'job-id': 'foo3', 'json-data': '{"c": 3}'},
             ]},)
 
         results = list(self._target.load_all())
@@ -514,7 +667,7 @@ class DynamoDBStoreTests(unittest.TestCase):
         expected_results = [
             {'id': 'foo1', 'a': 1},
             {'id': 'foo2', 'b': 2},
-            {'id': 'foo3', 'c': 3}
+            {'id': 'foo3', 'c': 3},
         ]
         self.assertEqual(expected_results, results)
         self.assertEqual([call()], self._table.scan.call_args_list)
@@ -524,15 +677,16 @@ class DynamoDBStoreTests(unittest.TestCase):
             {'Items': [
                 {'job-id': 'foo1', 'json-data': '{"a": 1}'},
                 {'job-id': 'foo2', 'json-data': '{"b": 2}'},
-                {'job-id': 'foo3', 'json-data': '{"c": 3}'}
+                {'job-id': 'foo3', 'json-data': '{"c": 3}'},
             ], 'LastEvaluatedKey': 'foo'},
             {'Items': [
-                {'job-id': 'bar1', 'json-data': '{"d": 4}'}
+                {'job-id': 'bar1', 'json-data': '{"d": 4}'},
             ], 'LastEvaluatedKey': 'bar'},
             {'Items': [
                 {'job-id': 'baz1', 'json-data': '{"e": 5}'},
-                {'job-id': 'baz2', 'json-data': '{"f": 6}'}
-            ]},)
+                {'job-id': 'baz2', 'json-data': '{"f": 6}'},
+            ]},
+        )
 
         results = list(self._target.load_all())
 
@@ -542,35 +696,49 @@ class DynamoDBStoreTests(unittest.TestCase):
             {'id': 'foo3', 'c': 3},
             {'id': 'bar1', 'd': 4},
             {'id': 'baz1', 'e': 5},
-            {'id': 'baz2', 'f': 6}
+            {'id': 'baz2', 'f': 6},
         ]
         self.assertEqual(expected_results, results)
-        self.assertEqual([call(), call(ExclusiveStartKey='foo'), call(ExclusiveStartKey='bar')], self._table.scan.call_args_list)
+        self.assertEqual([
+            call(),
+            call(ExclusiveStartKey='foo'),
+            call(ExclusiveStartKey='bar'),
+        ], self._table.scan.call_args_list)
 
     def test_create(self):
         data = {'a': 1, 'b': 2}
 
         self._target.create('test-id', data)
 
-        self._table.put_item.assert_called_with(Item={'job-id': 'test-id', 'json-data': '{"a": 1, "b": 2}'})
+        self._table.put_item.assert_called_with(
+            Item={'job-id': 'test-id', 'json-data': '{"a": 1, "b": 2}'}
+        )
 
     def test_update_adds_fields(self):
-        self._table.get_item.return_value = {'Item': {'job-id': 'test-id', 'json-data': '{"a": 1}'}}
+        self._table.get_item.return_value = {
+            'Item': {'job-id': 'test-id', 'json-data': '{"a": 1}'},
+        }
         new_data = {'b': 2}
 
         self._target.update('test-id', new_data)
 
         self._table.get_item.assert_called_with(Key={'job-id': 'test-id'})
-        self._table.put_item.assert_called_with(Item={'job-id': 'test-id', 'json-data': '{"a": 1, "b": 2}'})
+        self._table.put_item.assert_called_with(
+            Item={'job-id': 'test-id', 'json-data': '{"a": 1, "b": 2}'}
+        )
 
     def test_update_replaces_fields(self):
-        self._table.get_item.return_value = {'Item': {'job-id': 'test-id', 'json-data': '{"a": 1, "b": 2}'}}
+        self._table.get_item.return_value = {
+            'Item': {'job-id': 'test-id', 'json-data': '{"a": 1, "b": 2}'},
+        }
         new_data = {'a': 4}
 
         self._target.update('test-id', new_data)
 
         self._table.get_item.assert_called_with(Key={'job-id': 'test-id'})
-        self._table.put_item.assert_called_with(Item={'job-id': 'test-id', 'json-data': '{"a": 4, "b": 2}'})
+        self._table.put_item.assert_called_with(
+            Item={'job-id': 'test-id', 'json-data': '{"a": 4, "b": 2}'}
+        )
 
     def test_delete(self):
         self._target.delete('test-id')
@@ -589,7 +757,7 @@ class ElasticsearchStoreTests(unittest.TestCase):
         es = es_cls.return_value
         es.indices.exists.return_value = True
 
-        target = ElasticsearchStore('test_index', foo='bar')
+        ElasticsearchStore('test_index', foo='bar')
 
         es.indices.create.assert_not_called()
 
@@ -599,19 +767,23 @@ class ElasticsearchStoreTests(unittest.TestCase):
     def test_init_does_creates_index_if_not_found(self, warning, es_cls, dt):
         es = es_cls.return_value
         es.indices.exists.return_value = False
-        dt.now.return_value = datetime(year=2017, month=6, day=14, hour=13, minute=43, second=54)
+        dt.now.return_value = datetime(
+            year=2017, month=6, day=14, hour=13, minute=43, second=54
+        )
 
-        target = ElasticsearchStore('test_index', foo='bar')
+        ElasticsearchStore('test_index', foo='bar')
 
         expected_body = {
             'settings': {
-                'number_of_shards': 3
+                'number_of_shards': 3,
             },
             'aliases': {
-                'test_index': {}
+                'test_index': {},
             }
         }
-        es.indices.create.assert_called_with(index='test_index-20170614-134354', body=expected_body)
+        es.indices.create.assert_called_with(
+            index='test_index-20170614-134354', body=expected_body
+        )
         warning.assert_called()
 
     @patch('elasticsearch.helpers.scan')
@@ -623,7 +795,9 @@ class ElasticsearchStoreTests(unittest.TestCase):
 
         self.assertEqual([], results)
         info.assert_called()
-        scan.assert_called_with(client=self._es, index='test_index', scroll='1m')
+        scan.assert_called_with(
+            client=self._es, index='test_index', scroll='1m'
+        )
 
     @patch('elasticsearch.helpers.scan')
     @patch.object(logging.getLogger('ecs_scheduler.persistence'), 'info')
@@ -631,16 +805,16 @@ class ElasticsearchStoreTests(unittest.TestCase):
         scan.return_value = [
             {
                 '_id': 1,
-                '_source': {'a': 'foo'}
+                '_source': {'a': 'foo'},
             },
             {
                 '_id': 4,
-                '_source': {'a': 'bar'}
+                '_source': {'a': 'bar'},
             },
             {
                 '_id': 8,
-                '_source': {'a': 'baz'}
-            }
+                '_source': {'a': 'baz'},
+            },
         ]
 
         results = list(self._target.load_all())
@@ -648,34 +822,40 @@ class ElasticsearchStoreTests(unittest.TestCase):
         expected = [
             {
                 'id': 1,
-                'a': 'foo'
+                'a': 'foo',
             },
             {
                 'id': 4,
-                'a': 'bar'
+                'a': 'bar',
             },
             {
                 'id': 8,
-                'a': 'baz'
-            }
+                'a': 'baz',
+            },
         ]
         self.assertCountEqual(expected, results)
         info.assert_called()
-        scan.assert_called_with(client=self._es, index='test_index', scroll='1m')
+        scan.assert_called_with(
+            client=self._es, index='test_index', scroll='1m'
+        )
 
     def test_create(self):
         data = {'a': 1, 'b': 2}
 
         self._target.create(12, data)
 
-        self._es.create.assert_called_with(index='test_index', id=12, body=data)
+        self._es.create.assert_called_with(
+            index='test_index', id=12, body=data
+        )
 
     def test_update(self):
         data = {'a': 1, 'b': 2}
 
         self._target.update(12, data)
 
-        self._es.update.assert_called_with(index='test_index', id=12, body={'doc': data}, retry_on_conflict=3)
+        self._es.update.assert_called_with(
+            index='test_index', id=12, body={'doc': data}, retry_on_conflict=3
+        )
 
     def test_delete(self):
         self._target.delete(12)

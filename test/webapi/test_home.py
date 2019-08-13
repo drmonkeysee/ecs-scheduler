@@ -14,6 +14,6 @@ class HomeTests(unittest.TestCase):
         self.assertEqual({
             'resources': [
                 {'link': {'rel': 'jobs', 'title': 'Jobs', 'href': 'foo/jobs'}},
-                {'link': {'rel': 'spec', 'title': 'Spec', 'href': 'foo/spec'}}
-            ]    
+                {'link': {'rel': 'spec', 'title': 'Spec', 'href': 'foo/spec'}},
+            ],
         }, response)

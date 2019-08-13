@@ -1,5 +1,5 @@
-import unittest
 import logging
+import unittest
 from unittest.mock import patch, ANY
 
 from ecs_scheduler.app import create
@@ -22,8 +22,13 @@ class CreateTests(unittest.TestCase):
         env.init.assert_called_with()
         queue_class.assert_called_with()
         datacontext.load.assert_called_with()
-        create_scheduld.assert_called_with(queue_class.return_value, datacontext.load.return_value)
-        webapi.setup.assert_called_with(webapi.create.return_value, queue_class.return_value, datacontext.load.return_value)
+        create_scheduld.assert_called_with(
+            queue_class.return_value, datacontext.load.return_value
+        )
+        webapi.setup.assert_called_with(
+            webapi.create.return_value, queue_class.return_value,
+            datacontext.load.return_value
+        )
         create_scheduld.return_value.start.assert_called_with()
         exit_register.assert_called_with(ANY, create_scheduld.return_value)
         self.assertIs(webapi.create.return_value, result)
@@ -37,8 +42,14 @@ class CreateTests(unittest.TestCase):
         env.init.assert_called_with()
         queue_class.assert_called_with()
         datacontext.load.assert_called_with()
-        create_scheduld.assert_called_with(queue_class.return_value, datacontext.load.return_value)
-        webapi.setup.assert_called_with(webapi.create.return_value, queue_class.return_value, datacontext.load.return_value)
+        create_scheduld.assert_called_with(
+            queue_class.return_value, datacontext.load.return_value
+        )
+        webapi.setup.assert_called_with(
+            webapi.create.return_value,
+            queue_class.return_value,
+            datacontext.load.return_value
+        )
         create_scheduld.return_value.start.assert_called_with()
         exit_register.assert_called_with(ANY, create_scheduld.return_value)
         self.assertIs(webapi.create.return_value, result)

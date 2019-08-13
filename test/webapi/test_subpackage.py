@@ -1,5 +1,5 @@
-import unittest
 import logging.handlers
+import unittest
 from unittest.mock import patch, Mock
 
 import ecs_scheduler.webapi.home
@@ -26,9 +26,19 @@ class SetupTests(unittest.TestCase):
         setup(self._flask, self._queue, self._dc)
 
         flask_restful.assert_called_with(self._flask, catch_all_404s=True)
-        flask_restful.return_value.add_resource.assert_any_call(ecs_scheduler.webapi.home.Home, '/')
-        flask_restful.return_value.add_resource.assert_any_call(ecs_scheduler.webapi.jobs.Jobs, '/jobs', resource_class_args=(self._queue, self._dc))
-        flask_restful.return_value.add_resource.assert_any_call(ecs_scheduler.webapi.jobs.Job, '/jobs/<job_id>', resource_class_args=(self._queue, self._dc))
+        flask_restful.return_value.add_resource.assert_any_call(
+            ecs_scheduler.webapi.home.Home, '/'
+        )
+        flask_restful.return_value.add_resource.assert_any_call(
+            ecs_scheduler.webapi.jobs.Jobs,
+            '/jobs',
+            resource_class_args=(self._queue, self._dc)
+        )
+        flask_restful.return_value.add_resource.assert_any_call(
+            ecs_scheduler.webapi.jobs.Job,
+            '/jobs/<job_id>',
+            resource_class_args=(self._queue, self._dc)
+        )
         self._flask.after_request.assert_called_with(_add_etag)
         self._flask.logger.addHandler.assert_not_called()
         self.assertFalse(self._flask.config['ERROR_404_HELP'])

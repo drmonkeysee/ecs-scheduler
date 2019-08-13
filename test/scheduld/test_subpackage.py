@@ -10,7 +10,7 @@ class RunTests(unittest.TestCase):
     def test_create_scheduld(self, fake_exec, fake_sched):
         test_queue = Mock()
         dc = Mock()
-        
+
         result = create(test_queue, dc)
 
         fake_exec.assert_called_with()

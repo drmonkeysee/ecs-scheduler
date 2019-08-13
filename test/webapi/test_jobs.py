@@ -1,12 +1,13 @@
-import unittest
 import logging
+import unittest
 from unittest.mock import patch, Mock
 
 import werkzeug.exceptions
 
 import ecs_scheduler.models
+from ecs_scheduler.datacontext import (JobAlreadyExists, JobNotFound,
+                                       InvalidJobData)
 from ecs_scheduler.webapi.jobs import Jobs, Job, require_json_content_type
-from ecs_scheduler.datacontext import JobAlreadyExists, JobNotFound, InvalidJobData
 
 
 @patch('flask.request')
@@ -24,7 +25,9 @@ class RequireJsonContentTypeTests(unittest.TestCase):
         self.assertIsNotNone(getattr(self.fake_verb, '__wrapped__', None))
 
     def test_defers_to_verb_if_valid_header_with_more_info(self, fake_request):
-        fake_request.headers = {'Content-Type': 'application/json; charset=utf-8'}
+        fake_request.headers = {
+            'Content-Type': 'application/json; charset=utf-8',
+        }
 
         result = self.fake_verb()
 
@@ -36,17 +39,34 @@ class RequireJsonContentTypeTests(unittest.TestCase):
 
         result = self.fake_verb()
 
-        self.assertEqual(({'message': 'Header Content-Type: application/json required to send a request body.'}, 415), result)
+        self.assertEqual(
+            (
+                {'message': 'Header Content-Type: application/json required to send a request body.'},
+                415,
+            ),
+            result
+        )
 
     def test_returns_error_if_invalid_header(self, fake_request):
-        fake_request.headers = {'Content-Type': 'application/x-www-form-urlencoded'}
+        fake_request.headers = {
+            'Content-Type': 'application/x-www-form-urlencoded',
+        }
 
         result = self.fake_verb()
 
-        self.assertEqual(({'message': 'Header Content-Type: application/json required to send a request body.'}, 415), result)
+        self.assertEqual(
+            (
+                {'message': 'Header Content-Type: application/json required to send a request body.'},
+                415,
+            ),
+            result
+        )
 
 
-@patch('flask.url_for', side_effect=lambda *args, **kwargs: 'foo/' + args[0] + '/' + kwargs['job_id'] if 'job_id' in kwargs else 'pageLink')
+@patch(
+    'flask.url_for',
+    side_effect=lambda *args, **kwargs: 'foo/' + args[0] + '/' + kwargs['job_id'] if 'job_id' in kwargs else 'pageLink'
+)
 @patch('flask.request')
 class JobsTests(unittest.TestCase):
     def setUp(self):
@@ -60,33 +80,77 @@ class JobsTests(unittest.TestCase):
 
     def test_get_returns_all_jobs(self, fake_request, fake_url):
         fake_request.values = {}
-        self._dc.get_all.return_value = [Mock(id='1', data={'id': '1'}), Mock(id='2', data={'id': '2'}), Mock(id='3', data={'id': '3'})]
+        self._dc.get_all.return_value = [
+            Mock(id='1', data={'id': '1'}),
+            Mock(id='2', data={'id': '2'}),
+            Mock(id='3', data={'id': '3'}),
+        ]
         self._dc.total.return_value = 10
 
         response = self._jobs.get()
 
         self.assertEqual({
             'jobs': [
-                {'id': '1', 'link': {'href': 'foo/job/1', 'rel': 'item', 'title': 'Job for 1'}},
-                {'id': '2', 'link': {'href': 'foo/job/2', 'rel': 'item', 'title': 'Job for 2'}},
-                {'id': '3', 'link': {'href': 'foo/job/3', 'rel': 'item', 'title': 'Job for 3'}}
-            ]
+                {
+                    'id': '1',
+                    'link': {
+                        'href': 'foo/job/1',
+                        'rel': 'item',
+                        'title': 'Job for 1',
+                    },
+                },
+                {
+                    'id': '2',
+                    'link': {
+                        'href': 'foo/job/2',
+                        'rel': 'item',
+                        'title': 'Job for 2',
+                    },
+                },
+                {
+                    'id': '3',
+                    'link': {
+                        'href': 'foo/job/3',
+                        'rel': 'item',
+                        'title': 'Job for 3',
+                    },
+                },
+            ],
         }, response)
 
     def test_get_returns_paginated_jobs(self, fake_request, fake_url):
         fake_request.values = {'skip': 1, 'count': 2}
-        self._dc.get_all.return_value = [Mock(id='1', data={'id': '1'}), Mock(id='2', data={'id': '2'}), Mock(id='3', data={'id': '3'}), Mock(id='4', data={'id': '4'})]
+        self._dc.get_all.return_value = [
+            Mock(id='1', data={'id': '1'}),
+            Mock(id='2', data={'id': '2'}),
+            Mock(id='3', data={'id': '3'}),
+            Mock(id='4', data={'id': '4'}),
+        ]
         self._dc.total.return_value = 10
 
         response = self._jobs.get()
 
         self.assertEqual({
             'jobs': [
-                {'id': '2', 'link': {'href': 'foo/job/2', 'rel': 'item', 'title': 'Job for 2'}},
-                {'id': '3', 'link': {'href': 'foo/job/3', 'rel': 'item', 'title': 'Job for 3'}}
+                {
+                    'id': '2',
+                    'link': {
+                        'href': 'foo/job/2',
+                        'rel': 'item',
+                        'title': 'Job for 2',
+                    },
+                },
+                {
+                    'id': '3',
+                    'link': {
+                        'href': 'foo/job/3',
+                        'rel': 'item',
+                        'title': 'Job for 3',
+                    },
+                },
             ],
             'prev': 'pageLink',
-            'next': 'pageLink'
+            'next': 'pageLink',
         }, response)
 
     def test_get_returns_no_jobs(self, fake_request, fake_url):
@@ -100,7 +164,7 @@ class JobsTests(unittest.TestCase):
 
     def test_get_returns_bad_request_if_invalid_pagination(self, fake_request, fake_url):
         fake_request.values = {'skip': 'blah', 'count': 12}
-        
+
         with self.assertRaises(werkzeug.exceptions.BadRequest):
             self._jobs.get()
 
@@ -110,15 +174,23 @@ class JobsTests(unittest.TestCase):
 
         response = self._jobs.post.__wrapped__(self._jobs)
 
-        self._dc.create.assert_called_with({'schedule': '*', 'taskDefinition': 'foobar'})
+        self._dc.create.assert_called_with(
+            {'schedule': '*', 'taskDefinition': 'foobar'}
+        )
         self._queue.post.assert_called()
         job_op_args, k = self._queue.post.call_args
         self.assertEqual(1, len(job_op_args))
-        self.assertEqual(ecs_scheduler.models.JobOperation.ADD, job_op_args[0].operation)
+        self.assertEqual(
+            ecs_scheduler.models.JobOperation.ADD, job_op_args[0].operation
+        )
         self.assertEqual('foobar', job_op_args[0].job_id)
         self.assertEqual(({
             'id': 'foobar',
-            'link': {'href': 'foo/job/foobar', 'rel': 'item', 'title': 'Job for foobar'}
+            'link': {
+                'href': 'foo/job/foobar',
+                'rel': 'item',
+                'title': 'Job for foobar',
+            },
         }, 201), response)
 
     @patch.object(logging.getLogger('ecs_scheduler.webapi.jobs'), 'exception')
@@ -130,11 +202,21 @@ class JobsTests(unittest.TestCase):
 
         self._jobs.post.__wrapped__(self._jobs)
 
-        self._dc.create.assert_called_with({'schedule': '*', 'taskDefinition': 'foobar'})
-        fake_abort.assert_called_with(500, item={
-            'id': 'foobar',
-            'link': {'href': 'foo/job/foobar', 'rel': 'item', 'title': 'Job for foobar'}
-        }, message='Job update was saved correctly but failed to post update message to scheduler.')
+        self._dc.create.assert_called_with(
+            {'schedule': '*', 'taskDefinition': 'foobar'}
+        )
+        fake_abort.assert_called_with(
+            500,
+            item={
+                'id': 'foobar',
+                'link': {
+                    'href': 'foo/job/foobar',
+                    'rel': 'item',
+                    'title': 'Job for foobar',
+                },
+            },
+            message='Job update was saved correctly but failed to post update message to scheduler.'
+        )
 
     def test_post_returns_conflict_response_if_failure(self, fake_request, fake_url):
         fake_request.json = {'taskDefinition': 'foobar', 'schedule': '*'}
@@ -151,7 +233,10 @@ class JobsTests(unittest.TestCase):
             self._jobs.post.__wrapped__(self._jobs)
 
 
-@patch('flask.url_for', side_effect=lambda *args, **kwargs: 'foo/' + args[0] + '/' + kwargs['job_id'])
+@patch(
+    'flask.url_for',
+    side_effect=lambda *args, **kwargs: 'foo/' + args[0] + '/' + kwargs['job_id']
+)
 class JobTests(unittest.TestCase):
     def setUp(self):
         self._queue = Mock()
@@ -171,7 +256,11 @@ class JobTests(unittest.TestCase):
         self._dc.get.assert_called_with('foobar')
         self.assertEqual({
             'id': 'foobar',
-            'link': {'href': 'foo/job/foobar', 'rel': 'item', 'title': 'Job for foobar'}
+            'link': {
+                'href': 'foo/job/foobar',
+                'rel': 'item',
+                'title': 'Job for foobar',
+            },
         }, response)
 
     def test_get_returns_notfound(self, fake_url):
@@ -194,11 +283,17 @@ class JobTests(unittest.TestCase):
         self._queue.post.assert_called()
         job_op_args, k = self._queue.post.call_args
         self.assertEqual(1, len(job_op_args))
-        self.assertEqual(ecs_scheduler.models.JobOperation.MODIFY, job_op_args[0].operation)
+        self.assertEqual(
+            ecs_scheduler.models.JobOperation.MODIFY, job_op_args[0].operation
+        )
         self.assertEqual('foobar', job_op_args[0].job_id)
         self.assertEqual({
             'id': 'foobar',
-            'link': {'href': 'foo/job/foobar', 'rel': 'item', 'title': 'Job for foobar'}
+            'link': {
+                'href': 'foo/job/foobar',
+                'rel': 'item',
+                'title': 'Job for foobar',
+            },
         }, response)
 
     @patch.object(logging.getLogger('ecs_scheduler.webapi.jobs'), 'exception')
@@ -210,13 +305,21 @@ class JobTests(unittest.TestCase):
         self._dc.get.return_value = update_job
         self._queue.post.side_effect = Exception
 
-        response = self._job.put.__wrapped__(self._job, 'foobar')
+        self._job.put.__wrapped__(self._job, 'foobar')
 
         update_job.update.assert_called_with({'taskCount': 30})
-        fake_abort.assert_called_with(500, item={
-            'id': 'foobar',
-            'link': {'href': 'foo/job/foobar', 'rel': 'item', 'title': 'Job for foobar'}
-        }, message='Job update was saved correctly but failed to post update message to scheduler.')
+        fake_abort.assert_called_with(
+            500,
+            item={
+                'id': 'foobar',
+                'link': {
+                    'href': 'foo/job/foobar',
+                    'rel': 'item',
+                    'title': 'Job for foobar',
+                },
+            },
+            message='Job update was saved correctly but failed to post update message to scheduler.'
+        )
 
     @patch('flask.request')
     def test_put_returns_notfound(self, fake_request, fake_url):
@@ -232,7 +335,7 @@ class JobTests(unittest.TestCase):
         update_job = Mock(id='foobar')
         self._dc.get.return_value = update_job
         update_job.update.side_effect = InvalidJobData('foobar', {})
-        
+
         with self.assertRaises(werkzeug.exceptions.BadRequest):
             self._job.put.__wrapped__(self._job, 'foobar')
 
@@ -243,7 +346,9 @@ class JobTests(unittest.TestCase):
         self._queue.post.assert_called()
         job_op_args, k = self._queue.post.call_args
         self.assertEqual(1, len(job_op_args))
-        self.assertEqual(ecs_scheduler.models.JobOperation.REMOVE, job_op_args[0].operation)
+        self.assertEqual(
+            ecs_scheduler.models.JobOperation.REMOVE, job_op_args[0].operation
+        )
         self.assertEqual('foobar', job_op_args[0].job_id)
         self.assertEqual({'id': 'foobar'}, response)
 
@@ -253,12 +358,16 @@ class JobTests(unittest.TestCase):
     def test_delete_returns_committed_response_error_if_queue_throws(self, fake_request, fake_abort, fake_url, fake_log):
         self._queue.post.side_effect = Exception
 
-        response = self._job.delete('foobar')
+        self._job.delete('foobar')
 
         self._dc.delete.assert_called_with('foobar')
-        fake_abort.assert_called_with(500, item={
-            'id': 'foobar'
-        }, message='Job update was saved correctly but failed to post update message to scheduler.')
+        fake_abort.assert_called_with(
+            500,
+            item={
+                'id': 'foobar',
+            },
+            message='Job update was saved correctly but failed to post update message to scheduler.'
+        )
 
     def test_delete_returns_notfound(self, fake_url):
         self._dc.delete.side_effect = JobNotFound('foobar')
