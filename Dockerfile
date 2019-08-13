@@ -13,8 +13,9 @@ RUN pip3 install -U pip setuptools
 COPY requirements.txt $APP_DIR
 RUN pip3 install -r requirements.txt
 
-COPY config/nginx.conf /etc/nginx/conf.d/ecss.conf
+COPY config/cors-common.conf /etc/nginx/cors-common.conf
 COPY config/cors.conf /etc/nginx/cors.conf
+COPY config/nginx.conf /etc/nginx/conf.d/ecss.conf
 COPY config/uwsgi.ini /etc/uwsgi/ecss.ini
 COPY . $APP_DIR
 
