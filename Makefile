@@ -31,7 +31,7 @@ ifneq ($(CURRENT_PY), $(VENV_PY))
 	$(error $(VENV_ERROR))
 endif
 
-docker: test
+docker: check
 	docker build -t $(CONTAINER_NAME) .
 
 docker-clean:

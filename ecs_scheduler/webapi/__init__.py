@@ -4,7 +4,6 @@ import logging.handlers
 
 import flask
 import flask_restful
-import flask_cors
 
 from .home import Home
 from .spec import Spec
@@ -31,8 +30,6 @@ def setup(app, ops_queue, datacontext):
     :param datacontext: The jobs data context for loading and saving jobs
     :returns: A flask application instance
     """
-    # TODO: revisit this when nginx is added
-    flask_cors.CORS(app, allow_headers='Content-Type')
     api = flask_restful.Api(app, catch_all_404s=True)
     app.config['ERROR_404_HELP'] = False
 

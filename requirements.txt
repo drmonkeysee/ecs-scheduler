@@ -1,7 +1,6 @@
 APScheduler
 boto3
 elasticsearch
-Flask-Cors
 Flask-RESTful
 flask-swagger
 marshmallow
