@@ -34,7 +34,6 @@ def get_version():
     """
     Get the current application version.
     """
-    # TODO: remove hardcoded version once package can be built for docker
     try:
         return setuptools_scm.get_version()
     except LookupError:
