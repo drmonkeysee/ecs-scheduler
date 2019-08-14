@@ -153,10 +153,10 @@ class SQLiteStoreTests(unittest.TestCase):
 
     def test_init_creates_file_folder_if_present(self):
         with patch('sqlite3.register_adapter'), \
-                patch('sqlite3.register_converter'), \
-                patch('os.makedirs') as mkdirs, \
-                patch(
-                    'os.path.abspath', side_effect=lambda p: '/abs/path/' + p
+            patch('sqlite3.register_converter'), \
+            patch('os.makedirs') as mkdirs, \
+            patch(
+                'os.path.abspath', side_effect=lambda p: '/abs/path/' + p
         ):
             SQLiteStore('foo/bar/test-file')
         mkdirs.assert_called_with('/abs/path/foo/bar', exist_ok=True)
@@ -169,9 +169,12 @@ class SQLiteStoreTests(unittest.TestCase):
         )
         args = self._conn.execute.call_args[0]
         self.assertEqual(1, self._connect.call_count)
-        self.assertIn('CREATE TABLE IF NOT EXISTS', args[0])
-        self.assertIn(
-            'jobs(id TEXT PRIMARY KEY NOT NULL, data JSONTEXT NOT NULL',
+        self.assertEqual(
+            """
+                CREATE TABLE IF NOT EXISTS
+                jobs(id TEXT PRIMARY KEY NOT NULL,
+                data JSONTEXT NOT NULL)
+                """,
             args[0]
         )
         self._mkdirs.assert_not_called()
@@ -246,7 +249,10 @@ class SQLiteStoreTests(unittest.TestCase):
         execute_calls = [
             call('SELECT * FROM jobs WHERE id = ?', ('test-id',)),
             call(
-                'UPDATE jobs SET data = ? WHERE id = ?',
+                """
+                UPDATE jobs SET data = ?
+                WHERE id = ?
+                """,
                 ({'a': 1, 'b': 2}, 'test-id')
             ),
         ]
@@ -271,7 +277,10 @@ class SQLiteStoreTests(unittest.TestCase):
         execute_calls = [
             call('SELECT * FROM jobs WHERE id = ?', ('test-id',)),
             call(
-                'UPDATE jobs SET data = ? WHERE id = ?',
+                """
+                UPDATE jobs SET data = ?
+                WHERE id = ?
+                """,
                 ({'a': 4, 'b': 2}, 'test-id')
             ),
         ]

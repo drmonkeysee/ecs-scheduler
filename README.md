@@ -16,7 +16,7 @@ The environment variables in the following examples are described in more detail
 
 ### System Requirements
 
-- [Python 3.6+](https://www.python.org)
+- [Python 3.7+](https://www.python.org)
 - [make](https://www.gnu.org/software/make/)
 
 ### Development

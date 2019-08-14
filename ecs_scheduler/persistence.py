@@ -1,10 +1,10 @@
 """Built-in job data store implementations."""
-import logging
-import posixpath
 import collections
 import json
-import sqlite3
+import logging
 import os
+import posixpath
+import sqlite3
 from datetime import datetime
 
 import boto3
@@ -30,8 +30,13 @@ def resolve():
         'DYNAMODB_TABLE': lambda ev: DynamoDBStore(ev),
         'SQLITE_FILE': lambda ev: SQLiteStore(ev),
         'ELASTICSEARCH_INDEX': lambda ev: ElasticsearchStore(ev, **{
-            'hosts': [h.strip() for h in env.get_var('ELASTICSEARCH_HOSTS', required=True).split(',')]
-        })
+            'hosts': [
+                h.strip()
+                for h in env.get_var(
+                    'ELASTICSEARCH_HOSTS', required=True
+                ).split(',')
+            ],
+        }),
     }
     for env_var, factory in env_factories.items():
         env_value = env.get_var(env_var)
@@ -39,7 +44,9 @@ def resolve():
             return factory(env_value)
 
     conf_factories = {
-        'elasticsearch': lambda kwargs: ElasticsearchStore(kwargs['index'], **kwargs['client'])
+        'elasticsearch': lambda kwargs: ElasticsearchStore(
+            kwargs['index'], **kwargs['client']
+        )
     }
     config_file = env.get_var('CONFIG_FILE')
     if config_file:
@@ -61,9 +68,11 @@ class NullStore:
     This store loads nothing and saves nothing.
     Effectively implements an in-memory store.
     """
+
     def __init__(self):
-        _logger.warning('!!! Warning !!!: No registered persistence layer found; using null data store! '
-                        'Jobs will not be saved when the application terminates!')
+        _logger.warning('!!! Warning !!!: No registered persistence layer'
+                        ' found; using null data store! Jobs will not be'
+                        ' saved when the application terminates!')
 
     def load_all(self):
         yield from {}.items()
@@ -99,7 +108,12 @@ class SQLiteStore:
         """
         _logger.info('Loading jobs from SQLite database %s', self._db_file)
         with self._connection() as conn:
-            yield from ({'id': job_id, **job_data} for job_id, job_data in conn.execute(f"SELECT * FROM {self._TABLE}"))
+            yield from (
+                {'id': job_id, **job_data}
+                for job_id, job_data in conn.execute(
+                    f"SELECT * FROM {self._TABLE}"
+                )
+            )
 
     def create(self, job_id, job_data):
         """
@@ -109,7 +123,9 @@ class SQLiteStore:
         :param job_data: Job row contents
         """
         with self._connection() as conn:
-            conn.execute(f"INSERT INTO {self._TABLE} VALUES (?, ?)", (job_id, job_data))
+            conn.execute(
+                f"INSERT INTO {self._TABLE} VALUES (?, ?)", (job_id, job_data)
+            )
 
     def update(self, job_id, job_data):
         """
@@ -125,8 +141,12 @@ class SQLiteStore:
             current_data = cur.fetchone()[1]
             current_data.update(job_data)
             conn.execute(
-                f"UPDATE {self._TABLE} SET {self._DATACOL} = ? WHERE {self._KEYCOL} = ?",
-                (current_data, job_id))
+                f"""
+                UPDATE {self._TABLE} SET {self._DATACOL} = ?
+                WHERE {self._KEYCOL} = ?
+                """,
+                (current_data, job_id)
+            )
 
     def delete(self, job_id):
         """
@@ -135,20 +155,30 @@ class SQLiteStore:
         :param job_id: Job row id
         """
         with self._connection() as conn:
-            conn.execute(f"DELETE FROM {self._TABLE} WHERE {self._KEYCOL} = ?", (job_id,))
+            conn.execute(
+                f"DELETE FROM {self._TABLE} WHERE {self._KEYCOL} = ?",
+                (job_id,)
+            )
 
     def _connection(self):
-        return sqlite3.connect(self._db_file, isolation_level=None, detect_types=sqlite3.PARSE_DECLTYPES)
+        return sqlite3.connect(
+            self._db_file,
+            isolation_level=None,
+            detect_types=sqlite3.PARSE_DECLTYPES
+        )
 
     def _ensure_table(self):
         db_folder = os.path.dirname(self._db_file)
         if db_folder:
             os.makedirs(os.path.abspath(db_folder), exist_ok=True)
         with self._connection() as conn:
-            conn.execute(f"""
+            conn.execute(
+                f"""
                 CREATE TABLE IF NOT EXISTS
-                {self._TABLE}({self._KEYCOL} TEXT PRIMARY KEY NOT NULL, {self._DATACOL} {self._DATATYPE} NOT NULL)
-            """)
+                {self._TABLE}({self._KEYCOL} TEXT PRIMARY KEY NOT NULL,
+                {self._DATACOL} {self._DATATYPE} NOT NULL)
+                """
+            )
 
     def _store_job_data(self, job_data):
         return json.dumps(job_data, sort_keys=True)
@@ -159,7 +189,9 @@ class SQLiteStore:
 
 class S3Store:
     """AWS S3 data store."""
-    _JobObject = collections.namedtuple('JobObject', ['summary', 'prefix', 'job_id', 'ext'])
+    _JobObject = collections.namedtuple(
+        'JobObject', ['summary', 'prefix', 'job_id', 'ext']
+    )
     _JOB_EXT = '.json'
     _ENCODING = 'utf-8'
 
@@ -187,7 +219,10 @@ class S3Store:
         msg += '...'
         _logger.info(msg)
         job_objects = self._get_objects()
-        yield from ({'id': jo.job_id, **self._load_obj_contents(jo.summary)} for jo in job_objects)
+        yield from (
+            {'id': jo.job_id, **self._load_obj_contents(jo.summary)}
+            for jo in job_objects
+        )
 
     def create(self, job_id, job_data):
         """
@@ -226,9 +261,16 @@ class S3Store:
             s3_client.head_bucket(Bucket=self._bucket.name)
         except botocore.exceptions.ClientError as ex:
             if ex.response['Error']['Code'] == '404':
-                _logger.warning('S3 bucket not found; creating bucket "%s"', self._bucket.name)
+                _logger.warning(
+                    'S3 bucket not found; creating bucket "%s"',
+                    self._bucket.name
+                )
                 current_region = boto3.session.Session().region_name
-                self._bucket.create(CreateBucketConfiguration={'LocationConstraint': current_region})
+                self._bucket.create(
+                    CreateBucketConfiguration={
+                        'LocationConstraint': current_region,
+                    }
+                )
                 _logger.info('Waiting for bucket to exist...')
                 self._bucket.wait_until_exists()
             else:
@@ -245,10 +287,11 @@ class S3Store:
         return self._JobObject(s3_obj_summary, prefix, job_id, extension)
 
     def _valid_job(self, job_object):
-        prefix_check = self._prefix[:-1] \
-                        if self._prefix and self._prefix[-1] == '/' \
-                        else self._prefix
-        return job_object.prefix == prefix_check and job_object.ext == self._JOB_EXT
+        prefix_check = (self._prefix[:-1]
+                        if self._prefix and self._prefix[-1] == '/'
+                        else self._prefix)
+        return (job_object.prefix == prefix_check
+                and job_object.ext == self._JOB_EXT)
 
     def _make_object(self, job_id):
         key = posixpath.join(self._prefix, job_id) + self._JOB_EXT
@@ -259,7 +302,9 @@ class S3Store:
         return json.loads(job_bytes, encoding=self._ENCODING)
 
     def _store_obj(self, obj_handle, data):
-        obj_handle.put(Body=json.dumps(data, sort_keys=True).encode(self._ENCODING))
+        obj_handle.put(
+            Body=json.dumps(data, sort_keys=True).encode(self._ENCODING)
+        )
 
 
 class DynamoDBStore:
@@ -282,18 +327,25 @@ class DynamoDBStore:
 
         :returns: Generator yielding job data dictionary for each job
         """
-        _logger.info('Loading jobs from DynamoDB table %s...', self._table.name)
+        _logger.info(
+            'Loading jobs from DynamoDB table %s...', self._table.name
+        )
         batch = None
         while True:
             if batch:
                 if 'LastEvaluatedKey' in batch:
-                    batch = self._table.scan(ExclusiveStartKey=batch['LastEvaluatedKey'])
+                    batch = self._table.scan(
+                        ExclusiveStartKey=batch['LastEvaluatedKey']
+                    )
                 else:
                     break
             else:
                 batch = self._table.scan()
             items = batch['Items']
-            yield from ({'id': item[self._KEY_NAME], **self._parse_item(item)} for item in items)
+            yield from (
+                {'id': item[self._KEY_NAME], **self._parse_item(item)}
+                for item in items
+            )
 
     def create(self, job_id, job_data):
         """
@@ -329,12 +381,23 @@ class DynamoDBStore:
         try:
             dyn_client.describe_table(TableName=self._table.name)
         except dyn_client.exceptions.ResourceNotFoundException:
-            _logger.warning('DynamoDB table not found; creating table "%s"', self._table.name)
+            _logger.warning(
+                'DynamoDB table not found; creating table "%s"',
+                self._table.name
+            )
             dyn_client.create_table(
-                AttributeDefinitions=[{'AttributeName': self._KEY_NAME, 'AttributeType': 'S'}],
+                AttributeDefinitions=[
+                    {'AttributeName': self._KEY_NAME, 'AttributeType': 'S'},
+                ],
                 TableName=self._table.name,
-                KeySchema=[{'AttributeName': self._KEY_NAME, 'KeyType': 'HASH'}],
-                ProvisionedThroughput={'ReadCapacityUnits': 5, 'WriteCapacityUnits': 5})
+                KeySchema=[
+                    {'AttributeName': self._KEY_NAME, 'KeyType': 'HASH'},
+                ],
+                ProvisionedThroughput={
+                    'ReadCapacityUnits': 5,
+                    'WriteCapacityUnits': 5,
+                }
+            )
             _logger.info('Waiting for table to exist...')
             self._table.wait_until_exists()
 
@@ -342,7 +405,10 @@ class DynamoDBStore:
         return json.loads(item[self._DATA_NAME])
 
     def _store_item(self, key, data):
-        self._table.put_item(Item={self._KEY_NAME: key, self._DATA_NAME: json.dumps(data, sort_keys=True)})
+        self._table.put_item(Item={
+            self._KEY_NAME: key,
+            self._DATA_NAME: json.dumps(data, sort_keys=True),
+        })
 
 
 class ElasticsearchStore:
@@ -366,10 +432,14 @@ class ElasticsearchStore:
 
         :returns: Generator yielding job data dictionary for each job
         """
-        _logger.info('Loading jobs from elasticsearch index %s...', self._index)
-        hits = elasticsearch.helpers.scan(client=self._es,
+        _logger.info(
+            'Loading jobs from elasticsearch index %s...', self._index
+        )
+        hits = elasticsearch.helpers.scan(
+            client=self._es,
             index=self._index,
-            scroll=self._SCROLL_PERIOD)
+            scroll=self._SCROLL_PERIOD
+        )
         yield from ({'id': hit['_id'], **hit['_source']} for hit in hits)
 
     def create(self, job_id, job_data):
@@ -388,7 +458,12 @@ class ElasticsearchStore:
         :param job_id: Job document id
         :param job_data: Job document body
         """
-        self._es.update(index=self._index, id=job_id, body={'doc': job_data}, retry_on_conflict=3)
+        self._es.update(
+            index=self._index,
+            id=job_id,
+            body={'doc': job_data},
+            retry_on_conflict=3
+        )
 
     def delete(self, job_id):
         """
@@ -401,7 +476,8 @@ class ElasticsearchStore:
     def _ensure_index(self):
         if self._es.indices.exists(self._index):
             return
-        index_name = f'{self._index}-{datetime.now().strftime("%Y%m%d-%H%M%S")}'
+        index_name = (f'{self._index}'
+                      f'-{datetime.now().strftime("%Y%m%d-%H%M%S")}')
         index_settings = {
             'settings': {
                 'number_of_shards': 3
@@ -410,5 +486,10 @@ class ElasticsearchStore:
                 self._index: {}
             }
         }
-        _logger.warning('Elasticsearch index not found; creating index "%s" with alias "%s"', index_name, self._index)
+        _logger.warning(
+            'Elasticsearch index not found;'
+            ' creating index "%s" with alias "%s"',
+            index_name,
+            self._index
+        )
         self._es.indices.create(index=index_name, body=index_settings)

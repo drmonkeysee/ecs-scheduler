@@ -1,6 +1,9 @@
 """Classes for operating on job operations."""
+
+
 class DirectQueue:
     """An operations queue directly wired to the scheduler daemon."""
+
     def __init__(self):
         """Create a notifier queue."""
         self._consumer = None
@@ -9,10 +12,11 @@ class DirectQueue:
         """
         Register a consumer for the operations queue.
 
-        Only supports a single consumer at a time; the existing consumer will be
-        overridden by the new one when this method is called.
+        Only supports a single consumer at a time; the existing consumer
+        will be overridden by the new one when this method is called.
 
-        :consumer: An instance of a queue consumer, implementing a notify(job_op) method
+        :consumer: An instance of a queue consumer,
+                   implementing a notify(job_op) method
         """
         self._consumer = consumer
 

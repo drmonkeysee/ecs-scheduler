@@ -1,7 +1,7 @@
 """ECS scheduler initialization helper methods."""
-import os
 import logging
 import logging.handlers
+import os
 
 import setuptools_scm
 
@@ -47,5 +47,13 @@ def _init_logging():
     if log_folder:
         os.makedirs(os.path.abspath(log_folder), exist_ok=True)
         log_file = os.path.join(log_folder, 'app.log')
-        log_handlers.append(logging.handlers.RotatingFileHandler(log_file, maxBytes=5*1024*1024, backupCount=1))
-    logging.basicConfig(level=log_level, handlers=log_handlers, format='%(levelname)s:%(name)s:%(asctime)s %(message)s')
+        log_handlers.append(
+            logging.handlers.RotatingFileHandler(
+                log_file, maxBytes=5*1024*1024, backupCount=1
+            )
+        )
+    logging.basicConfig(
+        level=log_level,
+        handlers=log_handlers,
+        format='%(levelname)s:%(name)s:%(asctime)s %(message)s'
+    )

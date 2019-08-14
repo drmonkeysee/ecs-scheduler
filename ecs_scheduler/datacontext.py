@@ -7,9 +7,9 @@ Jobs and Job represent job storage and individual jobs, respectively.
 Job data is controlled by the schemas in ecs_scheduler.serialization module.
 All job loading and storing exceptions inherit from JobError.
 """
-import logging
-import functools
 import collections.abc
+import functools
+import logging
 from threading import RLock
 
 from . import persistence
@@ -35,16 +35,19 @@ def _sync_yield(f):
     return wrapper
 
 
-"""Job data context."""
 class Jobs:
-    """A job data context used by the application to load and store jobs."""
+    """
+    Job data context.
+
+    A job data context used by the application to load and store jobs.
+    """
     @classmethod
     def load(cls, store=None):
         """
         Create and load jobs from the given job store.
 
-        :param store: The job store from which to load and store jobs;
-                        uses environment to choose an implementation if not specified
+        :param store: The job store from which to load and store jobs; uses
+                      environment to choose an implementation if not specified
         :returns: A jobs storage resource attached to the given job data store
         :raises: InvalidJobData if job fields fail validation
         :raises: JobPersistenceError if job loading fails
@@ -138,7 +141,10 @@ class Jobs:
         del self._jobs[job_id]
 
     def _fill(self):
-        parsed_jobs = (self._create_job(raw_data) for raw_data in self._store.load_all())
+        parsed_jobs = (
+            self._create_job(raw_data)
+            for raw_data in self._store.load_all()
+        )
         self._jobs = {job.id: job for job in parsed_jobs}
 
     def _create_job(self, raw_data):
@@ -164,7 +170,8 @@ class Job:
         a properly initialized and persisted job.
 
         :param data: The job fields that make up the job
-        :param store: The data store to use for persistence, provided by the Jobs instance
+        :param store: The data store to use for persistence,
+                      provided by the Jobs instance
         """
         self._schema = JobSchema()
         self._data = data
@@ -222,7 +229,9 @@ class Job:
         if errors:
             raise InvalidJobData(self.id, errors)
         try:
-            self._store.update(self.id, self._schema.dump(validated_fields).data)
+            self._store.update(
+                self.id, self._schema.dump(validated_fields).data
+            )
         except Exception as ex:
             raise JobPersistenceError(self.id) from ex
         self._update_data(validated_fields)
@@ -234,10 +243,12 @@ class Job:
 
         Annotated fields do not persist into the job data store.
         This is used for storing job fields that are only relevant
-        during runtime and do not need to be persisted between application runs.
+        during runtime and do not need to be persisted between
+        application runs.
 
         :param fields: Fields to set on the given job
-        :raises: JobFieldsRequirePersistence if attempting to set persistent fields
+        :raises: JobFieldsRequirePersistence if attempting to set
+                 persistent fields
         :raises: ImmutableJobFields if attempting to set immutable fields
         """
         persisted_data, errors = self._schema.load(fields)
@@ -257,6 +268,7 @@ class Job:
 
 class JobDataMapping(collections.abc.Mapping):
     """A read-only dictionary wrapper for job data."""
+
     def __init__(self, data):
         """
         Create a mapping for the given dictionary.
@@ -293,6 +305,7 @@ class JobDataMapping(collections.abc.Mapping):
 
 class JobError(Exception):
     """General job error."""
+
     def __init__(self, job_id, *args, **kwargs):
         """
         Create a job error.
@@ -326,6 +339,7 @@ class JobPersistenceError(JobError):
 
 class InvalidJobData(JobError):
     """Invalid job data error."""
+
     def __init__(self, job_id, errors, *args, **kwargs):
         """
         Create a job error.
@@ -341,6 +355,7 @@ class InvalidJobData(JobError):
 
 class JobFieldsError(JobError):
     """General error for modifying invalid fields."""
+
     def __init__(self, job_id, fields, *args, **kwargs):
         """
         Create a job error.
@@ -355,7 +370,9 @@ class JobFieldsError(JobError):
 
 
 class JobFieldsRequirePersistence(JobFieldsError):
-    """Error for attempting to annotate instead of update persistent job fields."""
+    """
+    Error for attempting to annotate instead of update persistent job fields.
+    """
     pass
 
 
