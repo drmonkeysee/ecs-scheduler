@@ -160,11 +160,9 @@ class SQLiteStoreTests(unittest.TestCase):
                                          detect_types=sqlite3.PARSE_DECLTYPES)
         args = self._conn.execute.call_args[0]
         self.assertEqual(1, self._connect.call_count)
-        self.assertEqual("""
-                CREATE TABLE IF NOT EXISTS
-                jobs(id TEXT PRIMARY KEY NOT NULL,
-                data JSONTEXT NOT NULL)
-                """, args[0])
+        self.assertEqual('CREATE TABLE IF NOT EXISTS'
+                         ' jobs(id TEXT PRIMARY KEY NOT NULL,'
+                         ' data JSONTEXT NOT NULL)', args[0])
         self._mkdirs.assert_not_called()
         self._abspath.assert_not_called()
 
@@ -227,10 +225,8 @@ class SQLiteStoreTests(unittest.TestCase):
                                          detect_types=sqlite3.PARSE_DECLTYPES)
         execute_calls = [
             call('SELECT * FROM jobs WHERE id = ?', ('test-id',)),
-            call("""
-                UPDATE jobs SET data = ?
-                WHERE id = ?
-                """, ({'a': 1, 'b': 2}, 'test-id')),
+            call('UPDATE jobs SET data = ? WHERE id = ?',
+                 ({'a': 1, 'b': 2}, 'test-id')),
         ]
         # NOTE: skip asserting create table call from __init__
         self.assertEqual(execute_calls, self._conn.execute.call_args_list[1:])
@@ -250,10 +246,8 @@ class SQLiteStoreTests(unittest.TestCase):
                                          detect_types=sqlite3.PARSE_DECLTYPES)
         execute_calls = [
             call('SELECT * FROM jobs WHERE id = ?', ('test-id',)),
-            call("""
-                UPDATE jobs SET data = ?
-                WHERE id = ?
-                """, ({'a': 4, 'b': 2}, 'test-id')),
+            call('UPDATE jobs SET data = ? WHERE id = ?',
+                 ({'a': 4, 'b': 2}, 'test-id')),
         ]
         # NOTE: skip asserting create table call from __init__
         self.assertEqual(execute_calls, self._conn.execute.call_args_list[1:])

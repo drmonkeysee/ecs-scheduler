@@ -137,10 +137,9 @@ class SQLiteStore:
                 (job_id,))
             current_data = cur.fetchone()[1]
             current_data.update(job_data)
-            conn.execute(f"""
-                UPDATE {self._TABLE} SET {self._DATACOL} = ?
-                WHERE {self._KEYCOL} = ?
-                """, (current_data, job_id))
+            conn.execute(f"UPDATE {self._TABLE} SET {self._DATACOL} = ?"
+                         f" WHERE {self._KEYCOL} = ?",
+                         (current_data, job_id))
 
     def delete(self, job_id):
         """
@@ -163,11 +162,10 @@ class SQLiteStore:
         if db_folder:
             os.makedirs(os.path.abspath(db_folder), exist_ok=True)
         with self._connection() as conn:
-            conn.execute(f"""
-                CREATE TABLE IF NOT EXISTS
-                {self._TABLE}({self._KEYCOL} TEXT PRIMARY KEY NOT NULL,
-                {self._DATACOL} {self._DATATYPE} NOT NULL)
-                """)
+            conn.execute(
+                f"CREATE TABLE IF NOT EXISTS"
+                f" {self._TABLE}({self._KEYCOL} TEXT PRIMARY KEY NOT NULL,"
+                f" {self._DATACOL} {self._DATATYPE} NOT NULL)")
 
     def _store_job_data(self, job_data):
         return json.dumps(job_data, sort_keys=True)
