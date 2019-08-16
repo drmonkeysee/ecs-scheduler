@@ -163,7 +163,7 @@ class SQLiteStore:
             os.makedirs(os.path.abspath(db_folder), exist_ok=True)
         with self._connection() as conn:
             conn.execute(
-                f"CREATE TABLE IF NOT EXISTS"
+                "CREATE TABLE IF NOT EXISTS"
                 f" {self._TABLE}({self._KEYCOL} TEXT PRIMARY KEY NOT NULL,"
                 f" {self._DATACOL} {self._DATATYPE} NOT NULL)")
 
