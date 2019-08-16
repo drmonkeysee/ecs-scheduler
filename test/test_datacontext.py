@@ -197,9 +197,8 @@ class JobTests(unittest.TestCase):
 
         self.assertEqual(1, self._target.data['a'])
         self.assertEqual(2, self._target.data['b'])
-        self._store.update.assert_called_with(
-            32, {'validated': True, **new_data}
-        )
+        self._store.update.assert_called_with(32,
+                                              {'validated': True, **new_data})
         self._lock.__enter__.assert_called()
         self._lock.__exit__.assert_called()
 
@@ -210,9 +209,8 @@ class JobTests(unittest.TestCase):
 
         self.assertEqual(1, self._target.data['a'])
         self.assertEqual('baz', self._target.data['foo'])
-        self._store.update.assert_called_with(
-            32, {'validated': True, **new_data}
-        )
+        self._store.update.assert_called_with(32,
+                                              {'validated': True, **new_data})
         self._lock.__enter__.assert_called()
         self._lock.__exit__.assert_called()
 
@@ -250,9 +248,8 @@ class JobTests(unittest.TestCase):
         self.assertEqual(32, cm.exception.job_id)
         self.assertNotIn('a', self._target.data)
         self.assertNotIn('b', self._target.data)
-        self._store.update.assert_called_with(
-            32, {'validated': True, **new_data}
-        )
+        self._store.update.assert_called_with(32,
+                                              {'validated': True, **new_data})
         self._lock.__enter__.assert_called()
         self._lock.__exit__.assert_called()
 
@@ -288,9 +285,8 @@ class JobTests(unittest.TestCase):
             job_with_real_schema.annotate(new_data)
 
         self.assertEqual(44, cm.exception.job_id)
-        self.assertCountEqual(
-            {'taskCount', 'schedule', 'parsedSchedule'}, cm.exception.fields
-        )
+        self.assertCountEqual({'taskCount', 'schedule', 'parsedSchedule'},
+                              cm.exception.fields)
         self.assertNotIn('taskCount', job_with_real_schema.data)
         self.assertNotIn('schedule', job_with_real_schema.data)
         self.assertNotIn('b', job_with_real_schema.data)

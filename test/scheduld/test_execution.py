@@ -16,8 +16,7 @@ class JobExecutorTests(unittest.TestCase):
                     'ECSS_ECS_CLUSTER': 'testCluster',
                     'ECSS_NAME': 'testName',
                 },
-                clear=True
-        ):
+                clear=True):
             self._exec = JobExecutor()
 
     def test_call_does_nothing_if_zero_task_count(self, fake_get_trigger):
@@ -43,9 +42,8 @@ class JobExecutorTests(unittest.TestCase):
         self.assertEqual(JobExecutor.RETVAL_CHECKED_TASKS, result.return_code)
         fake_get_trigger.assert_called_with('bar')
 
-    def test_call_does_nothing_if_at_expected_task_count(
-        self, fake_get_trigger
-    ):
+    def test_call_does_nothing_if_at_expected_task_count(self,
+                                                         fake_get_trigger):
         fake_trigger = Mock()
         fake_trigger.determine_task_count.return_value = 3
         fake_get_trigger.return_value = fake_trigger
@@ -58,8 +56,7 @@ class JobExecutorTests(unittest.TestCase):
         fake_get_trigger.assert_called_with(None)
 
     def test_call_does_nothing_if_more_than_expected_task_count(
-        self, fake_get_trigger
-    ):
+            self, fake_get_trigger):
         fake_trigger = Mock()
         fake_trigger.determine_task_count.return_value = 3
         fake_get_trigger.return_value = fake_trigger
@@ -93,21 +90,17 @@ class JobExecutorTests(unittest.TestCase):
             {'taskId': 'foo1', 'hostId': 'bar1'},
             {'taskId': 'foo2', 'hostId': 'bar2'},
         ], result.task_info)
-        self._exec._ecs.run_task.assert_called_with(
-            cluster='testCluster',
-            taskDefinition='foo',
-            count=3,
-            startedBy='testName'
-        )
+        self._exec._ecs.run_task.assert_called_with(cluster='testCluster',
+                                                    taskDefinition='foo',
+                                                    count=3,
+                                                    startedBy='testName')
         fake_get_trigger.assert_called_with(None)
 
     def test_call_uses_default_name_if_not_specified(self, fake_get_trigger):
         with patch('boto3.client'), \
-            patch.dict(
-                os.environ,
-                {'ECSS_ECS_CLUSTER': 'testCluster'},
-                clear=True
-        ):
+            patch.dict(os.environ,
+                       {'ECSS_ECS_CLUSTER': 'testCluster'},
+                       clear=True):
             executor = JobExecutor()
         fake_trigger = Mock()
         fake_trigger.determine_task_count.return_value = 3
@@ -128,20 +121,16 @@ class JobExecutorTests(unittest.TestCase):
             {'taskId': 'foo1', 'hostId': 'bar1'},
             {'taskId': 'foo2', 'hostId': 'bar2'},
         ], result.task_info)
-        executor._ecs.run_task.assert_called_with(
-            cluster='testCluster',
-            taskDefinition='foo',
-            count=3,
-            startedBy='ecs-scheduler'
-        )
+        executor._ecs.run_task.assert_called_with(cluster='testCluster',
+                                                  taskDefinition='foo',
+                                                  count=3,
+                                                  startedBy='ecs-scheduler')
         fake_get_trigger.assert_called_with(None)
 
-    @patch.object(
-        logging.getLogger('ecs_scheduler.scheduld.execution'), 'warning'
-    )
-    def test_call_logs_warning_if_some_tasks_fail(
-        self, fake_log, fake_get_trigger
-    ):
+    @patch.object(logging.getLogger('ecs_scheduler.scheduld.execution'),
+                  'warning')
+    def test_call_logs_warning_if_some_tasks_fail(self, fake_log,
+                                                  fake_get_trigger):
         fake_trigger = Mock()
         fake_trigger.determine_task_count.return_value = 3
         fake_get_trigger.return_value = fake_trigger
@@ -161,21 +150,17 @@ class JobExecutorTests(unittest.TestCase):
             {'taskId': 'foo1', 'hostId': 'bar1'},
             {'taskId': 'foo2', 'hostId': 'bar2'},
         ], result.task_info)
-        self._exec._ecs.run_task.assert_called_with(
-            cluster='testCluster',
-            taskDefinition='foo',
-            count=3,
-            startedBy='testName'
-        )
+        self._exec._ecs.run_task.assert_called_with(cluster='testCluster',
+                                                    taskDefinition='foo',
+                                                    count=3,
+                                                    startedBy='testName')
         fake_get_trigger.assert_called_with(None)
         fake_log.assert_called()
 
-    @patch.object(
-        logging.getLogger('ecs_scheduler.scheduld.execution'), 'warning'
-    )
-    def test_call_logs_warning_if_all_tasks_fail(
-        self, fake_log, fake_get_trigger
-    ):
+    @patch.object(logging.getLogger('ecs_scheduler.scheduld.execution'),
+                  'warning')
+    def test_call_logs_warning_if_all_tasks_fail(self, fake_log,
+                                                 fake_get_trigger):
         fake_trigger = Mock()
         fake_trigger.determine_task_count.return_value = 3
         fake_get_trigger.return_value = fake_trigger
@@ -193,12 +178,10 @@ class JobExecutorTests(unittest.TestCase):
 
         self.assertEqual(JobExecutor.RETVAL_STARTED_TASKS, result.return_code)
         self.assertEqual([], result.task_info)
-        self._exec._ecs.run_task.assert_called_with(
-            cluster='testCluster',
-            taskDefinition='foo',
-            count=3,
-            startedBy='testName'
-        )
+        self._exec._ecs.run_task.assert_called_with(cluster='testCluster',
+                                                    taskDefinition='foo',
+                                                    count=3,
+                                                    startedBy='testName')
         fake_get_trigger.assert_called_with(None)
         fake_log.assert_called()
 
@@ -222,12 +205,10 @@ class JobExecutorTests(unittest.TestCase):
             {'taskId': 'foo1', 'hostId': 'bar1'},
             {'taskId': 'foo2', 'hostId': 'bar2'},
         ], result.task_info)
-        self._exec._ecs.run_task.assert_called_with(
-            cluster='testCluster',
-            taskDefinition='foo',
-            count=2,
-            startedBy='testName'
-        )
+        self._exec._ecs.run_task.assert_called_with(cluster='testCluster',
+                                                    taskDefinition='foo',
+                                                    count=2,
+                                                    startedBy='testName')
         fake_get_trigger.assert_called_with(None)
 
     def test_call_launches_max_single_batch_tasks(self, fake_get_trigger):
@@ -250,12 +231,10 @@ class JobExecutorTests(unittest.TestCase):
             {'taskId': 'foo1', 'hostId': 'bar1'},
             {'taskId': 'foo2', 'hostId': 'bar2'},
         ], result.task_info)
-        self._exec._ecs.run_task.assert_called_with(
-            cluster='testCluster',
-            taskDefinition='foo',
-            count=10,
-            startedBy='testName'
-        )
+        self._exec._ecs.run_task.assert_called_with(cluster='testCluster',
+                                                    taskDefinition='foo',
+                                                    count=10,
+                                                    startedBy='testName')
         self.assertEqual(1, self._exec._ecs.run_task.call_count)
 
     def test_call_launches_multiple_task_batches(self, fake_get_trigger):
@@ -293,19 +272,15 @@ class JobExecutorTests(unittest.TestCase):
             cluster='testCluster',
             taskDefinition='foo',
             count=10,
-            startedBy='testName'
-        )
-        self._exec._ecs.run_task.assert_called_with(
-            cluster='testCluster',
-            taskDefinition='foo',
-            count=3,
-            startedBy='testName'
-        )
+            startedBy='testName')
+        self._exec._ecs.run_task.assert_called_with(cluster='testCluster',
+                                                    taskDefinition='foo',
+                                                    count=3,
+                                                    startedBy='testName')
         self.assertEqual(2, self._exec._ecs.run_task.call_count)
 
     def test_call_launches_single_batch_if_running_count_reduces_expected_count_to_one_batch(
-        self, fake_get_trigger
-    ):
+            self, fake_get_trigger):
         fake_trigger = Mock()
         fake_trigger.determine_task_count.return_value = 13
         fake_get_trigger.return_value = fake_trigger
@@ -318,17 +293,14 @@ class JobExecutorTests(unittest.TestCase):
 
         self.assertEqual(JobExecutor.RETVAL_STARTED_TASKS, result.return_code)
         self.assertEqual([], result.task_info)
-        self._exec._ecs.run_task.assert_called_with(
-            cluster='testCluster',
-            taskDefinition='foo',
-            count=9,
-            startedBy='testName'
-        )
+        self._exec._ecs.run_task.assert_called_with(cluster='testCluster',
+                                                    taskDefinition='foo',
+                                                    count=9,
+                                                    startedBy='testName')
         self.assertEqual(1, self._exec._ecs.run_task.call_count)
 
-    def test_call_launches_override_tasks_if_none_running(
-        self, fake_get_trigger
-    ):
+    def test_call_launches_override_tasks_if_none_running(self,
+                                                          fake_get_trigger):
         fake_trigger = Mock()
         fake_trigger.determine_task_count.return_value = 3
         fake_get_trigger.return_value = fake_trigger
@@ -361,13 +333,11 @@ class JobExecutorTests(unittest.TestCase):
             overrides=unittest.mock.ANY)
         self._assert_equal_overrides(
             expected_overrides,
-            self._exec._ecs.run_task.call_args[1]['overrides']
-        )
+            self._exec._ecs.run_task.call_args[1]['overrides'])
         fake_get_trigger.assert_called_with(None)
 
-    def test_call_checks_override_tags_for_running_count(
-        self, fake_get_trigger
-    ):
+    def test_call_checks_override_tags_for_running_count(self,
+                                                         fake_get_trigger):
         fake_trigger = Mock()
         fake_trigger.determine_task_count.return_value = 5
         fake_get_trigger.return_value = fake_trigger
@@ -427,17 +397,14 @@ class JobExecutorTests(unittest.TestCase):
             taskDefinition='job-id',
             count=2,
             startedBy='testName',
-            overrides=unittest.mock.ANY
-        )
+            overrides=unittest.mock.ANY)
         self._assert_equal_overrides(
             expected_overrides,
-            self._exec._ecs.run_task.call_args[1]['overrides']
-        )
+            self._exec._ecs.run_task.call_args[1]['overrides'])
         fake_get_trigger.assert_called_with(None)
 
-    def test_call_checks_override_tags_with_unrelated_values(
-        self, fake_get_trigger
-    ):
+    def test_call_checks_override_tags_with_unrelated_values(self,
+                                                             fake_get_trigger):
         fake_trigger = Mock()
         fake_trigger.determine_task_count.return_value = 5
         fake_get_trigger.return_value = fake_trigger
@@ -498,17 +465,14 @@ class JobExecutorTests(unittest.TestCase):
             taskDefinition='job-id',
             count=3,
             startedBy='testName',
-            overrides=unittest.mock.ANY
-        )
+            overrides=unittest.mock.ANY)
         self._assert_equal_overrides(
             expected_overrides,
-            self._exec._ecs.run_task.call_args[1]['overrides']
-        )
+            self._exec._ecs.run_task.call_args[1]['overrides'])
         fake_get_trigger.assert_called_with(None)
 
     def test_call_checks_override_tags_with_over_container_sections(
-        self, fake_get_trigger
-    ):
+            self, fake_get_trigger):
         fake_trigger = Mock()
         fake_trigger.determine_task_count.return_value = 5
         fake_get_trigger.return_value = fake_trigger
@@ -583,17 +547,14 @@ class JobExecutorTests(unittest.TestCase):
             taskDefinition='job-id',
             count=1,
             startedBy='testName',
-            overrides=unittest.mock.ANY
-        )
+            overrides=unittest.mock.ANY)
         self._assert_equal_overrides(
             expected_overrides,
-            self._exec._ecs.run_task.call_args[1]['overrides']
-        )
+            self._exec._ecs.run_task.call_args[1]['overrides'])
         fake_get_trigger.assert_called_with(None)
 
-    def test_call_does_not_match_other_id_in_override_tag(
-        self, fake_get_trigger
-    ):
+    def test_call_does_not_match_other_id_in_override_tag(self,
+                                                          fake_get_trigger):
         fake_trigger = Mock()
         fake_trigger.determine_task_count.return_value = 5
         fake_get_trigger.return_value = fake_trigger
@@ -657,17 +618,14 @@ class JobExecutorTests(unittest.TestCase):
             taskDefinition='job-id',
             count=5,
             startedBy='testName',
-            overrides=unittest.mock.ANY
-        )
+            overrides=unittest.mock.ANY)
         self._assert_equal_overrides(
             expected_overrides,
-            self._exec._ecs.run_task.call_args[1]['overrides']
-        )
+            self._exec._ecs.run_task.call_args[1]['overrides'])
         fake_get_trigger.assert_called_with(None)
 
     def test_call_uses_task_description_instead_of_id_if_present(
-        self, fake_get_trigger
-    ):
+            self, fake_get_trigger):
         fake_trigger = Mock()
         fake_trigger.determine_task_count.return_value = 3
         fake_get_trigger.return_value = fake_trigger
@@ -678,12 +636,10 @@ class JobExecutorTests(unittest.TestCase):
 
         self.assertEqual(JobExecutor.RETVAL_STARTED_TASKS, result.return_code)
         self.assertEqual([], result.task_info)
-        self._exec._ecs.run_task.assert_called_with(
-            cluster='testCluster',
-            taskDefinition='bar',
-            count=3,
-            startedBy='testName'
-        )
+        self._exec._ecs.run_task.assert_called_with(cluster='testCluster',
+                                                    taskDefinition='bar',
+                                                    count=3,
+                                                    startedBy='testName')
         fake_get_trigger.assert_called_with(None)
 
     def test_call_uses_passes_overrides_to_ecs(self, fake_get_trigger):
@@ -713,18 +669,15 @@ class JobExecutorTests(unittest.TestCase):
             taskDefinition='test-id',
             count=3,
             startedBy='testName',
-            overrides=unittest.mock.ANY
-        )
+            overrides=unittest.mock.ANY)
         self._exec._ecs.describe_tasks.assert_not_called()
         self._assert_equal_overrides(
             expected_overrides,
-            self._exec._ecs.run_task.call_args[1]['overrides']
-        )
+            self._exec._ecs.run_task.call_args[1]['overrides'])
         fake_get_trigger.assert_called_with(None)
 
     def test_call_uses_passes_overrides_with_multiple_entries_to_ecs(
-        self, fake_get_trigger
-    ):
+            self, fake_get_trigger):
         fake_trigger = Mock()
         fake_trigger.determine_task_count.return_value = 3
         fake_get_trigger.return_value = fake_trigger
@@ -760,13 +713,11 @@ class JobExecutorTests(unittest.TestCase):
             taskDefinition='test-id',
             count=3,
             startedBy='testName',
-            overrides=unittest.mock.ANY
-        )
+            overrides=unittest.mock.ANY)
         self._exec._ecs.describe_tasks.assert_not_called()
         self._assert_equal_overrides(
             expected_overrides,
-            self._exec._ecs.run_task.call_args[1]['overrides']
-        )
+            self._exec._ecs.run_task.call_args[1]['overrides'])
         fake_get_trigger.assert_called_with(None)
 
     def test_call_uses_a_copy_of_overrides_to_ecs(self, fake_get_trigger):
@@ -796,12 +747,10 @@ class JobExecutorTests(unittest.TestCase):
             taskDefinition='test-id',
             count=3,
             startedBy='testName',
-            overrides=unittest.mock.ANY
-        )
+            overrides=unittest.mock.ANY)
         self._assert_equal_overrides(
             expected_overrides,
-            self._exec._ecs.run_task.call_args[1]['overrides']
-        )
+            self._exec._ecs.run_task.call_args[1]['overrides'])
         self.assertEqual([{
             'containerName': 'test-container',
             'environment': {'foo': 'bar'},
@@ -816,22 +765,19 @@ class JobExecutorTests(unittest.TestCase):
             self.assertEqual(
                 len(expected_override),
                 len(actual_override),
-                msg=f'Unexpected override length for index {i}'
-            )
+                msg=f'Unexpected override length for index {i}')
 
             self.assertEqual(
                 expected_override['name'],
                 actual_override['name'],
-                msg=f'Unexpected container name for index {i}'
-            )
+                msg=f'Unexpected container name for index {i}')
 
             expected_env = expected_override['environment']
             actual_env = actual_override['environment']
             self.assertCountEqual(
                 expected_env,
                 actual_env,
-                msg=f'Unexpected environment values for index {i}'
-            )
+                msg=f'Unexpected environment values for index {i}')
 
 
 class JobResultTests(unittest.TestCase):
