@@ -33,8 +33,7 @@ def resolve():
             'hosts': [
                 h.strip()
                 for h in env.get_var(
-                    'ELASTICSEARCH_HOSTS', required=True
-                ).split(',')
+                    'ELASTICSEARCH_HOSTS', required=True).split(',')
             ],
         }),
     }
