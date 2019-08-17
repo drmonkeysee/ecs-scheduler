@@ -1,6 +1,8 @@
 """Job execution classes."""
 import copy
 import logging
+from dataclasses import dataclass
+from typing import List, Dict
 
 import boto3
 
@@ -129,10 +131,8 @@ class JobExecutor:
             run_kwargs['overrides'] = {'containerOverrides': ecs_overrides}
 
 
+@dataclass
 class JobResult:
     """The result of a job run."""
-
-    def __init__(self, return_code, task_info=None):
-        """Create a job result with a return code and optional task info."""
-        self.return_code = return_code
-        self.task_info = task_info
+    return_code: int
+    task_info: List[Dict[str, str]] = None
