@@ -8,6 +8,7 @@ from .. import env
 
 class Spec(flask_restful.Resource):
     """Swagger spec REST resource."""
+
     def get(self):
         """
         API spec

@@ -8,6 +8,7 @@ from .spec import Spec
 
 class Home(flask_restful.Resource):
     """Home url REST resource."""
+
     def get(self):
         """
         Home
@@ -23,7 +24,19 @@ class Home(flask_restful.Resource):
         """
         return {
             'resources': [
-                {'link': {'rel': 'jobs', 'title': 'Jobs', 'href': flask.url_for(Jobs.__name__.lower())}},
-                {'link': {'rel': 'spec', 'title': 'Spec', 'href': flask.url_for(Spec.__name__.lower())}}
-            ]
+                {
+                    'link': {
+                        'rel': 'jobs',
+                        'title': 'Jobs',
+                        'href': flask.url_for(Jobs.__name__.lower()),
+                    },
+                },
+                {
+                    'link': {
+                        'rel': 'spec',
+                        'title': 'Spec',
+                        'href': flask.url_for(Spec.__name__.lower()),
+                    },
+                }
+            ],
         }

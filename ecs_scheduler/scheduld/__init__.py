@@ -12,7 +12,7 @@ def create(ops_queue, datacontext):
     :returns: An initialized scheduler instance
     """
     job_exec = JobExecutor()
-    
+
     sched = Scheduler(datacontext, job_exec)
     ops_queue.register(sched)
     return sched

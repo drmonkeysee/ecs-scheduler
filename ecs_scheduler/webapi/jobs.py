@@ -1,37 +1,47 @@
 """Job REST resources."""
-import logging
 import functools
+import logging
 from itertools import islice
 
 import flask
 import flask_restful
 
-from ..serialization import PaginationSchema, JobResponseSchema
-from ..models import Pagination, JobOperation
 from ..datacontext import JobAlreadyExists, JobNotFound, InvalidJobData
+from ..models import Pagination, JobOperation
+from ..serialization import PaginationSchema, JobResponseSchema
 
 
 _logger = logging.getLogger(__name__)
 
 
 def require_json_content_type(verb):
-    """A decorator for enforcing json content-type constraints on http requests."""
+    """
+    A decorator for enforcing json content-type constraints on http requests.
+    """
     @functools.wraps(verb)
     def ct_checker(*args, **kwargs):
-        return verb(*args, **kwargs) \
-                if flask.request.headers.get('Content-Type', '').startswith('application/json') \
-                else ({'message': 'Header Content-Type: application/json required to send a request body.'}, 415)
+        return (verb(*args, **kwargs)
+                if flask.request.headers.get('Content-Type', '')
+                .startswith('application/json')
+                else ({
+                    'message': 'Header Content-Type: application/json'
+                               ' required to send a request body.',
+                }, 415))
     return ct_checker
 
 
 def _job_link(job_id):
-    return {'rel': 'item', 'title': f'Job for {job_id}', 'href': flask.url_for(Job.__name__.lower(), job_id=job_id)}
+    return {
+        'rel': 'item',
+        'title': f'Job for {job_id}',
+        'href': flask.url_for(Job.__name__.lower(), job_id=job_id),
+    }
 
 
 def _job_committed_response(job_id):
     return {
         'id': job_id,
-        'link': _job_link(job_id)
+        'link': _job_link(job_id),
     }
 
 
@@ -41,8 +51,9 @@ def _post_operation(job_op, ops_queue, job_response):
     except Exception:
         _logger.exception('Exception when posting job operation to ops queue.')
         flask_restful.abort(500,
-            item=job_response,
-            message='Job update was saved correctly but failed to post update message to scheduler.')
+                            item=job_response,
+                            message='Job update was saved correctly but failed'
+                            ' to post update message to scheduler.')
 
 
 _job_response_schema = JobResponseSchema(_job_link, strict=True)
@@ -53,11 +64,13 @@ class Jobs(flask_restful.Resource):
     Jobs REST Resource
     REST operations for a collection of jobs.
     """
+
     def __init__(self, ops_queue, datacontext):
         """
         Create jobs resource.
 
-        :param ops_queue: Ops queue to post job operations to after updating document store
+        :param ops_queue: Ops queue to post job operations to after
+                          updating document store
         :param datacontext: The jobs data context for loading and saving jobs
         """
         self._ops_queue = ops_queue
@@ -93,9 +106,13 @@ class Jobs(flask_restful.Resource):
                 description: Server error
         """
         pagination = self._parse_pagination(flask.request.values)
-        jobs_page = islice(self._dc.get_all(), pagination.skip, pagination.skip + pagination.count)
+        jobs_page = islice(self._dc.get_all(), pagination.skip,
+                           pagination.skip + pagination.count)
         result = {
-            'jobs': [_job_response_schema.dump(j.data).data for j in jobs_page]
+            'jobs': [
+                _job_response_schema.dump(j.data).data
+                for j in jobs_page
+            ],
         }
         self._set_pagination(result, pagination, self._dc.total())
         return result
@@ -123,24 +140,33 @@ class Jobs(flask_restful.Resource):
                     properties:
                         taskDefinition:
                             type: string
-                            description: Name of task definition in ECS and used as job id if no id is explicitly specified
+                            description: Name of task definition in ECS and
+                                         used as job id if no id is explicitly
+                                         specified
                         id:
                             type: string
                             description: >
-                                Id of scheduler job. This will be set to taskDefinition if not otherwise specified,
-                                and is only necessary if multiple jobs share the same task definition and therefore
-                                need a unique id. Generally used in conjuction with overrides
+                                Id of scheduler job. This will be set to
+                                taskDefinition if not otherwise specified, and
+                                is only necessary if multiple jobs share the
+                                same task definition and therefore need a
+                                unique id. Generally used in conjuction with
+                                overrides
                         schedule:
                             type: string
                             description: >
-                                Cron-style description of the job's run schedule.
-                                See README.md at https://github.com/drmonkeysee/ecs-scheduler for details
+                                Cron-style description of the job's run
+                                schedule.
+                                See README.md at
+                                https://github.com/drmonkeysee/ecs-scheduler
+                                for details
                         taskCount:
                             type: integer
                             default: 1
                             minimum: 1
                             maximum: 50
-                            description: Number of tasks to start when the job is run
+                            description: Number of tasks to start when the
+                                         job is run
                         maxCount:
                             type: integer
                             minimum: 1
@@ -149,13 +175,15 @@ class Jobs(flask_restful.Resource):
                         scheduleStart:
                             type: string
                             description: >
-                                Start date in ISO-8601 format from which to begin scheduling the job;
-                                if timezone offset is omitted it will default to UTC
+                                Start date in ISO-8601 format from which to
+                                begin scheduling the job; if timezone offset
+                                is omitted it will default to UTC
                         scheduledEnd:
                             type: string
                             description: >
-                                End date in ISO-8601 format at which to stop scheduling the job;
-                                if timezone offset is omitted it will default to UTC
+                                End date in ISO-8601 format at which to stop
+                                scheduling the job; if timezone offset is
+                                omitted it will default to UTC
                         timezone:
                             type: string
                             description: >
@@ -190,8 +218,9 @@ class Jobs(flask_restful.Resource):
                         type: integer
                         description: >
                             Scaling factor for sqs triggers.
-                            Will start up number of tasks based on number of messages in queue.
-                            If taskCount is larger than the number of tasks calculated based on message count
+                            Will start up number of tasks based on number of
+                            messages in queue; if taskCount is larger than the
+                            number of tasks calculated based on message count
                             then taskCount tasks will be started instead
             - schema:
                 id: Override
@@ -200,11 +229,13 @@ class Jobs(flask_restful.Resource):
                 properties:
                     containerName:
                         type: string
-                        description: The name of the container in the task definition to apply the overrides to
+                        description: The name of the container in the task
+                                     definition to apply the overrides to
                     environment:
                         type: object
                         description: >
-                            Environment variable overrides for the named container as "NAME": "VALUE" pairs
+                            Environment variable overrides for the named
+                            container as "NAME": "VALUE" pairs
         responses:
             201:
                 description: Job created and scheduled
@@ -223,9 +254,11 @@ class Jobs(flask_restful.Resource):
         except InvalidJobData as ex:
             flask_restful.abort(400, messages=ex.errors)
         except JobAlreadyExists as ex:
-            flask_restful.abort(409, message=f'Job {ex.job_id} already exists.')
+            flask_restful.abort(409,
+                                message=f'Job {ex.job_id} already exists.')
         web_response = _job_committed_response(new_job.id)
-        _post_operation(JobOperation.add(new_job.id), self._ops_queue, web_response)
+        _post_operation(JobOperation.add(new_job.id), self._ops_queue,
+                        web_response)
         return web_response, 201
 
     def _parse_pagination(self, data):
@@ -236,16 +269,22 @@ class Jobs(flask_restful.Resource):
             return obj
 
     def _set_pagination(self, result, pagination, total):
-        prev_link = self._pagination_link(Pagination(pagination.skip - pagination.count, pagination.count, total))
+        prev_link = self._pagination_link(
+            Pagination(pagination.skip - pagination.count,
+                       pagination.count, total))
         if prev_link:
             result['prev'] = prev_link
-        next_link = self._pagination_link(Pagination(pagination.skip + pagination.count, pagination.count, total))
+        next_link = self._pagination_link(
+            Pagination(pagination.skip + pagination.count,
+                       pagination.count, total))
         if next_link:
             result['next'] = next_link
 
     def _pagination_link(self, page_frame):
         values, e = self._pagination_schema.dump(page_frame)
-        return flask.url_for(Jobs.__name__.lower(), **values) if values else None
+        return (flask.url_for(Jobs.__name__.lower(), **values)
+                if values
+                else None)
 
 
 class Job(flask_restful.Resource):
@@ -253,12 +292,14 @@ class Job(flask_restful.Resource):
     Job REST Resource
     REST operations for a single job.
     """
+
     def __init__(self, ops_queue, datacontext):
         """
         Create job resource.
 
         :param store: Document store for updating persistent data
-        :param ops_queue: Ops queue to post job operations to after updating document store
+        :param ops_queue: Ops queue to post job operations to after updating
+                          document store
         :param datacontext: The jobs data context for loading and saving jobs
         """
         self._ops_queue = ops_queue
@@ -321,13 +362,15 @@ class Job(flask_restful.Resource):
                             description: Name of task definition in ECS
                         schedule:
                             type: string
-                            description: Cron-style description of the job's run schedule
+                            description: Cron-style description of the job's
+                                         run schedule
                         taskCount:
                             type: integer
                             default: 1
                             minimum: 1
                             maximum: 50
-                            description: Number of tasks to start when the job is run
+                            description: Number of tasks to start when the job
+                                         is run
                         maxCount:
                             type: integer
                             minimum: 1
@@ -336,13 +379,15 @@ class Job(flask_restful.Resource):
                         scheduleStart:
                             type: string
                             description: >
-                                Start date in ISO-8601 format from which to begin scheduling the job;
-                                if timezone offset is omitted it will default to UTC
+                                Start date in ISO-8601 format from which to
+                                begin scheduling the job; if timezone offset
+                                is omitted it will default to UTC
                         scheduledEnd:
                             type: string
                             description: >
-                                End date in ISO-8601 format at which to stop scheduling the job;
-                                if timezone offset is omitted it will default to UTC
+                                End date in ISO-8601 format at which to stop
+                                scheduling the job; if timezone offset is
+                                omitted it will default to UTC
                         timezone:
                             type: string
                             description: >
@@ -381,7 +426,8 @@ class Job(flask_restful.Resource):
         except InvalidJobData as ex:
             flask_restful.abort(400, messages=ex.errors)
         web_response = _job_committed_response(job_id)
-        _post_operation(JobOperation.modify(job_id), self._ops_queue, web_response)
+        _post_operation(JobOperation.modify(job_id),
+                        self._ops_queue, web_response)
         return web_response
 
     def delete(self, job_id):
@@ -412,7 +458,8 @@ class Job(flask_restful.Resource):
         except JobNotFound:
             self._raise_job_notfound(job_id)
         web_response = {'id': job_id}
-        _post_operation(JobOperation.remove(job_id), self._ops_queue, web_response)
+        _post_operation(JobOperation.remove(job_id),
+                        self._ops_queue, web_response)
         return web_response
 
     def _raise_job_notfound(self, job_id):
