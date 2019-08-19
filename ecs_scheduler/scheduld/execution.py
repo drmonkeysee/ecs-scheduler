@@ -45,29 +45,38 @@ class JobExecutor:
         :returns: An executor return value
         """
         task_name = job_data.get('taskDefinition', job_data['id'])
-        running_tasks = self._ecs.list_tasks(cluster=self._cluster_name,
-                                             family=task_name,
-                                             desiredStatus='RUNNING')
+        running_tasks = self._ecs.list_tasks(
+            cluster=self._cluster_name,
+            family=task_name,
+            desiredStatus='RUNNING'
+        )
         running_task_count = self._calculate_running_count(
-            job_data, running_tasks['taskArns'])
+            job_data, running_tasks['taskArns']
+        )
         expected_task_count = self._calculate_expected_count(job_data)
         needed_task_count = max(0, expected_task_count - running_task_count)
 
         if needed_task_count:
-            task_info = self._launch_tasks(task_name,
-                                           needed_task_count, job_data)
-            _logger.info('Launched %s "%s" tasks for job %s',
-                         needed_task_count, task_name, job_data['id'])
+            task_info = self._launch_tasks(
+                task_name, needed_task_count, job_data
+            )
+            _logger.info(
+                'Launched %s "%s" tasks for job %s',
+                needed_task_count, task_name, job_data['id']
+            )
             return JobResult(self.RETVAL_STARTED_TASKS, task_info)
 
-        _logger.info('Checked status for "%s" and no'
-                     ' additional tasks were needed', job_data['id'])
+        _logger.info(
+            'Checked status for "%s" and no additional tasks were needed',
+            job_data['id']
+        )
         return JobResult(self.RETVAL_CHECKED_TASKS)
 
     def _calculate_running_count(self, job_data, task_arns):
         if task_arns and 'overrides' in job_data:
-            tasks = self._ecs.describe_tasks(cluster=self._cluster_name,
-                                             tasks=task_arns)
+            tasks = self._ecs.describe_tasks(
+                cluster=self._cluster_name, tasks=task_arns
+            )
             overridden_tasks = [
                 task for task in tasks['tasks']
                 if self._is_overridden_by_job(task, job_data['id'])
@@ -77,10 +86,12 @@ class JobExecutor:
             return len(task_arns)
 
     def _is_overridden_by_job(self, task, job_id):
-        return any(env.get('name') == self.OVERRIDE_TAG
-                   and env.get('value') == job_id
-                   for overrides in task['overrides']['containerOverrides']
-                   for env in overrides.get('environment', []))
+        return any(
+            env.get('name') == self.OVERRIDE_TAG
+            and env.get('value') == job_id
+            for overrides in task['overrides']['containerOverrides']
+            for env in overrides.get('environment', [])
+        )
 
     def _calculate_expected_count(self, job_data):
         trigger_data = job_data.get('trigger', {})
@@ -102,8 +113,9 @@ class JobExecutor:
             response = self._ecs.run_task(**run_kwargs)
             failures = response['failures']
             if failures:
-                _logger.warning('Task "%s" start failures: %s', task_def_id,
-                                failures)
+                _logger.warning(
+                    'Task "%s" start failures: %s', task_def_id, failures
+                )
             task_info.extend({
                 'taskId': t['taskArn'],
                 'hostId': t['containerInstanceArn'],

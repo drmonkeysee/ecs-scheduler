@@ -23,7 +23,8 @@ class InitTests(unittest.TestCase):
         fake_log.assert_called_with(
             level=None,
             handlers=unittest.mock.ANY,
-            format='%(levelname)s:%(name)s:%(asctime)s %(message)s')
+            format='%(levelname)s:%(name)s:%(asctime)s %(message)s'
+        )
         pos_args, expected_args = fake_log.call_args
         expected_handlers = expected_args['handlers']
         self.assertEqual(1, len(expected_handlers))
@@ -37,24 +38,27 @@ class InitTests(unittest.TestCase):
         fake_log.assert_called_with(
             level=logging.INFO,
             handlers=unittest.mock.ANY,
-            format='%(levelname)s:%(name)s:%(asctime)s %(message)s')
+            format='%(levelname)s:%(name)s:%(asctime)s %(message)s'
+        )
 
     @patch.object(logging, 'basicConfig')
     @patch('os.path.abspath', side_effect=lambda p: '/abs/path/' + p)
     @patch('os.makedirs')
-    @patch.dict('os.environ', {'ECSS_LOG_FOLDER': 'foo/bar/testlog'},
-                clear=True)
+    @patch.dict(
+        'os.environ', {'ECSS_LOG_FOLDER': 'foo/bar/testlog'}, clear=True
+    )
     def test_sets_logfile(self, fake_makedirs, abspath, fake_log, triggers):
-        with patch.object(logging.handlers, 'RotatingFileHandler',
-                          spec=logging.handlers.RotatingFileHandler) \
-                as fake_file_handler:
+        with patch.object(
+            logging.handlers, 'RotatingFileHandler',
+            spec=logging.handlers.RotatingFileHandler
+        ) as fake_file_handler:
             env.init()
             fake_makedirs.assert_called_with(
                 '/abs/path/foo/bar/testlog', exist_ok=True
             )
-            fake_file_handler.assert_called_with('foo/bar/testlog/app.log',
-                                                 maxBytes=5*1024*1024,
-                                                 backupCount=1)
+            fake_file_handler.assert_called_with(
+                'foo/bar/testlog/app.log', maxBytes=5*1024*1024, backupCount=1
+            )
 
         pos_args, expected_args = fake_log.call_args
         expected_handlers = expected_args['handlers']
@@ -65,30 +69,37 @@ class InitTests(unittest.TestCase):
     @patch.object(logging, 'basicConfig')
     @patch('os.path.abspath', side_effect=lambda p: '/abs/path/' + p)
     @patch('os.makedirs')
-    @patch.dict('os.environ',
-                {
-                    'ECSS_LOG_FOLDER': 'foo/bar/{HOSTNAME}/testlog',
-                    'HOSTNAME': 'testhost',
-                },
-                clear=True)
-    def test_sets_logfile_with_env_vars(self, fake_makedirs, abspath,
-                                        fake_log, triggers):
-        with patch.object(logging.handlers, 'RotatingFileHandler',
-                          spec=logging.handlers.RotatingFileHandler) \
-                as fake_file_handler:
+    @patch.dict(
+        'os.environ',
+        {
+            'ECSS_LOG_FOLDER': 'foo/bar/{HOSTNAME}/testlog',
+            'HOSTNAME': 'testhost',
+        },
+        clear=True
+    )
+    def test_sets_logfile_with_env_vars(
+        self, fake_makedirs, abspath, fake_log, triggers
+    ):
+        with patch.object(
+            logging.handlers, 'RotatingFileHandler',
+            spec=logging.handlers.RotatingFileHandler
+        ) as fake_file_handler:
             env.init()
             fake_makedirs.assert_called_with(
-                '/abs/path/foo/bar/testhost/testlog', exist_ok=True)
+                '/abs/path/foo/bar/testhost/testlog', exist_ok=True
+            )
             fake_file_handler.assert_called_with(
                 'foo/bar/testhost/testlog/app.log',
                 maxBytes=5*1024*1024,
-                backupCount=1)
+                backupCount=1
+            )
 
         pos_args, expected_args = fake_log.call_args
         expected_handlers = expected_args['handlers']
         self.assertEqual(2, len(expected_handlers))
-        self.assertIsInstance(expected_handlers[1],
-                              logging.handlers.RotatingFileHandler)
+        self.assertIsInstance(
+            expected_handlers[1], logging.handlers.RotatingFileHandler
+        )
 
 
 class GetVarTests(unittest.TestCase):
@@ -110,8 +121,9 @@ class GetVarTests(unittest.TestCase):
 
         self.assertEqual('def_foo', value)
 
-    @patch.dict('os.environ', {'ECSS_FOO': 'foo{BAZ}bar', 'BAZ': '12'},
-                clear=True)
+    @patch.dict(
+        'os.environ', {'ECSS_FOO': 'foo{BAZ}bar', 'BAZ': '12'}, clear=True
+    )
     def test_applies_environ_to_formatted_value(self):
         value = env.get_var('FOO')
 
@@ -128,8 +140,9 @@ class GetVarTests(unittest.TestCase):
         with self.assertRaises(KeyError):
             env.get_var('FOO', required=True)
 
-    @patch.dict('os.environ', {'ECSS_FOO': 'foo{BAZ}bar', 'BAZ': '12'},
-                clear=True)
+    @patch.dict(
+        'os.environ', {'ECSS_FOO': 'foo{BAZ}bar', 'BAZ': '12'}, clear=True
+    )
     def test_applies_environ_to_formatted_required_value(self):
         value = env.get_var('FOO', required=True)
 

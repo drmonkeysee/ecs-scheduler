@@ -1,8 +1,9 @@
 import unittest
 from unittest.mock import patch, Mock
 
-from ecs_scheduler.triggers import (NoOpTrigger, SqsTrigger, get, init,
-                                    _triggers)
+from ecs_scheduler.triggers import (
+    NoOpTrigger, SqsTrigger, get, init, _triggers
+)
 
 
 class NoOpTriggerTests(unittest.TestCase):
@@ -46,7 +47,8 @@ class SqsTriggerTests(unittest.TestCase):
         self.assertEqual(0, count)
 
     def test_determine_task_count_returns_task_count_if_no_scaling_factor(
-            self):
+        self
+    ):
         test_data = {'taskCount': 10, 'trigger': {'queueName': 'testQueue'}}
         fake_queue = Mock(attributes={'ApproximateNumberOfMessages': 1})
         self._trigger._sqs.get_queue_by_name.return_value = fake_queue
@@ -69,7 +71,8 @@ class SqsTriggerTests(unittest.TestCase):
         self.assertEqual(7, count)
 
     def test_determine_task_count_returns_calculated_count_based_on_factor(
-            self):
+        self
+    ):
         test_data = {
             'taskCount': 1,
             'trigger': {'queueName': 'testQueue', 'messagesPerTask': 10},
@@ -131,7 +134,8 @@ class SqsTriggerTests(unittest.TestCase):
         self.assertEqual(1, count)
 
     def test_determine_task_count_returns_task_count_if_calculated_value_lower(
-            self):
+        self
+    ):
         test_data = {
             'taskCount': 3,
             'trigger': {'queueName': 'testQueue', 'messagesPerTask': 10},
@@ -159,8 +163,10 @@ class TestTrigger():
     pass
 
 
-@patch.dict('ecs_scheduler.triggers._triggers',
-            {'test': TestTrigger(), 'noop': NoOpTrigger()})
+@patch.dict(
+    'ecs_scheduler.triggers._triggers',
+    {'test': TestTrigger(), 'noop': NoOpTrigger()}
+)
 class GetTests(unittest.TestCase):
     def test_get_named_trigger(self):
         trigger = get('test')

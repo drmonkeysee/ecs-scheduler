@@ -4,10 +4,10 @@ from datetime import datetime, timezone, timedelta
 import dateutil
 
 from ecs_scheduler.models import Pagination
-from ecs_scheduler.serialization import (TriggerSchema, JobSchema,
-                                         JobCreateSchema, JobResponseSchema,
-                                         PaginationSchema, OverrideSchema,
-                                         TaskInfoSchema)
+from ecs_scheduler.serialization import (
+    TriggerSchema, JobSchema, JobCreateSchema, JobResponseSchema,
+    PaginationSchema, OverrideSchema, TaskInfoSchema
+)
 
 
 class TriggerSchemaTests(unittest.TestCase):
@@ -257,12 +257,18 @@ class JobSchemaTests(unittest.TestCase):
         job, errors = schema.load(data)
 
         self.assertEqual(0, len(errors))
-        self.assertTrue(0 <= int(job['parsedSchedule']['second']) < 60,
-                        'wildcard second not in expected range')
-        self.assertTrue(0 <= int(job['parsedSchedule']['minute']) < 60,
-                        'wildcard minute not in expected range')
-        self.assertTrue(0 <= int(job['parsedSchedule']['hour']) < 24,
-                        'wildcard hour not in expected range')
+        self.assertTrue(
+            0 <= int(job['parsedSchedule']['second']) < 60,
+            'wildcard second not in expected range'
+        )
+        self.assertTrue(
+            0 <= int(job['parsedSchedule']['minute']) < 60,
+            'wildcard minute not in expected range'
+        )
+        self.assertTrue(
+            0 <= int(job['parsedSchedule']['hour']) < 24,
+            'wildcard hour not in expected range'
+        )
         expected_expression = ' '.join((
             job['parsedSchedule']['second'],
             job['parsedSchedule']['minute'],
@@ -279,12 +285,18 @@ class JobSchemaTests(unittest.TestCase):
         job, errors = schema.load(data)
 
         self.assertEqual(0, len(errors))
-        self.assertTrue(0 <= int(job['parsedSchedule']['second']) < 60,
-                        'wildcard second not in expected range')
-        self.assertTrue(0 <= int(job['parsedSchedule']['minute']) < 60,
-                        'wildcard minute not in expected range')
-        self.assertTrue(0 <= int(job['parsedSchedule']['hour']) < 24,
-                        'wildcard hour not in expected range')
+        self.assertTrue(
+            0 <= int(job['parsedSchedule']['second']) < 60,
+            'wildcard second not in expected range'
+        )
+        self.assertTrue(
+            0 <= int(job['parsedSchedule']['minute']) < 60,
+            'wildcard minute not in expected range'
+        )
+        self.assertTrue(
+            0 <= int(job['parsedSchedule']['hour']) < 24,
+            'wildcard hour not in expected range'
+        )
         expected_expression = ' '.join((
             job['parsedSchedule']['second'],
             job['parsedSchedule']['minute'],
@@ -402,7 +414,8 @@ class JobSchemaTests(unittest.TestCase):
         self.assertEqual({'taskDefinition'}, errors.keys())
 
     def test_deserialize_fails_if_task_definition_includes_malformed_revision(
-            self):
+        self
+    ):
         schema = JobSchema()
         data = {'taskDefinition': 'foo:', 'schedule': '*'}
 
@@ -411,7 +424,8 @@ class JobSchemaTests(unittest.TestCase):
         self.assertEqual({'taskDefinition'}, errors.keys())
 
     def test_deserialize_fails_if_task_definition_includes_invalid_characters(
-            self):
+        self
+    ):
         schema = JobSchema()
         data = {'taskDefinition': 'foo/bar.baz', 'schedule': '*'}
 
@@ -490,10 +504,12 @@ class JobSchemaTests(unittest.TestCase):
     def test_serialize_timezone_offsets(self):
         schema = JobSchema()
         job_data = {
-            'scheduleStart': datetime(2015, 10, 7, 13, 44, 53,
-                                      123456, timezone(timedelta(hours=10))),
-            'scheduleEnd': datetime(2015, 10, 10, 4, 10, 3,
-                                    654321, timezone(timedelta(hours=-6))),
+            'scheduleStart': datetime(
+                2015, 10, 7, 13, 44, 53, 123456, timezone(timedelta(hours=10))
+            ),
+            'scheduleEnd': datetime(
+                2015, 10, 10, 4, 10, 3, 654321, timezone(timedelta(hours=-6))
+            ),
             'timezone': 'US/Eastern',
         }
 
@@ -645,17 +661,20 @@ class JobResponseSchemaTests(unittest.TestCase):
             'taskDefinition': 'test-task',
             'schedule': '*',
             'parsedSchedule': {'second': '*'},
-            'scheduleStart': datetime(2015, 10, 7, 13, 44, 53,
-                                      123456, timezone.utc),
-            'scheduleEnd': datetime(2015, 10, 10, 4, 10, 3,
-                                    654321, timezone.utc),
+            'scheduleStart': datetime(
+                2015, 10, 7, 13, 44, 53, 123456, timezone.utc
+            ),
+            'scheduleEnd': datetime(
+                2015, 10, 10, 4, 10, 3, 654321, timezone.utc
+            ),
             'lastRun': datetime(2015, 10, 8, 4, 2, 56, 777777, timezone.utc),
             'lastRunTasks': [
                 {'taskId': 'foo1', 'hostId': 'bar1'},
                 {'taskId': 'foo2', 'hostId': 'bar2'},
             ],
-            'estimatedNextRun': datetime(2015, 10, 12, 6, 12, 44,
-                                         980027, timezone.utc),
+            'estimatedNextRun': datetime(
+                2015, 10, 12, 6, 12, 44, 980027, timezone.utc
+            ),
             'taskCount': 5,
             'suspended': True,
             'trigger': {
@@ -698,11 +717,12 @@ class JobResponseSchemaTests(unittest.TestCase):
         schema = JobResponseSchema(link_gen)
         job_data = {
             'id': 'testid',
-            'lastRun': datetime(2015, 10, 8, 4, 2, 56,
-                                777777, timezone(timedelta(hours=12))),
-            'estimatedNextRun': datetime(2015, 10, 12,
-                                         6, 12, 44, 980027,
-                                         timezone(timedelta(hours=-4))),
+            'lastRun': datetime(
+                2015, 10, 8, 4, 2, 56, 777777, timezone(timedelta(hours=12))
+            ),
+            'estimatedNextRun': datetime(
+                2015, 10, 12, 6, 12, 44, 980027, timezone(timedelta(hours=-4))
+            ),
         }
 
         data, errors = schema.dump(job_data)

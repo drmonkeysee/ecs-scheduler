@@ -20,13 +20,16 @@ def require_json_content_type(verb):
     """
     @functools.wraps(verb)
     def ct_checker(*args, **kwargs):
-        return (verb(*args, **kwargs)
-                if flask.request.headers.get('Content-Type', '')
-                .startswith('application/json')
-                else ({
-                    'message': 'Header Content-Type: application/json'
-                               ' required to send a request body.',
-                }, 415))
+        return (
+            verb(*args, **kwargs)
+            if flask.request.headers.get('Content-Type', '').startswith(
+                'application/json'
+            )
+            else ({
+                'message': 'Header Content-Type: application/json'
+                           ' required to send a request body.',
+            }, 415)
+        )
     return ct_checker
 
 
@@ -50,10 +53,12 @@ def _post_operation(job_op, ops_queue, job_response):
         ops_queue.post(job_op)
     except Exception:
         _logger.exception('Exception when posting job operation to ops queue.')
-        flask_restful.abort(500,
-                            item=job_response,
-                            message='Job update was saved correctly but failed'
-                            ' to post update message to scheduler.')
+        flask_restful.abort(
+            500,
+            item=job_response,
+            message='Job update was saved correctly but failed'
+                    ' to post update message to scheduler.'
+        )
 
 
 _job_response_schema = JobResponseSchema(_job_link, strict=True)
@@ -106,8 +111,10 @@ class Jobs(flask_restful.Resource):
                 description: Server error
         """
         pagination = self._parse_pagination(flask.request.values)
-        jobs_page = islice(self._dc.get_all(), pagination.skip,
-                           pagination.skip + pagination.count)
+        jobs_page = islice(
+            self._dc.get_all(), pagination.skip,
+            pagination.skip + pagination.count
+        )
         result = {
             'jobs': [
                 _job_response_schema.dump(j.data).data
@@ -254,11 +261,13 @@ class Jobs(flask_restful.Resource):
         except InvalidJobData as ex:
             flask_restful.abort(400, messages=ex.errors)
         except JobAlreadyExists as ex:
-            flask_restful.abort(409,
-                                message=f'Job {ex.job_id} already exists.')
+            flask_restful.abort(
+                409, message=f'Job {ex.job_id} already exists.'
+            )
         web_response = _job_committed_response(new_job.id)
-        _post_operation(JobOperation.add(new_job.id), self._ops_queue,
-                        web_response)
+        _post_operation(
+            JobOperation.add(new_job.id), self._ops_queue, web_response
+        )
         return web_response, 201
 
     def _parse_pagination(self, data):
@@ -270,21 +279,27 @@ class Jobs(flask_restful.Resource):
 
     def _set_pagination(self, result, pagination, total):
         prev_link = self._pagination_link(
-            Pagination(pagination.skip - pagination.count,
-                       pagination.count, total))
+            Pagination(
+                pagination.skip - pagination.count, pagination.count, total
+            )
+        )
         if prev_link:
             result['prev'] = prev_link
         next_link = self._pagination_link(
-            Pagination(pagination.skip + pagination.count,
-                       pagination.count, total))
+            Pagination(
+                pagination.skip + pagination.count, pagination.count, total
+            )
+        )
         if next_link:
             result['next'] = next_link
 
     def _pagination_link(self, page_frame):
         values, e = self._pagination_schema.dump(page_frame)
-        return (flask.url_for(Jobs.__name__.lower(), **values)
-                if values
-                else None)
+        return (
+            flask.url_for(Jobs.__name__.lower(), **values)
+            if values
+            else None
+        )
 
 
 class Job(flask_restful.Resource):
@@ -426,8 +441,9 @@ class Job(flask_restful.Resource):
         except InvalidJobData as ex:
             flask_restful.abort(400, messages=ex.errors)
         web_response = _job_committed_response(job_id)
-        _post_operation(JobOperation.modify(job_id),
-                        self._ops_queue, web_response)
+        _post_operation(
+            JobOperation.modify(job_id), self._ops_queue, web_response
+        )
         return web_response
 
     def delete(self, job_id):
@@ -458,8 +474,9 @@ class Job(flask_restful.Resource):
         except JobNotFound:
             self._raise_job_notfound(job_id)
         web_response = {'id': job_id}
-        _post_operation(JobOperation.remove(job_id),
-                        self._ops_queue, web_response)
+        _post_operation(
+            JobOperation.remove(job_id), self._ops_queue, web_response
+        )
         return web_response
 
     def _raise_job_notfound(self, job_id):

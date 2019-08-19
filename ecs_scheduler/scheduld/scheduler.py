@@ -30,8 +30,9 @@ class Scheduler:
             'max_instances': 1,
             'misfire_grace_time': 60 * 60,  # 1 hour
         }
-        self._sched = BackgroundScheduler(timezone='UTC',
-                                          job_defaults=job_defaults)
+        self._sched = BackgroundScheduler(
+            timezone='UTC', job_defaults=job_defaults
+        )
         self._handler = ScheduleEventHandler(self._sched, datacontext)
         self._sched.add_listener(
             self._handler,
@@ -39,7 +40,8 @@ class Scheduler:
             | apscheduler.events.EVENT_JOB_MODIFIED
             | apscheduler.events.EVENT_JOB_EXECUTED
             | apscheduler.events.EVENT_JOB_ERROR
-            | apscheduler.events.EVENT_JOB_MISSED)
+            | apscheduler.events.EVENT_JOB_MISSED
+        )
 
     def start(self):
         """Start the scheduler."""
@@ -66,15 +68,18 @@ class Scheduler:
         :param job_op: The operation sent to this queue consumer
         :raises: RuntimeError if received an unknown job operation
         """
-        if (job_op.operation == JobOperation.ADD
-                or job_op.operation == JobOperation.MODIFY):
+        if (
+            job_op.operation == JobOperation.ADD
+            or job_op.operation == JobOperation.MODIFY
+        ):
             self._insert_job_from_id(job_op.job_id)
         elif job_op.operation == JobOperation.REMOVE:
             self._remove_job(job_op.job_id)
         else:
             raise RuntimeError(
                 f'Received unknown job operation {job_op.job_id}'
-                f' {{{job_op.operation}}}')
+                f' {{{job_op.operation}}}'
+            )
 
     def _insert_job_from_id(self, job_id):
         job = self._dc.get(job_id)
@@ -90,8 +95,9 @@ class Scheduler:
         # see: https://apscheduler.readthedocs.org/en/latest/modules/schedulers/base.html#apscheduler.schedulers.base.BaseScheduler.add_job
         if job.suspended:
             job_kwargs['next_run_time'] = None
-        self._sched.add_job(self._exec, 'cron', **job_kwargs,
-                            **self._build_trigger_kwargs(job))
+        self._sched.add_job(
+            self._exec, 'cron', **job_kwargs, **self._build_trigger_kwargs(job)
+        )
 
     def _build_trigger_kwargs(self, job):
         kwargs = job.parsed_schedule.copy()
@@ -140,8 +146,10 @@ class ScheduleEventHandler:
 
         :param event: The schedule event that was raised to this handler
         """
-        if (event.code == apscheduler.events.EVENT_JOB_ADDED
-                or event.code == apscheduler.events.EVENT_JOB_MODIFIED):
+        if (
+            event.code == apscheduler.events.EVENT_JOB_ADDED
+            or event.code == apscheduler.events.EVENT_JOB_MODIFIED
+        ):
             self._handle_update_event(event)
         elif event.code == apscheduler.events.EVENT_JOB_EXECUTED:
             self._handle_execute_event(event)
@@ -164,8 +172,10 @@ class ScheduleEventHandler:
                 'lastRunTasks': event.retval.task_info,
             })
         else:
-            _logger.warning('Unexpected job event return value for job %s: %s',
-                            event.job_id, event.retval.return_code)
+            _logger.warning(
+                'Unexpected job event return value for job %s: %s',
+                event.job_id, event.retval.return_code
+            )
 
     def _handle_error_event(self, event):
         if event.exception:
@@ -174,16 +184,21 @@ class ScheduleEventHandler:
             except Exception:
                 _logger.exception('Job %s failed with exception', event.job_id)
         else:
-            _logger.error('Job %s failed but no exception was recorded',
-                          event.job_id)
+            _logger.error(
+                'Job %s failed but no exception was recorded', event.job_id
+            )
 
     def _handle_missed_event(self, event):
-        _logger.error('Job %s was supposed to run at %s but was missed',
-                      event.job_id, event.scheduled_run_time)
+        _logger.error(
+            'Job %s was supposed to run at %s but was missed',
+            event.job_id, event.scheduled_run_time
+        )
 
     def _handle_unknown_event(self, event):
-        _logger.warning('Unexpected job event raised for job %s: %s',
-                        event.job_id, event.code)
+        _logger.warning(
+            'Unexpected job event raised for job %s: %s',
+            event.job_id, event.code
+        )
 
     def _update_job_doc(self, job_id, job_data=None):
         scheduled_job = self._sched.get_job(job_id)
@@ -191,7 +206,8 @@ class ScheduleEventHandler:
             _logger.warning(
                 'Job %s not found in scheduler'
                 ' from which to get updated stats',
-                job_id)
+                job_id
+            )
             return
 
         job_data = job_data if job_data else {}
@@ -202,13 +218,15 @@ class ScheduleEventHandler:
             try:
                 stored_job = self._dc.get(job_id)
             except JobNotFound:
-                _logger.warning('Stored job %s not found to update stats',
-                                job_id)
+                _logger.warning(
+                    'Stored job %s not found to update stats', job_id
+                )
                 return
             try:
                 stored_job.annotate(job_data)
             except Exception:
-                _logger.exception('Unable to annotate job stats for %s',
-                                  job_id)
+                _logger.exception(
+                    'Unable to annotate job stats for %s', job_id
+                )
         else:
             _logger.info('No job updates needed')

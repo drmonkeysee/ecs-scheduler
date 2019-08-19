@@ -17,7 +17,8 @@ def _validate_task_definition_name(value):
     if not re.match(r'[0-9A-Z_-]+$', value, re.I):
         raise marshmallow.ValidationError(
             'task definition names must contain only alphanumeric,'
-            ' underscore, and hyphen')
+            ' underscore, and hyphen'
+        )
 
 
 class TriggerSchema(marshmallow.Schema):
@@ -32,13 +33,15 @@ class TriggerSchema(marshmallow.Schema):
     type = marshmallow.fields.String(required=True)
     queueName = marshmallow.fields.String()
     messagesPerTask = marshmallow.fields.Integer(
-        validate=marshmallow.validate.Range(min=1))
+        validate=marshmallow.validate.Range(min=1)
+    )
 
     @marshmallow.validates_schema
     def validate_trigger(self, data):
         if data.get('type') == 'sqs' and 'queueName' not in data:
             raise marshmallow.ValidationError(
-                'sqs trigger type requires queueName field')
+                'sqs trigger type requires queueName field'
+            )
 
 
 class OverrideSchema(marshmallow.Schema):
@@ -71,20 +74,24 @@ class JobSchema(marshmallow.Schema):
     _WILD_CARD = '?'
 
     taskDefinition = marshmallow.fields.String(
-        validate=_validate_task_definition_name)
+        validate=_validate_task_definition_name
+    )
     schedule = marshmallow.fields.String()
     scheduleStart = marshmallow.fields.LocalDateTime()
     scheduleEnd = marshmallow.fields.LocalDateTime()
     timezone = marshmallow.fields.String()
     taskCount = marshmallow.fields.Integer(
-        validate=marshmallow.validate.Range(_MIN_TASKS, _MAX_TASKS))
+        validate=marshmallow.validate.Range(_MIN_TASKS, _MAX_TASKS)
+    )
     maxCount = marshmallow.fields.Integer(
-        validate=marshmallow.validate.Range(_MIN_TASKS, _MAX_TASKS))
+        validate=marshmallow.validate.Range(_MIN_TASKS, _MAX_TASKS)
+    )
     trigger = marshmallow.fields.Nested(TriggerSchema)
     suspended = marshmallow.fields.Boolean()
     parsedSchedule = marshmallow.fields.Raw(load_only=True)
     overrides = marshmallow.fields.List(
-        marshmallow.fields.Nested(OverrideSchema))
+        marshmallow.fields.Nested(OverrideSchema)
+    )
 
     @marshmallow.validates('parsedSchedule')
     def validate_parsed_schedule(self, value):
@@ -94,8 +101,8 @@ class JobSchema(marshmallow.Schema):
             apscheduler.triggers.cron.CronTrigger(**value)
         except ValueError as ex:
             raise marshmallow.ValidationError(
-                [f'Invalid schedule syntax: {error}' for error in ex.args]) \
-                from ex
+                [f'Invalid schedule syntax: {error}' for error in ex.args]
+            ) from ex
 
     @marshmallow.validates('timezone')
     def validate_timezone(self, value):
@@ -105,14 +112,16 @@ class JobSchema(marshmallow.Schema):
             apscheduler.triggers.cron.CronTrigger(timezone=value)
         except UnknownTimeZoneError:
             raise marshmallow.ValidationError(
-                f'Invalid timezone format: {value}')
+                f'Invalid timezone format: {value}'
+            )
 
     @marshmallow.pre_load
     def parse_schedule(self, data):
         schedule = data.get('schedule')
         if schedule:
             data['schedule'], data['parsedSchedule'] = self._parse_schedule(
-                schedule)
+                schedule
+            )
 
     def _parse_schedule(self, value):
         schedule_parts = value.split()
@@ -136,7 +145,8 @@ class JobSchema(marshmallow.Schema):
         return self._process_wildcards(
             zip(params[:3], [range(60), range(60), range(24)]),
             value,
-            schedule_args)
+            schedule_args
+        )
 
     def _process_wildcards(
         self, wc_params, schedule_expression, schedule_args
@@ -148,7 +158,8 @@ class JobSchema(marshmallow.Schema):
                 new_value = str(random.choice(wc_param[1]))
                 schedule_args[k] = new_value
                 schedule_expression = schedule_expression.replace(
-                    self._WILD_CARD, new_value, 1)
+                    self._WILD_CARD, new_value, 1
+                )
         return schedule_expression, schedule_args
 
 
@@ -160,14 +171,17 @@ class JobCreateSchema(JobSchema):
     """
     # use validate param instead of decorator to report 'taskDefinition'
     # as the invalid field instead of 'id'
-    id = marshmallow.fields.String(required=True,
-                                   validate=_validate_task_definition_name,
-                                   load_from='taskDefinition',
-                                   load_only=True)
+    id = marshmallow.fields.String(
+        required=True,
+        validate=_validate_task_definition_name,
+        load_from='taskDefinition',
+        load_only=True
+    )
     schedule = marshmallow.fields.String(required=True)
     taskCount = marshmallow.fields.Integer(
         missing=_MIN_TASKS,
-        validate=marshmallow.validate.Range(_MIN_TASKS, _MAX_TASKS))
+        validate=marshmallow.validate.Range(_MIN_TASKS, _MAX_TASKS)
+    )
 
 
 class JobResponseSchema(JobSchema):
@@ -184,7 +198,8 @@ class JobResponseSchema(JobSchema):
     link = marshmallow.fields.Method('link_generator', dump_only=True)
     lastRun = marshmallow.fields.LocalDateTime(dump_only=True)
     lastRunTasks = marshmallow.fields.List(
-        marshmallow.fields.Nested(TaskInfoSchema), dump_only=True)
+        marshmallow.fields.Nested(TaskInfoSchema), dump_only=True
+    )
     estimatedNextRun = marshmallow.fields.LocalDateTime(dump_only=True)
 
     def __init__(self, link_func, *args, **kwargs):
@@ -208,9 +223,11 @@ class PaginationSchema(marshmallow.Schema):
 
     @marshmallow.pre_dump
     def adjust_page_frame(self, obj):
-        if (obj.total <= 0
-                or (obj.skip + obj.count) <= 0
-                or obj.skip >= obj.total):
+        if (
+            obj.total <= 0
+            or (obj.skip + obj.count) <= 0
+            or obj.skip >= obj.total
+        ):
             return {}
         obj.skip = max(0, obj.skip)
 

@@ -36,10 +36,12 @@ def setup(app, ops_queue, datacontext):
 
     api.add_resource(Home, '/')
     api.add_resource(Spec, '/spec')
-    api.add_resource(Jobs, '/jobs',
-                     resource_class_args=(ops_queue, datacontext))
-    api.add_resource(Job, '/jobs/<job_id>',
-                     resource_class_args=(ops_queue, datacontext))
+    api.add_resource(
+        Jobs, '/jobs', resource_class_args=(ops_queue, datacontext)
+    )
+    api.add_resource(
+        Job, '/jobs/<job_id>', resource_class_args=(ops_queue, datacontext)
+    )
 
     app.after_request(_add_etag)
 
@@ -52,7 +54,8 @@ def _update_logger(app):
     try:
         file_handler = next(
             h for h in logging.getLogger().handlers
-            if isinstance(h, logging.handlers.RotatingFileHandler))
+            if isinstance(h, logging.handlers.RotatingFileHandler)
+        )
     except StopIteration:
         pass
     else:

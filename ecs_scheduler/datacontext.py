@@ -229,8 +229,9 @@ class Job:
         if errors:
             raise InvalidJobData(self.id, errors)
         try:
-            self._store.update(self.id,
-                               self._schema.dump(validated_fields).data)
+            self._store.update(
+                self.id, self._schema.dump(validated_fields).data
+            )
         except Exception as ex:
             raise JobPersistenceError(self.id) from ex
         self._update_data(validated_fields)

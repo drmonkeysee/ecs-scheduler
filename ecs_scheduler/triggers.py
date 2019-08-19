@@ -34,8 +34,9 @@ class NoOpTrigger:
         :param job_data: The job data dictionary
         :returns: The job's task count value
         """
-        return min(job_data.get('maxCount', float('inf')),
-                   job_data['taskCount'])
+        return min(
+            job_data.get('maxCount', float('inf')), job_data['taskCount']
+        )
 
 
 class SqsTrigger:
@@ -56,7 +57,8 @@ class SqsTrigger:
                   of the job
         """
         queue = self._sqs.get_queue_by_name(
-            QueueName=job_data['trigger']['queueName'])
+            QueueName=job_data['trigger']['queueName']
+        )
         message_count = int(queue.attributes['ApproximateNumberOfMessages'])
         if message_count > 0:
             return self._calculate_task_count(message_count, job_data)
@@ -64,8 +66,10 @@ class SqsTrigger:
 
     def _calculate_task_count(self, message_count, job_data):
         scaling_factor = job_data['trigger'].get('messagesPerTask')
-        scaled_task_count = (math.ceil(message_count / scaling_factor)
-                             if scaling_factor
-                             else 0)
+        scaled_task_count = (
+            math.ceil(message_count / scaling_factor)
+            if scaling_factor
+            else 0
+        )
         return min(job_data.get('maxCount', float('inf')),
                    max(scaled_task_count, job_data['taskCount']))
