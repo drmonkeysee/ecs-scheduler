@@ -61,7 +61,7 @@ def _post_operation(job_op, ops_queue, job_response):
         )
 
 
-_job_response_schema = JobResponseSchema(_job_link)
+_job_response_schema = JobResponseSchema(_job_link, strict=True)
 
 
 class Jobs(flask_restful.Resource):

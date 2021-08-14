@@ -77,8 +77,8 @@ class JobSchema(marshmallow.Schema):
         validate=_validate_task_definition_name
     )
     schedule = marshmallow.fields.String()
-    scheduleStart = marshmallow.fields.AwareDateTime()
-    scheduleEnd = marshmallow.fields.AwareDateTime()
+    scheduleStart = marshmallow.fields.LocalDateTime()
+    scheduleEnd = marshmallow.fields.LocalDateTime()
     timezone = marshmallow.fields.String()
     taskCount = marshmallow.fields.Integer(
         validate=marshmallow.validate.Range(_MIN_TASKS, _MAX_TASKS)
@@ -116,7 +116,7 @@ class JobSchema(marshmallow.Schema):
             )
 
     @marshmallow.pre_load
-    def parse_schedule(self, data, **kwargs):
+    def parse_schedule(self, data):
         schedule = data.get('schedule')
         if schedule:
             data['schedule'], data['parsedSchedule'] = self._parse_schedule(
@@ -196,11 +196,11 @@ class JobResponseSchema(JobSchema):
     # override id to include in dump output
     id = marshmallow.fields.String(dump_only=True)
     link = marshmallow.fields.Method('link_generator', dump_only=True)
-    lastRun = marshmallow.fields.AwareDateTime(dump_only=True)
+    lastRun = marshmallow.fields.LocalDateTime(dump_only=True)
     lastRunTasks = marshmallow.fields.List(
         marshmallow.fields.Nested(TaskInfoSchema), dump_only=True
     )
-    estimatedNextRun = marshmallow.fields.AwareDateTime(dump_only=True)
+    estimatedNextRun = marshmallow.fields.LocalDateTime(dump_only=True)
 
     def __init__(self, link_func, *args, **kwargs):
         self._link_func = link_func
