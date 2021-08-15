@@ -1,5 +1,11 @@
 # ECS Scheduler
 
+## NOTE (August 2021)
+
+ECS Scheduler was created in 2015 for a specific need we had when running much of our infrastructure on Amazon ECS and is no longer under active development. Since then, Amazon has advanced the ECS product to the point where it natively handles most or all of what this service does. In addition Lambda, Serverless, and other AWS products provide more powerful alternatives for running medium-to-heavy tasks. I would advise you to review your options among AWS's product offerings before using this service.
+
+## Summary
+
 A scheduler for executing Amazon ECS docker tasks, controlled via a JSON REST API.
 
 [Amazon ECS](http://docs.aws.amazon.com/AmazonECS/latest/developerguide/Welcome.html) makes it possible to manage and run docker containers on EC2 instances. An ECS task, consisting of one or more docker containers, can be run indefinitely as a service or can be launched manually as a standalone task.
@@ -21,9 +27,11 @@ The environment variables in the following examples are described in more detail
 
 ### Development
 
-Run `make check` and follow the displayed instructions. Once your development environment is set up `make check` will run the unit tests.
+Run `make check` to execute the unit tests.
 
 Run `make` or `make debug` to launch ECS Scheduler in debug mode.
+
+Either make target will set up a virtual environment automatically if it does not already exist.
 
 ### Docker and Deployment
 
