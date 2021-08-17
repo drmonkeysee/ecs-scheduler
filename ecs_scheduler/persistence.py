@@ -183,7 +183,7 @@ class SQLiteStore:
         return json.dumps(job_data, sort_keys=True)
 
     def _load_job_data(self, job_bytes):
-        return json.loads(job_bytes, encoding='utf-8')
+        return json.loads(job_bytes)
 
 
 class S3Store:
@@ -300,7 +300,7 @@ class S3Store:
 
     def _load_obj_contents(self, obj_handle):
         job_bytes = obj_handle.get()['Body'].read()
-        return json.loads(job_bytes, encoding=self._ENCODING)
+        return json.loads(job_bytes)
 
     def _store_obj(self, obj_handle, data):
         obj_handle.put(

@@ -6,12 +6,12 @@ ENV APP_DIR=/opt/ecs-scheduler
 WORKDIR $APP_DIR
 
 RUN apk update \
-	&& apk add python3 uwsgi uwsgi-python3 \
+	&& apk add python3 py3-pip uwsgi uwsgi-python3 \
 	&& rm -rf /var/cache/apk/*
 
 RUN pip3 install -U pip setuptools
 COPY requirements.txt $APP_DIR
-RUN pip3 install -r requirements.txt
+RUN pip3 install -r requirements.txt --ignore-installed six
 
 COPY config/cors-common.conf /etc/nginx/cors-common.conf
 COPY config/cors.conf /etc/nginx/cors.conf

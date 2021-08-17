@@ -11,22 +11,22 @@ from ecs_scheduler.datacontext import (
 from ecs_scheduler.webapi.jobs import Jobs, Job, require_json_content_type
 
 
-@patch('flask.request')
+@patch('ecs_scheduler.webapi.jobs.flask')
 class RequireJsonContentTypeTests(unittest.TestCase):
     @require_json_content_type
     def fake_verb(self):
         return 'fake verb + ' + type(self).__name__
 
-    def test_defers_to_verb_if_valid_header(self, fake_request):
-        fake_request.headers = {'Content-Type': 'application/json'}
+    def test_defers_to_verb_if_valid_header(self, fake_flask):
+        fake_flask.request.headers = {'Content-Type': 'application/json'}
 
         result = self.fake_verb()
 
         self.assertEqual('fake verb + RequireJsonContentTypeTests', result)
         self.assertIsNotNone(getattr(self.fake_verb, '__wrapped__', None))
 
-    def test_defers_to_verb_if_valid_header_with_more_info(self, fake_request):
-        fake_request.headers = {
+    def test_defers_to_verb_if_valid_header_with_more_info(self, fake_flask):
+        fake_flask.request.headers = {
             'Content-Type': 'application/json; charset=utf-8',
         }
 
@@ -35,8 +35,8 @@ class RequireJsonContentTypeTests(unittest.TestCase):
         self.assertEqual('fake verb + RequireJsonContentTypeTests', result)
         self.assertIsNotNone(getattr(self.fake_verb, '__wrapped__', None))
 
-    def test_returns_error_if_no_header(self, fake_request):
-        fake_request.headers = {}
+    def test_returns_error_if_no_header(self, fake_flask):
+        fake_flask.request.headers = {}
 
         result = self.fake_verb()
 
@@ -46,8 +46,8 @@ class RequireJsonContentTypeTests(unittest.TestCase):
             415,
         ), result)
 
-    def test_returns_error_if_invalid_header(self, fake_request):
-        fake_request.headers = {
+    def test_returns_error_if_invalid_header(self, fake_flask):
+        fake_flask.request.headers = {
             'Content-Type': 'application/x-www-form-urlencoded',
         }
 
@@ -60,27 +60,26 @@ class RequireJsonContentTypeTests(unittest.TestCase):
         ), result)
 
 
-@patch(
-    'flask.url_for',
-    side_effect=lambda *args, **kwargs: (
-        'foo/{}/{}'.format(args[0], kwargs['job_id'])
-        if 'job_id' in kwargs
-        else 'pageLink'
-    )
-)
-@patch('flask.request')
 class JobsTests(unittest.TestCase):
     def setUp(self):
         self._queue = Mock()
         self._dc = Mock()
         self._jobs = Jobs(self._queue, self._dc)
+        fp = patch('ecs_scheduler.webapi.jobs.flask')
+        self.addCleanup(fp.stop)
+        self._flask = fp.start()
+        self._flask.url_for.side_effect = lambda *args, **kwargs: (
+            'foo/{}/{}'.format(args[0], kwargs['job_id'])
+            if 'job_id' in kwargs
+            else 'pageLink'
+        )
 
-    def test_expected_verbs_are_decorated(self, fake_request, fake_url):
+    def test_expected_verbs_are_decorated(self):
         self.assertIsNone(getattr(self._jobs.get, '__wrapped__', None))
         self.assertIsNotNone(getattr(self._jobs.post, '__wrapped__', None))
 
-    def test_get_returns_all_jobs(self, fake_request, fake_url):
-        fake_request.values = {}
+    def test_get_returns_all_jobs(self):
+        self._flask.request.values = {}
         self._dc.get_all.return_value = [
             Mock(id='1', data={'id': '1'}),
             Mock(id='2', data={'id': '2'}),
@@ -119,8 +118,8 @@ class JobsTests(unittest.TestCase):
             ],
         }, response)
 
-    def test_get_returns_paginated_jobs(self, fake_request, fake_url):
-        fake_request.values = {'skip': 1, 'count': 2}
+    def test_get_returns_paginated_jobs(self):
+        self._flask.request.values = {'skip': 1, 'count': 2}
         self._dc.get_all.return_value = [
             Mock(id='1', data={'id': '1'}),
             Mock(id='2', data={'id': '2'}),
@@ -154,8 +153,8 @@ class JobsTests(unittest.TestCase):
             'next': 'pageLink',
         }, response)
 
-    def test_get_returns_no_jobs(self, fake_request, fake_url):
-        fake_request.values = {'skip': 4, 'count': 12}
+    def test_get_returns_no_jobs(self):
+        self._flask.request.values = {'skip': 4, 'count': 12}
         self._dc.get_all.return_value = []
         self._dc.total.return_value = 0
 
@@ -163,18 +162,17 @@ class JobsTests(unittest.TestCase):
 
         self.assertEqual({'jobs': []}, response)
 
-    def test_get_returns_bad_request_if_invalid_pagination(
-        self, fake_request, fake_url
-    ):
-        fake_request.values = {'skip': 'blah', 'count': 12}
+    def test_get_returns_bad_request_if_invalid_pagination(self):
+        self._flask.request.values = {'skip': 'blah', 'count': 12}
 
         with self.assertRaises(werkzeug.exceptions.BadRequest):
             self._jobs.get()
 
-    def test_post_returns_committed_response_if_success(
-        self, fake_request, fake_url
-    ):
-        fake_request.json = {'taskDefinition': 'foobar', 'schedule': '*'}
+    def test_post_returns_committed_response_if_success(self):
+        self._flask.request.json = {
+            'taskDefinition': 'foobar',
+            'schedule': '*',
+        }
         self._dc.create.return_value = Mock(id='foobar', data={'id': 'foobar'})
 
         response = self._jobs.post.__wrapped__(self._jobs)
@@ -201,9 +199,12 @@ class JobsTests(unittest.TestCase):
     @patch.object(logging.getLogger('ecs_scheduler.webapi.jobs'), 'exception')
     @patch('flask_restful.abort')
     def test_post_returns_committed_response_error_if_queue_throws(
-        self, fake_abort, fake_log, fake_request, fake_url
+        self, fake_abort, fake_log
     ):
-        fake_request.json = {'taskDefinition': 'foobar', 'schedule': '*'}
+        self._flask.request.json = {
+            'taskDefinition': 'foobar',
+            'schedule': '*',
+        }
         self._dc.create.return_value = Mock(id='foobar', data={'id': 'foobar'})
         self._queue.post.side_effect = Exception
 
@@ -226,43 +227,42 @@ class JobsTests(unittest.TestCase):
                     ' message to scheduler.'
         )
 
-    def test_post_returns_conflict_response_if_failure(
-        self, fake_request, fake_url
-    ):
-        fake_request.json = {'taskDefinition': 'foobar', 'schedule': '*'}
+    def test_post_returns_conflict_response_if_failure(self):
+        self._flask.request.json = {
+            'taskDefinition': 'foobar',
+            'schedule': '*',
+        }
         self._dc.create.side_effect = JobAlreadyExists('foobar')
 
         with self.assertRaises(werkzeug.exceptions.Conflict):
             self._jobs.post.__wrapped__(self._jobs)
 
-    def test_post_returns_bad_request_if_body_malformed(
-        self, fake_request, fake_url
-    ):
-        fake_request.json = {'taskDefinition': 'foobar'}
+    def test_post_returns_bad_request_if_body_malformed(self):
+        self._flask.request.json = {'taskDefinition': 'foobar'}
         self._dc.create.side_effect = InvalidJobData('foobar', {})
 
         with self.assertRaises(werkzeug.exceptions.BadRequest):
             self._jobs.post.__wrapped__(self._jobs)
 
 
-@patch(
-    'flask.url_for',
-    side_effect=lambda *args, **kwargs: (
-        'foo/{}/{}'.format(args[0], kwargs['job_id'])
-    )
-)
 class JobTests(unittest.TestCase):
     def setUp(self):
         self._queue = Mock()
         self._dc = Mock()
         self._job = Job(self._queue, self._dc)
+        fp = patch('ecs_scheduler.webapi.jobs.flask')
+        self.addCleanup(fp.stop)
+        self._flask = fp.start()
+        self._flask.url_for.side_effect = lambda *args, **kwargs: (
+            'foo/{}/{}'.format(args[0], kwargs['job_id'])
+        )
 
-    def test_expected_verbs_are_decorated(self, fake_url):
+    def test_expected_verbs_are_decorated(self):
         self.assertIsNone(getattr(self._job.get, '__wrapped__', None))
         self.assertIsNotNone(getattr(self._job.put, '__wrapped__', None))
         self.assertIsNone(getattr(self._job.delete, '__wrapped__', None))
 
-    def test_get_returns_found_job(self, fake_url):
+    def test_get_returns_found_job(self):
         self._dc.get.return_value = Mock(id='foobar', data={'id': 'foobar'})
 
         response = self._job.get('foobar')
@@ -277,7 +277,7 @@ class JobTests(unittest.TestCase):
             },
         }, response)
 
-    def test_get_returns_notfound(self, fake_url):
+    def test_get_returns_notfound(self):
         self._dc.get.side_effect = JobNotFound('foobar')
 
         with self.assertRaises(werkzeug.exceptions.NotFound):
@@ -285,11 +285,8 @@ class JobTests(unittest.TestCase):
 
         self._dc.get.assert_called_with('foobar')
 
-    @patch('flask.request')
-    def test_put_returns_committed_response_if_success(
-        self, fake_request, fake_url
-    ):
-        fake_request.json = {'taskCount': 30}
+    def test_put_returns_committed_response_if_success(self):
+        self._flask.request.json = {'taskCount': 30}
         update_job = Mock(id='foobar')
         self._dc.get.return_value = update_job
 
@@ -314,11 +311,10 @@ class JobTests(unittest.TestCase):
 
     @patch.object(logging.getLogger('ecs_scheduler.webapi.jobs'), 'exception')
     @patch('flask_restful.abort')
-    @patch('flask.request')
     def test_put_returns_committed_response_error_if_queue_throws(
-        self, fake_request, fake_abort, fake_url, fake_log
+        self, fake_abort, fake_log
     ):
-        fake_request.json = {'taskCount': 30}
+        self._flask.request.json = {'taskCount': 30}
         update_job = Mock(id='foobar')
         self._dc.get.return_value = update_job
         self._queue.post.side_effect = Exception
@@ -340,19 +336,15 @@ class JobTests(unittest.TestCase):
                     ' message to scheduler.'
         )
 
-    @patch('flask.request')
-    def test_put_returns_notfound(self, fake_request, fake_url):
-        fake_request.json = {'taskCount': 30}
+    def test_put_returns_notfound(self):
+        self._flask.request.json = {'taskCount': 30}
         self._dc.get.side_effect = JobNotFound('foobar')
 
         with self.assertRaises(werkzeug.exceptions.NotFound):
             self._job.put.__wrapped__(self._job, 'foobar')
 
-    @patch('flask.request')
-    def test_put_returns_bad_request_if_invalid_data(
-        self, fake_request, fake_url
-    ):
-        fake_request.json = {'taskCount': 'broken'}
+    def test_put_returns_bad_request_if_invalid_data(self):
+        self._flask.request.json = {'taskCount': 'broken'}
         update_job = Mock(id='foobar')
         self._dc.get.return_value = update_job
         update_job.update.side_effect = InvalidJobData('foobar', {})
@@ -360,7 +352,7 @@ class JobTests(unittest.TestCase):
         with self.assertRaises(werkzeug.exceptions.BadRequest):
             self._job.put.__wrapped__(self._job, 'foobar')
 
-    def test_delete_returns_job_id(self, fake_url):
+    def test_delete_returns_job_id(self):
         response = self._job.delete('foobar')
 
         self._dc.delete.assert_called_with('foobar')
@@ -375,9 +367,8 @@ class JobTests(unittest.TestCase):
 
     @patch.object(logging.getLogger('ecs_scheduler.webapi.jobs'), 'exception')
     @patch('flask_restful.abort')
-    @patch('flask.request')
     def test_delete_returns_committed_response_error_if_queue_throws(
-        self, fake_request, fake_abort, fake_url, fake_log
+        self, fake_abort, fake_log
     ):
         self._queue.post.side_effect = Exception
 
@@ -393,7 +384,7 @@ class JobTests(unittest.TestCase):
                     ' message to scheduler.'
         )
 
-    def test_delete_returns_notfound(self, fake_url):
+    def test_delete_returns_notfound(self):
         self._dc.delete.side_effect = JobNotFound('foobar')
 
         with self.assertRaises(werkzeug.exceptions.NotFound):
