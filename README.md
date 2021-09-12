@@ -18,7 +18,7 @@ ECS Scheduler is designed to be run as a standalone application rather than an i
 
 [boto3](https://boto3.amazonaws.com/v1/documentation/api/latest/index.html)) is the package used to communicate to AWS services. You will need AWS credentials to access, at a minimum, ECS. In addition boto3 clients require some basic configuration, such as the default AWS region. How to specify AWS credentials and configuration can be found in the [boto3 developer guide](https://boto3.amazonaws.com/v1/documentation/api/latest/guide/credentials.html#configuring-credentials).
 
-Specifically, all boto3 clients created in ecs-scheduler rely on passing credentials and configuration indirectly (i.e. all credential locations listed in the developer guide from point 3 on down). For local development it's easiest to use environment variables or home directory files; for production consult with your DevOps team, though the most robust approach is probably to rely on appropriate IAM roles.
+Specifically, all boto3 clients created in ecs-scheduler rely on passing credentials and configuration indirectly (i.e. all credential locations listed in the developer guide from point 3 on down). For local development it's easiest to use environment variables or home directory files; for production consult with your DevOps team, though the most robust approach is probably to rely on IAM roles.
 
 ### System Requirements
 
