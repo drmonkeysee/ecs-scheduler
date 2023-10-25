@@ -23,4 +23,4 @@ tzlocal==2.1
 urllib3==1.26.18
 uwsgidecorators==1.1.0
 uwsgitop==0.11
-Werkzeug==2.2.3
+Werkzeug==3.0.1
