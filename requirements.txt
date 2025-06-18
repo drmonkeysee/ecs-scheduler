@@ -20,7 +20,7 @@ s3transfer==0.6.0
 setuptools-scm==6.0.1
 six==1.16.0
 tzlocal==2.1
-urllib3==1.26.19
+urllib3==2.5.0
 uwsgidecorators==1.1.0
 uwsgitop==0.11
 Werkzeug==3.0.6
